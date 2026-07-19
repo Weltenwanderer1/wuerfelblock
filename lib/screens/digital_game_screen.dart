@@ -35,7 +35,12 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
 
   Future<void> _score(ScoreCategory category) async {
     if (widget.game.isBusy) return;
-    await dice.score(category);
+    try {
+      await dice.score(category);
+    } catch (_) {
+      _saveFailed();
+      return;
+    }
     if (!mounted) return;
     if (widget.game.state.isComplete) {
       Navigator.pushReplacement(
@@ -64,8 +69,61 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
       ),
     );
     if (confirmed != true) return;
-    await widget.game.abandon();
+    try {
+      await widget.game.abandon();
+    } catch (_) {
+      _saveFailed();
+      return;
+    }
     if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
+  }
+
+  Future<void> _roll() async {
+    try {
+      await dice.roll();
+    } catch (_) {
+      _saveFailed();
+      return;
+    }
+    if (!mounted || !dice.isExtraKniffel) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Zusatz-Kniffel!'),
+        content: const Text(
+          '+50 Punkte. Wähle ein freies Feld für die Höchstpunktzahl.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Feld wählen'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleHold(int index) async {
+    try {
+      await dice.toggleHold(index);
+    } catch (_) {
+      _saveFailed();
+    }
+  }
+
+  Future<void> _undo() async {
+    try {
+      await dice.undo();
+    } catch (_) {
+      _saveFailed();
+    }
+  }
+
+  void _saveFailed() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
   }
 
   @override
@@ -78,7 +136,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
         actions: [
           IconButton(
             onPressed: widget.game.canUndo && !widget.game.isBusy
-                ? dice.undo
+                ? _undo
                 : null,
             tooltip: 'Letzten Eintrag rückgängig',
             icon: const Icon(Icons.undo),
@@ -121,7 +179,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
                     ),
                   ),
                   Text(
-                    '${player.total} P.',
+                    '${state.totalFor(player)} P.',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
@@ -150,15 +208,13 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
                     value: dice.dice[index],
                     held: dice.held[index],
                     index: index,
-                    onTap: widget.game.isBusy
-                        ? null
-                        : () => dice.toggleHold(index),
+                    onTap: widget.game.isBusy ? null : () => _toggleHold(index),
                   ),
               ],
             ),
             const SizedBox(height: 18),
             FilledButton.icon(
-              onPressed: dice.canRoll && !widget.game.isBusy ? dice.roll : null,
+              onPressed: dice.canRoll && !widget.game.isBusy ? _roll : null,
               icon: const Icon(Icons.casino),
               label: Text(dice.hasRolled ? 'Noch einmal würfeln' : 'Würfeln'),
             ),
@@ -214,7 +270,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
               ),
             ],
             const SizedBox(height: 14),
-            TotalsCard(players: state.players),
+            TotalsCard(state: state),
           ],
         ),
       ),

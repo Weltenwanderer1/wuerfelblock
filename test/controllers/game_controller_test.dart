@@ -20,6 +20,19 @@ class _DelayedRepository extends MemoryGameRepository {
   }
 }
 
+class _FailingSaveRepository extends MemoryGameRepository {
+  @override
+  Future<void> save(GameState state) => Future.error(Exception('save failed'));
+}
+
+class _ToggleRepository extends MemoryGameRepository {
+  bool fail = false;
+
+  @override
+  Future<void> save(GameState state) =>
+      fail ? Future.error(Exception('save failed')) : super.save(state);
+}
+
 void main() {
   test('Wertung wechselt Spieler und Undo stellt Zustand wieder her', () async {
     final repository = MemoryGameRepository();
@@ -183,6 +196,7 @@ void main() {
       expect(state.dice, [1, 1, 1, 1, 1]);
       expect(state.held, everyElement(isFalse));
       expect(state.rollCount, 0);
+      expect(state.players.single.extraKniffel, 0);
 
       expect(
         () => GameState.fromJson({...legacy, 'currentPlayerIndex': 3}),
@@ -195,6 +209,129 @@ void main() {
         }),
         throwsFormatException,
       );
+      expect(
+        () => GameState.fromJson({
+          ...legacy,
+          'players': [
+            {
+              'name': 'Ada',
+              'scores': {'smallStraight': 17},
+            },
+          ],
+        }),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test('regelabhängiger Bonus fließt in Total ein', () {
+    final upper = {
+      ScoreCategory.ones: 3,
+      ScoreCategory.twos: 6,
+      ScoreCategory.threes: 9,
+      ScoreCategory.fours: 12,
+      ScoreCategory.fives: 15,
+      ScoreCategory.sixes: 18,
+    };
+    final yatzy = GameState(
+      ruleSet: RuleSet.yatzy,
+      mode: GameMode.block,
+      players: [Player(name: 'Ada', scores: upper)],
+    );
+    final kniffel = GameState(
+      ruleSet: RuleSet.kniffel,
+      mode: GameMode.block,
+      players: [Player(name: 'Ada', scores: upper)],
+    );
+    expect(yatzy.totalFor(yatzy.players.single), 113);
+    expect(kniffel.totalFor(kniffel.players.single), 98);
+  });
+
+  test(
+    'zweiter Kniffel gibt Zusatzbonus und Höchstwert im freien Feld',
+    () async {
+      final game = GameController(
+        state: GameState(
+          ruleSet: RuleSet.kniffel,
+          mode: GameMode.digital,
+          players: [
+            Player(name: 'Ada', scores: {ScoreCategory.yatzy: 50}),
+          ],
+          dice: [6, 6, 6, 6, 6],
+          rollCount: 1,
+        ),
+        repository: MemoryGameRepository(),
+      );
+      final dice = DiceController(game: game);
+
+      expect(dice.isExtraKniffel, isTrue);
+      expect(dice.suggestion(ScoreCategory.smallStraight), 30);
+      await dice.score(ScoreCategory.smallStraight);
+
+      expect(game.state.players.single.extraKniffel, 1);
+      expect(game.state.players.single.scores[ScoreCategory.smallStraight], 30);
+      expect(game.state.totalFor(game.state.players.single), 130);
+    },
+  );
+
+  test('extraKniffel JSON-Roundtrip und Legacy-Default', () {
+    final player = Player(name: 'Ada', extraKniffel: 2);
+    expect(Player.fromJson(player.toJson()).extraKniffel, 2);
+    expect(
+      Player.fromJson({
+        'name': 'Ada',
+        'scores': <String, dynamic>{},
+      }).extraKniffel,
+      0,
+    );
+  });
+
+  test('Save-Fehler bei Wertung rollt den gesamten Zustand zurück', () async {
+    final game = GameController(
+      state: GameState(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.digital,
+        players: [
+          Player(name: 'Ada'),
+          Player(name: 'Berta'),
+        ],
+        dice: [6, 6, 6, 6, 6],
+        held: [true, false, true, false, true],
+        rollCount: 2,
+      ),
+      repository: _FailingSaveRepository(),
+    );
+
+    await expectLater(
+      game.enterScore(ScoreCategory.sixes, 30),
+      throwsException,
+    );
+    expect(game.state.players.first.scores, isEmpty);
+    expect(game.state.currentPlayerIndex, 0);
+    expect(game.state.isComplete, isFalse);
+    expect(game.state.dice, [6, 6, 6, 6, 6]);
+    expect(game.state.held, [true, false, true, false, true]);
+    expect(game.state.rollCount, 2);
+    expect(game.canUndo, isFalse);
+  });
+
+  test(
+    'Save-Fehler bei Undo stellt Wertung und Undo-Möglichkeit wieder her',
+    () async {
+      final repository = _ToggleRepository();
+      final game = GameController.newGame(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.block,
+        names: ['Ada'],
+        repository: repository,
+      );
+      await game.enterScore(ScoreCategory.ones, 1);
+      repository.fail = true;
+
+      await expectLater(game.undo(), throwsException);
+
+      expect(game.state.players.single.scores, {ScoreCategory.ones: 1});
+      expect(game.canUndo, isTrue);
     },
   );
 }

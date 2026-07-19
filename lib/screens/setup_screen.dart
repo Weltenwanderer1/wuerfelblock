@@ -56,6 +56,17 @@ class _SetupScreenState extends State<SetupScreen> {
     );
   }
 
+  void removePlayer(int index) {
+    setState(() {
+      names.removeAt(index).dispose();
+      for (var playerIndex = 0; playerIndex < names.length; playerIndex++) {
+        if (RegExp(r'^Spieler \d+$').hasMatch(names[playerIndex].text)) {
+          names[playerIndex].text = 'Spieler ${playerIndex + 1}';
+        }
+      }
+    });
+  }
+
   Future<void> start() async {
     if (starting) return;
     setState(() {
@@ -176,8 +187,7 @@ class _SetupScreenState extends State<SetupScreen> {
                 prefixIcon: const Icon(Icons.person_outline),
                 suffixIcon: names.length > 1
                     ? IconButton(
-                        onPressed: () =>
-                            setState(() => names.removeAt(index).dispose()),
+                        onPressed: () => removePlayer(index),
                         icon: const Icon(Icons.close),
                         tooltip: 'Spieler entfernen',
                       )

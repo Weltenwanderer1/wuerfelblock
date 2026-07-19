@@ -17,7 +17,12 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   Future<void> _undo() async {
-    await widget.game.undo();
+    try {
+      await widget.game.undo();
+    } catch (_) {
+      _saveFailed();
+      return;
+    }
     if (!mounted || widget.game.state.isComplete) return;
     final screen = widget.game.state.mode == GameMode.block
         ? BlockGameScreen(game: widget.game)
@@ -29,8 +34,20 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Future<void> _home() async {
-    await widget.game.abandon();
+    try {
+      await widget.game.abandon();
+    } catch (_) {
+      _saveFailed();
+      return;
+    }
     if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
+  }
+
+  void _saveFailed() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
   }
 
   @override
@@ -61,12 +78,12 @@ class _ResultScreenState extends State<ResultScreen> {
                     Text(
                       tied
                           ? winners.map((player) => player.name).join(' & ')
-                          : '${winners.first.name} gewinnt mit ${winners.first.total} Punkten.',
+                          : '${winners.first.name} gewinnt mit ${widget.game.state.totalFor(winners.first)} Punkten.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 24),
-                    TotalsCard(players: widget.game.state.players),
+                    TotalsCard(state: widget.game.state),
                     const SizedBox(height: 20),
                     if (widget.game.canUndo) ...[
                       OutlinedButton.icon(

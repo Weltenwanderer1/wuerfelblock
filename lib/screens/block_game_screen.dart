@@ -41,7 +41,12 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
       ),
     );
     if (value == null) return;
-    await widget.game.enterScore(category, value, playerIndex: playerIndex);
+    try {
+      await widget.game.enterScore(category, value, playerIndex: playerIndex);
+    } catch (_) {
+      _saveFailed();
+      return;
+    }
     if (!mounted) return;
     if (widget.game.state.isComplete) {
       Navigator.pushReplacement(
@@ -70,8 +75,28 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
       ),
     );
     if (confirmed != true) return;
-    await widget.game.abandon();
+    try {
+      await widget.game.abandon();
+    } catch (_) {
+      _saveFailed();
+      return;
+    }
     if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
+  }
+
+  Future<void> _undo() async {
+    try {
+      await widget.game.undo();
+    } catch (_) {
+      _saveFailed();
+    }
+  }
+
+  void _saveFailed() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
   }
 
   @override
@@ -85,7 +110,7 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
         actions: [
           IconButton(
             onPressed: widget.game.canUndo && !widget.game.isBusy
-                ? widget.game.undo
+                ? _undo
                 : null,
             tooltip: 'Letzten Eintrag rückgängig',
             icon: const Icon(Icons.undo),
@@ -128,6 +153,8 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
                         for (final player in state.players)
                           Text(
                             player.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
@@ -192,14 +219,20 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
                     ),
                     _summaryRow(
                       'Bonus',
-                      [for (final player in state.players) player.bonus],
+                      [
+                        for (final player in state.players)
+                          state.bonusFor(player),
+                      ],
                       labelWidth,
                       cellWidth,
                       color: AppColors.apricot,
                     ),
                     _summaryRow(
                       'Gesamt',
-                      [for (final player in state.players) player.total],
+                      [
+                        for (final player in state.players)
+                          state.totalFor(player),
+                      ],
                       labelWidth,
                       cellWidth,
                       color: AppColors.plum,

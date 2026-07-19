@@ -4,8 +4,8 @@ import '../core/app_theme.dart';
 import '../models/game_models.dart';
 
 class TotalsCard extends StatelessWidget {
-  const TotalsCard({required this.players, super.key});
-  final List<Player> players;
+  const TotalsCard({required this.state, super.key});
+  final GameState state;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -16,7 +16,7 @@ class TotalsCard extends StatelessWidget {
         children: [
           Text('Gesamtstand', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
-          for (final player in players)
+          for (final player in state.players)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
@@ -24,6 +24,8 @@ class TotalsCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       player.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -31,7 +33,7 @@ class TotalsCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${player.total}',
+                    '${state.totalFor(player)}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,

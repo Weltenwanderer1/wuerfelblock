@@ -207,4 +207,87 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('Blockwertung zeigt bei Save-Fehler SnackBar', (tester) async {
+    final game = GameController.newGame(
+      ruleSet: RuleSet.kniffel,
+      mode: GameMode.block,
+      names: ['Ada'],
+      repository: _FailingRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
+    await tester.tap(find.byKey(const Key('score-ones-0')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('score-input')), '1');
+    await tester.tap(find.text('Speichern'));
+    await tester.pumpAndSettle();
+    expect(find.text('Speichern fehlgeschlagen'), findsOneWidget);
+    expect(game.state.players.single.scores, isEmpty);
+  });
+
+  testWidgets('Setup nummeriert Standardnamen nach Entfernen neu', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SetupScreen(
+          repository: MemoryGameRepository(),
+          onStarted: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('add-player')));
+    await tester.tap(find.byKey(const Key('add-player')));
+    await tester.pump();
+    final secondRemove = find.byTooltip('Spieler entfernen').at(1);
+    await tester.ensureVisible(secondRemove);
+    await tester.tap(secondRemove);
+    await tester.pump();
+    final fields = tester.widgetList<TextFormField>(find.byType(TextFormField));
+    expect(fields.map((field) => field.controller!.text), [
+      'Spieler 1',
+      'Spieler 2',
+    ]);
+  });
+
+  testWidgets('Digitaler Zusatz-Kniffel zeigt Hinweis und Höchstwerte', (
+    tester,
+  ) async {
+    final game = GameController(
+      state: GameState(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.digital,
+        players: [
+          Player(name: 'Ada', scores: {ScoreCategory.yatzy: 50}),
+        ],
+        dice: [6, 6, 6, 6, 6],
+        held: [true, true, true, true, true],
+        rollCount: 1,
+      ),
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: DigitalGameScreen(game: game)));
+    await tester.tap(find.text('Noch einmal würfeln'));
+    await tester.pumpAndSettle();
+    expect(find.text('Zusatz-Kniffel!'), findsOneWidget);
+    expect(find.textContaining('+50 Punkte'), findsOneWidget);
+    await tester.tap(find.text('Feld wählen'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Kleine Straße'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final smallStraight = find.widgetWithText(ListTile, 'Kleine Straße');
+    expect(
+      find.descendant(of: smallStraight, matching: find.text('30')),
+      findsOneWidget,
+    );
+  });
 }

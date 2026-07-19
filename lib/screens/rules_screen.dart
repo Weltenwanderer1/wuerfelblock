@@ -20,19 +20,19 @@ class RulesScreen extends StatelessWidget {
           title: 'Oberer Block',
           color: AppColors.rose,
           text:
-              'Addiere jeweils alle Einser bis Sechser. Ab 63 Punkten gibt es 35 Bonuspunkte.',
+              'Addiere jeweils alle Einser bis Sechser. Ab 63 Punkten gibt es bei Yatzy 50 Bonuspunkte, bei Kniffel 35.',
         ),
         _RuleCard(
           title: 'Kniffel',
           color: AppColors.lavender,
           text:
-              'Dreier- und Viererpasch zählen die Summe aller Würfel. Full House: 25, kleine Straße: 30, große Straße: 40, Kniffel: 50.',
+              'Dreier- und Viererpasch zählen die Summe aller Würfel. Full House: 25, kleine Straße: 30, große Straße: 40, Kniffel: 50. Jeder zweite und weitere Kniffel bringt 50 Zusatzpunkte; zusätzlich darf ein freies Feld mit seiner Höchstpunktzahl belegt werden.',
         ),
         _RuleCard(
           title: 'Yatzy klassisch',
           color: AppColors.lavender,
           text:
-              'Höchstes Paar; zwei verschiedene Paare; Pasche zählen nur passende Würfel. Straßen 1–5: 15 und 2–6: 20. Full House zählt die Würfelsumme, Yatzy 50.',
+              'Höchstes Paar; zwei verschiedene Paare – ein Viererpasch zählt nicht als zwei Paare. Pasche zählen nur passende Würfel. Straßen 1–5: 15 und 2–6: 20. Full House zählt die Würfelsumme, Yatzy 50. Im klassischen Yatzy gibt es keinen Zusatz-Yatzy-Bonus.',
         ),
       ],
     ),

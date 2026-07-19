@@ -5,10 +5,50 @@ import '../services/game_repository.dart';
 import '../services/scoring_engine.dart';
 
 class _ScoreUndo {
-  const _ScoreUndo(this.playerIndex, this.category, this.currentPlayerIndex);
+  const _ScoreUndo(
+    this.playerIndex,
+    this.category,
+    this.currentPlayerIndex,
+    this.previousExtraKniffel,
+  );
   final int playerIndex;
   final ScoreCategory category;
   final int currentPlayerIndex;
+  final int previousExtraKniffel;
+}
+
+class _StateSnapshot {
+  _StateSnapshot(GameState state, this.undo)
+    : scores = [for (final player in state.players) Map.of(player.scores)],
+      extraKniffels = [for (final player in state.players) player.extraKniffel],
+      currentPlayerIndex = state.currentPlayerIndex,
+      isComplete = state.isComplete,
+      dice = List.of(state.dice),
+      held = List.of(state.held),
+      rollCount = state.rollCount;
+
+  final List<Map<ScoreCategory, int>> scores;
+  final List<int> extraKniffels;
+  final int currentPlayerIndex;
+  final bool isComplete;
+  final List<int> dice;
+  final List<bool> held;
+  final int rollCount;
+  final _ScoreUndo? undo;
+
+  void restore(GameState state) {
+    for (var index = 0; index < state.players.length; index++) {
+      state.players[index].scores
+        ..clear()
+        ..addAll(scores[index]);
+      state.players[index].extraKniffel = extraKniffels[index];
+    }
+    state.currentPlayerIndex = currentPlayerIndex;
+    state.isComplete = isComplete;
+    state.dice.setAll(0, dice);
+    state.held.setAll(0, held);
+    state.rollCount = rollCount;
+  }
 }
 
 class GameController extends ChangeNotifier {
@@ -44,15 +84,43 @@ class GameController extends ChangeNotifier {
 
   List<Player> get winners {
     final best = state.players
-        .map((player) => player.total)
+        .map(state.totalFor)
         .reduce((a, b) => a > b ? a : b);
-    return state.players.where((player) => player.total == best).toList();
+    return state.players
+        .where((player) => state.totalFor(player) == best)
+        .toList();
   }
 
   Future<void> enterScore(
     ScoreCategory category,
     int value, {
     int? playerIndex,
+  }) => _enterScore(category, value, playerIndex: playerIndex);
+
+  Future<void> enterExtraKniffelScore(ScoreCategory category) {
+    if (state.ruleSet != RuleSet.kniffel || state.mode != GameMode.digital) {
+      throw StateError(
+        'Zusatz-Kniffel ist nur im digitalen Kniffel verfügbar.',
+      );
+    }
+    final player = state.currentPlayer;
+    if (player.scores[ScoreCategory.yatzy] != 50 ||
+        ScoringEngine.score(state.ruleSet, ScoreCategory.yatzy, state.dice) !=
+            50) {
+      throw StateError('Es liegt kein Zusatz-Kniffel vor.');
+    }
+    return _enterScore(
+      category,
+      category.maxScore(state.ruleSet),
+      extraKniffel: true,
+    );
+  }
+
+  Future<void> _enterScore(
+    ScoreCategory category,
+    int value, {
+    int? playerIndex,
+    bool extraKniffel = false,
   }) {
     if (_isBusy) return Future.value();
     final target = playerIndex ?? state.currentPlayerIndex;
@@ -69,8 +137,15 @@ class GameController extends ChangeNotifier {
       throw StateError('Kategorie wurde bereits gewertet.');
     }
     return _transaction(() async {
-      _undo = _ScoreUndo(target, category, state.currentPlayerIndex);
-      state.players[target].scores[category] = value;
+      final player = state.players[target];
+      _undo = _ScoreUndo(
+        target,
+        category,
+        state.currentPlayerIndex,
+        player.extraKniffel,
+      );
+      player.scores[category] = value;
+      if (extraKniffel) player.extraKniffel++;
       resetTurn();
       state.isComplete = state.players.every(
         (player) => player.scores.length == state.ruleSet.categories.length,
@@ -89,11 +164,22 @@ class GameController extends ChangeNotifier {
     final undo = _undo;
     if (undo == null) return;
     await _transaction(() async {
-      state.players[undo.playerIndex].scores.remove(undo.category);
+      final player = state.players[undo.playerIndex];
+      player.scores.remove(undo.category);
+      player.extraKniffel = undo.previousExtraKniffel;
       state.currentPlayerIndex = undo.currentPlayerIndex;
       state.isComplete = false;
       resetTurn();
       _undo = null;
+      notifyListeners();
+      await repository.save(state);
+    });
+  }
+
+  Future<void> mutateAndPersist(void Function() mutation) async {
+    if (_isBusy) return;
+    await _transaction(() async {
+      mutation();
       notifyListeners();
       await repository.save(state);
     });
@@ -113,10 +199,16 @@ class GameController extends ChangeNotifier {
   }
 
   Future<void> _transaction(Future<void> Function() operation) async {
+    final snapshot = _StateSnapshot(state, _undo);
     _isBusy = true;
     notifyListeners();
     try {
       await operation();
+    } catch (_) {
+      snapshot.restore(state);
+      _undo = snapshot.undo;
+      notifyListeners();
+      rethrow;
     } finally {
       _isBusy = false;
       notifyListeners();

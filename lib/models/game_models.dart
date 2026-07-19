@@ -1,3 +1,5 @@
+part 'score_rules.dart';
+
 enum RuleSet { yatzy, kniffel }
 
 enum GameMode { block, digital }
@@ -87,26 +89,29 @@ extension ScoreCategoryInfo on ScoreCategory {
 }
 
 class Player {
-  Player({required this.name, Map<ScoreCategory, int>? scores})
-    : scores = Map.of(scores ?? const {});
+  Player({
+    required this.name,
+    Map<ScoreCategory, int>? scores,
+    this.extraKniffel = 0,
+  }) : scores = Map.of(scores ?? const {});
   final String name;
   final Map<ScoreCategory, int> scores;
+  int extraKniffel;
 
   int get upperTotal => scores.entries
       .where((entry) => entry.key.isUpper)
       .fold(0, (sum, entry) => sum + entry.value);
-  int get bonus => upperTotal >= 63 ? 35 : 0;
-  int get total => scores.values.fold(0, (a, b) => a + b) + bonus;
-
   Map<String, dynamic> toJson() => {
     'name': name,
     'scores': {for (final entry in scores.entries) entry.key.name: entry.value},
+    'extraKniffel': extraKniffel,
   };
   factory Player.fromJson(Map<String, dynamic> json) => Player(
     name: json['name'] as String,
     scores: (json['scores'] as Map<String, dynamic>).map(
       (key, value) => MapEntry(ScoreCategory.values.byName(key), value as int),
     ),
+    extraKniffel: json['extraKniffel'] as int? ?? 0,
   );
 }
 
@@ -134,6 +139,11 @@ class GameState {
   int get completedEntries =>
       players.fold(0, (sum, player) => sum + player.scores.length);
   int get totalEntries => players.length * ruleSet.categories.length;
+  int bonusFor(Player player) => ScoreRules.bonus(ruleSet, player.upperTotal);
+  int totalFor(Player player) =>
+      player.scores.values.fold(0, (a, b) => a + b) +
+      bonusFor(player) +
+      player.extraKniffel * 50;
 
   Map<String, dynamic> toJson() => {
     'ruleSet': ruleSet.name,
@@ -183,10 +193,16 @@ class GameState {
         throw const FormatException('Ungültiger Würfelzustand.');
       }
       for (final player in players) {
+        if (player.extraKniffel < 0 ||
+            (ruleSet != RuleSet.kniffel && player.extraKniffel != 0)) {
+          throw const FormatException('Ungültiger Zusatz-Kniffel.');
+        }
         for (final entry in player.scores.entries) {
           if (!ruleSet.categories.contains(entry.key) ||
-              entry.value < 0 ||
-              entry.value > entry.key.maxScore(ruleSet)) {
+              !ScoreRules.allowedScores(
+                ruleSet,
+                entry.key,
+              ).contains(entry.value)) {
             throw const FormatException('Ungültige Wertung.');
           }
         }

@@ -145,8 +145,13 @@ void main() {
     });
   });
 
-  test('Bonus ist 35 ab 63 Punkten', () {
-    expect(ScoringEngine.bonus(62), 0);
-    expect(ScoringEngine.bonus(63), 35);
+  test('Yatzy-Bonus ist 50 ab 63 Punkten', () {
+    expect(ScoringEngine.bonus(RuleSet.yatzy, 62), 0);
+    expect(ScoringEngine.bonus(RuleSet.yatzy, 63), 50);
+  });
+
+  test('Kniffel-Bonus bleibt 35 ab 63 Punkten', () {
+    expect(ScoringEngine.bonus(RuleSet.kniffel, 62), 0);
+    expect(ScoringEngine.bonus(RuleSet.kniffel, 63), 35);
   });
 }
