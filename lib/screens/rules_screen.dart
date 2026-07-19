@@ -1,64 +1,110 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../models/game_models.dart';
+import '../models/rules_content.dart';
 
 class RulesScreen extends StatelessWidget {
-  const RulesScreen({super.key});
+  const RulesScreen({required this.ruleSet, super.key});
+
+  final RuleSet ruleSet;
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Regelhilfe')),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: const [
-        _RuleCard(
-          title: 'So wird gespielt',
-          color: AppColors.apricot,
-          text:
-              'Pro Zug darfst du bis zu dreimal würfeln. Nach jedem Wurf kannst du Würfel festhalten. Danach wird genau eine freie Kategorie gewertet – auch mit 0 Punkten zum Streichen.',
-        ),
-        _RuleCard(
-          title: 'Oberer Block',
-          color: AppColors.rose,
-          text:
-              'Addiere jeweils alle Einser bis Sechser. Ab 63 Punkten gibt es bei Yatzy 50 Bonuspunkte, bei Kniffel 35.',
-        ),
-        _RuleCard(
-          title: 'Kniffel',
-          color: AppColors.lavender,
-          text:
-              'Dreier- und Viererpasch zählen die Summe aller Würfel. Full House: 25, kleine Straße: 30, große Straße: 40, Kniffel: 50. Jeder zweite und weitere Kniffel bringt 50 Zusatzpunkte; zusätzlich darf ein freies Feld mit seiner Höchstpunktzahl belegt werden.',
-        ),
-        _RuleCard(
-          title: 'Yatzy klassisch',
-          color: AppColors.lavender,
-          text:
-              'Höchstes Paar; zwei verschiedene Paare – ein Viererpasch zählt nicht als zwei Paare. Pasche zählen nur passende Würfel. Straßen 1–5: 15 und 2–6: 20. Full House zählt die Würfelsumme, Yatzy 50. Im klassischen Yatzy gibt es keinen Zusatz-Yatzy-Bonus.',
+  Widget build(BuildContext context) {
+    final content = RulesContent.forRuleSet(ruleSet);
+    return Scaffold(
+      appBar: AppBar(title: Text(content.title)),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        children: [
+          _IntroBanner(ruleSet: ruleSet),
+          const SizedBox(height: 12),
+          for (final section in content.sections)
+            _RuleSectionCard(section: section),
+          Text('Kategorien', style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 8),
+          Text(
+            'Tippe im Spiel auf das Info-Symbol neben einer Kategorie, um diese Erklärung schnell wiederzufinden.',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 10),
+          for (final help in content.categories)
+            Card(
+              child: ExpansionTile(
+                title: Text(
+                  help.title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(help.explanation),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Beispiel: ${help.example}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+          if (content.extraKniffel case final extra?) ...[
+            const SizedBox(height: 10),
+            _RuleSectionCard(section: extra, accent: AppColors.apricot),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _IntroBanner extends StatelessWidget {
+  const _IntroBanner({required this.ruleSet});
+
+  final RuleSet ruleSet;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: const Color(0xFFE8EEF7),
+      border: Border.all(color: const Color(0xFF264F78), width: 1.5),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.casino_outlined, size: 38, color: Color(0xFF264F78)),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            '${ruleSet.label} einfach erklärt – vom ersten Wurf bis zur Endabrechnung.',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
         ),
       ],
     ),
   );
 }
 
-class _RuleCard extends StatelessWidget {
-  const _RuleCard({
-    required this.title,
-    required this.text,
-    required this.color,
-  });
-  final String title;
-  final String text;
-  final Color color;
+class _RuleSectionCard extends StatelessWidget {
+  const _RuleSectionCard({required this.section, this.accent});
+
+  final RuleSection section;
+  final Color? accent;
+
   @override
   Widget build(BuildContext context) => Card(
-    color: color,
+    margin: const EdgeInsets.only(bottom: 10),
+    shape: RoundedRectangleBorder(
+      side: BorderSide(color: accent ?? const Color(0xFF264F78), width: 1),
+      borderRadius: BorderRadius.circular(12),
+    ),
     child: Padding(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(text, style: Theme.of(context).textTheme.bodyLarge),
+          Text(section.title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 6),
+          Text(section.body, style: Theme.of(context).textTheme.bodyLarge),
         ],
       ),
     ),

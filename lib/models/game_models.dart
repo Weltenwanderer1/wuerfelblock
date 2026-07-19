@@ -1,3 +1,5 @@
+import 'saved_game_state.dart';
+
 part 'score_rules.dart';
 
 enum RuleSet { yatzy, kniffel }
@@ -115,7 +117,7 @@ class Player {
   );
 }
 
-class GameState {
+class GameState implements SavedGameState {
   GameState({
     required this.ruleSet,
     required this.mode,
@@ -129,8 +131,10 @@ class GameState {
        held = List.of(held ?? const [false, false, false, false, false]);
   final RuleSet ruleSet;
   final GameMode mode;
+  @override
   final List<Player> players;
   int currentPlayerIndex;
+  @override
   bool isComplete;
   final List<int> dice;
   final List<bool> held;
@@ -145,7 +149,16 @@ class GameState {
       bonusFor(player) +
       player.extraKniffel * 50;
 
+  @override
+  String get gameLabel => ruleSet.label;
+  @override
+  String get modeLabel => mode.label;
+  @override
+  String get progressLabel => '$completedEntries von $totalEntries Einträgen';
+
+  @override
   Map<String, dynamic> toJson() => {
+    'type': 'classic',
     'ruleSet': ruleSet.name,
     'mode': mode.name,
     'players': players.map((player) => player.toJson()).toList(),

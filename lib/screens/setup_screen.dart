@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_theme.dart';
 import '../controllers/game_controller.dart';
+import '../controllers/qwixx_controller.dart';
+import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../services/game_repository.dart';
+
+enum ScoreblockGame { yatzy, kniffel, qwixx }
+
+extension on ScoreblockGame {
+  String get label => switch (this) {
+    ScoreblockGame.yatzy => 'Yatzy',
+    ScoreblockGame.kniffel => 'Kniffel',
+    ScoreblockGame.qwixx => 'Qwixx',
+  };
+
+  String get detail => switch (this) {
+    ScoreblockGame.yatzy => 'Klassisch skandinavisch',
+    ScoreblockGame.kniffel => 'Schmidt-Regeln',
+    ScoreblockGame.qwixx => 'Farbreihen mit echten Würfeln',
+  };
+}
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({
@@ -12,13 +29,14 @@ class SetupScreen extends StatefulWidget {
     super.key,
   });
   final GameRepository repository;
-  final ValueChanged<GameController> onStarted;
+  final ValueChanged<Object> onStarted;
+
   @override
   State<SetupScreen> createState() => _SetupScreenState();
 }
 
 class _SetupScreenState extends State<SetupScreen> {
-  RuleSet rules = RuleSet.yatzy;
+  ScoreblockGame game = ScoreblockGame.yatzy;
   GameMode mode = GameMode.block;
   final List<TextEditingController> names = [
     TextEditingController(text: 'Spieler 1'),
@@ -26,17 +44,21 @@ class _SetupScreenState extends State<SetupScreen> {
   bool starting = false;
   String? startError;
 
-  bool get valid {
-    final values = names.map((controller) => controller.text.trim()).toList();
-    return values.every((name) => name.isNotEmpty) &&
-        values.toSet().length == values.length;
-  }
+  bool get isQwixx => game == ScoreblockGame.qwixx;
+  int get minimumPlayers => game == ScoreblockGame.yatzy ? 1 : 2;
+  int get maximumPlayers => isQwixx ? 5 : 8;
+
+  List<String> get cleanedNames =>
+      names.map((controller) => controller.text.trim()).toList();
+
+  bool get valid =>
+      names.length >= minimumPlayers &&
+      names.length <= maximumPlayers &&
+      cleanedNames.every((name) => name.isNotEmpty) &&
+      cleanedNames.toSet().length == names.length;
 
   bool get duplicate {
-    final values = names
-        .map((controller) => controller.text.trim())
-        .where((name) => name.isNotEmpty)
-        .toList();
+    final values = cleanedNames.where((name) => name.isNotEmpty).toList();
     return values.toSet().length != values.length;
   }
 
@@ -48,8 +70,23 @@ class _SetupScreenState extends State<SetupScreen> {
     super.dispose();
   }
 
+  void selectGame(ScoreblockGame selected) {
+    setState(() {
+      game = selected;
+      if (isQwixx) {
+        mode = GameMode.block;
+        while (names.length > 5) {
+          names.removeLast().dispose();
+        }
+      }
+      while (names.length < minimumPlayers) {
+        names.add(TextEditingController(text: 'Spieler ${names.length + 1}'));
+      }
+    });
+  }
+
   void addPlayer() {
-    if (names.length == 8) return;
+    if (names.length == maximumPlayers) return;
     setState(
       () =>
           names.add(TextEditingController(text: 'Spieler ${names.length + 1}')),
@@ -57,6 +94,7 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   void removePlayer(int index) {
+    if (names.length <= minimumPlayers) return;
     setState(() {
       names.removeAt(index).dispose();
       for (var playerIndex = 0; playerIndex < names.length; playerIndex++) {
@@ -68,20 +106,31 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   Future<void> start() async {
-    if (starting) return;
+    if (starting || !valid) return;
     setState(() {
       starting = true;
       startError = null;
     });
-    final game = GameController.newGame(
-      ruleSet: rules,
-      mode: mode,
-      names: names.map((controller) => controller.text.trim()).toList(),
-      repository: widget.repository,
-    );
+    final Object controller = isQwixx
+        ? QwixxController.newGame(
+            names: cleanedNames,
+            repository: widget.repository,
+          )
+        : GameController.newGame(
+            ruleSet: game == ScoreblockGame.yatzy
+                ? RuleSet.yatzy
+                : RuleSet.kniffel,
+            mode: mode,
+            names: cleanedNames,
+            repository: widget.repository,
+          );
     try {
-      await widget.repository.save(game.state);
-      if (mounted) widget.onStarted(game);
+      await widget.repository.save(switch (controller) {
+        QwixxController() => controller.state,
+        GameController() => controller.state,
+        _ => throw StateError('Unbekannter Controller.'),
+      });
+      if (mounted) widget.onStarted(controller);
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -123,58 +172,62 @@ class _SetupScreenState extends State<SetupScreen> {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Regelwerk', style: Theme.of(context).textTheme.titleLarge),
+        Text('Spiel', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 10),
-        Row(
+        Wrap(
           children: [
-            for (final item in RuleSet.values)
-              Expanded(
+            for (final item in ScoreblockGame.values)
+              SizedBox(
+                width: 180,
                 child: _ChoiceCard(
                   label: item.label,
-                  detail: item == RuleSet.yatzy
-                      ? 'Klassisch skandinavisch'
-                      : 'Schmidt-Regeln',
-                  selected: rules == item,
-                  onTap: () => setState(() => rules = item),
+                  detail: item.detail,
+                  selected: game == item,
+                  onTap: () => selectGame(item),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 22),
-        Text('Spielart', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            for (final item in GameMode.values)
-              Expanded(
-                child: _ChoiceCard(
-                  label: item.label,
-                  detail: item == GameMode.block
-                      ? 'App als Scoreblock'
-                      : 'Würfel auf dem Handy',
-                  selected: mode == item,
-                  onTap: () => setState(() => mode = item),
+        if (!isQwixx) ...[
+          const SizedBox(height: 22),
+          Text('Spielart', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (final item in GameMode.values)
+                Expanded(
+                  child: _ChoiceCard(
+                    label: item.label,
+                    detail: item == GameMode.block
+                        ? 'App als Scoreblock'
+                        : 'Würfel auf dem Handy',
+                    selected: mode == item,
+                    onTap: () => setState(() => mode = item),
+                  ),
                 ),
-              ),
-          ],
-        ),
+            ],
+          ),
+        ],
         const SizedBox(height: 22),
         Row(
           children: [
             Expanded(
               child: Text(
-                'Spieler (${names.length}/8)',
+                'Spieler (${names.length}/$maximumPlayers)',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
             IconButton(
               key: const Key('add-player'),
               tooltip: 'Spieler hinzufügen',
-              onPressed: names.length < 8 ? addPlayer : null,
+              onPressed: names.length < maximumPlayers ? addPlayer : null,
               icon: const Icon(Icons.person_add_alt_1),
             ),
           ],
         ),
+        if (isQwixx) const Text('Qwixx wird mit 2 bis 5 Personen gespielt.'),
+        if (game == ScoreblockGame.kniffel)
+          const Text('Kniffel wird mit 2 bis 8 Personen gespielt.'),
         for (var index = 0; index < names.length; index++)
           Padding(
             padding: const EdgeInsets.only(top: 10),
@@ -185,7 +238,7 @@ class _SetupScreenState extends State<SetupScreen> {
               decoration: InputDecoration(
                 labelText: 'Name Spieler ${index + 1}',
                 prefixIcon: const Icon(Icons.person_outline),
-                suffixIcon: names.length > 1
+                suffixIcon: names.length > minimumPlayers
                     ? IconButton(
                         onPressed: () => removePlayer(index),
                         icon: const Icon(Icons.close),
@@ -212,6 +265,7 @@ class _ChoiceCard extends StatelessWidget {
   final String detail;
   final bool selected;
   final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) => Card(
     margin: const EdgeInsets.all(5),

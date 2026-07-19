@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/app.dart';
 import 'package:wuerfelblock/controllers/game_controller.dart';
 import 'package:wuerfelblock/models/game_models.dart';
+import 'package:wuerfelblock/models/saved_game_state.dart';
 import 'package:wuerfelblock/screens/block_game_screen.dart';
 import 'package:wuerfelblock/screens/digital_game_screen.dart';
 import 'package:wuerfelblock/screens/result_screen.dart';
@@ -11,7 +12,7 @@ import 'package:wuerfelblock/services/game_repository.dart';
 
 class _FailingRepository extends MemoryGameRepository {
   @override
-  Future<void> save(GameState state) =>
+  Future<void> save(SavedGameState state) =>
       Future.error(Exception('Speicher voll'));
 }
 
@@ -23,7 +24,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Würfelblock'), findsWidgets);
     expect(find.text('Neue Partie'), findsOneWidget);
-    expect(find.text('Regelhilfe'), findsOneWidget);
+    expect(find.text('Yatzy-Regeln'), findsOneWidget);
+    expect(find.text('Kniffel-Regeln'), findsOneWidget);
   });
 
   testWidgets('Setup verlangt eindeutige, nicht leere Namen', (tester) async {
@@ -34,7 +36,9 @@ void main() {
     await tester.tap(find.text('Neue Partie'));
     await tester.pumpAndSettle();
     expect(find.text('Partie starten'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('add-player')));
+    final addPlayer = find.byKey(const Key('add-player'));
+    await tester.ensureVisible(addPlayer);
+    await tester.tap(addPlayer);
     await tester.pump();
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(1), 'Spieler 1');
@@ -50,7 +54,7 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,
       mode: GameMode.block,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: MemoryGameRepository(),
     );
     await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
@@ -69,7 +73,7 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.yatzy,
       mode: GameMode.digital,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: MemoryGameRepository(),
     );
     await tester.pumpWidget(MaterialApp(home: DigitalGameScreen(game: game)));
@@ -88,7 +92,7 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,
       mode: GameMode.block,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: MemoryGameRepository(),
     );
     await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
@@ -174,11 +178,12 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,
       mode: GameMode.block,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: MemoryGameRepository(),
     );
     for (final category in RuleSet.kniffel.categories) {
-      await game.enterScore(category, 0);
+      await game.enterScore(category, 0, playerIndex: 0);
+      await game.enterScore(category, 0, playerIndex: 1);
     }
     await tester.pumpWidget(MaterialApp(home: ResultScreen(game: game)));
     await tester.tap(find.text('Letzten Eintrag rückgängig'));
@@ -193,7 +198,7 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,
       mode: GameMode.block,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: MemoryGameRepository(),
     );
     await game.enterScore(ScoreCategory.ones, 3);
@@ -212,7 +217,7 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,
       mode: GameMode.block,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: _FailingRepository(),
     );
     await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
@@ -222,7 +227,7 @@ void main() {
     await tester.tap(find.text('Speichern'));
     await tester.pumpAndSettle();
     expect(find.text('Speichern fehlgeschlagen'), findsOneWidget);
-    expect(game.state.players.single.scores, isEmpty);
+    expect(game.state.players.first.scores, isEmpty);
   });
 
   testWidgets('Setup nummeriert Standardnamen nach Entfernen neu', (
@@ -254,6 +259,102 @@ void main() {
       'Spieler 1',
       'Spieler 2',
     ]);
+  });
+
+  testWidgets('Kniffel setup automatically requires two players', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SetupScreen(
+          repository: MemoryGameRepository(),
+          onStarted: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('Kniffel'));
+    await tester.pump();
+
+    expect(find.byType(TextFormField), findsNWidgets(2));
+    expect(
+      find.text('Kniffel wird mit 2 bis 8 Personen gespielt.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Block Zusatz-Kniffel confirms player, category and scoring', (
+    tester,
+  ) async {
+    final game = GameController(
+      state: GameState(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.block,
+        players: [
+          Player(name: 'Ada', scores: {ScoreCategory.yatzy: 50}),
+          Player(name: 'Berta'),
+        ],
+      ),
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
+
+    final action = find.byKey(const Key('block-extra-kniffel'));
+    expect(action, findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Zusatz-Kniffel im Scoreblock eintragen'),
+      findsOneWidget,
+    );
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(find.text('Zusatz-Kniffel bestätigen'), findsOneWidget);
+    expect(find.textContaining('+50 Zusatzpunkte'), findsOneWidget);
+    expect(find.textContaining('Höchstpunktzahl'), findsOneWidget);
+    expect(find.text('Ada'), findsWidgets);
+
+    await tester.tap(find.text('Eintragen'));
+    await tester.pumpAndSettle();
+    expect(game.state.players.first.extraKniffel, 1);
+    expect(game.state.players.first.scores[ScoreCategory.ones], 5);
+  });
+
+  testWidgets('Block Zusatz-Kniffel öffnet Ergebnis beim letzten Feld', (
+    tester,
+  ) async {
+    final adaScores = <ScoreCategory, int>{
+      for (final category in RuleSet.kniffel.categories)
+        category: category == ScoreCategory.yatzy ? 50 : 0,
+    }..remove(ScoreCategory.ones);
+    final game = GameController(
+      state: GameState(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.block,
+        players: [
+          Player(name: 'Ada', scores: adaScores),
+          Player(
+            name: 'Berta',
+            scores: {
+              for (final category in RuleSet.kniffel.categories) category: 0,
+            },
+          ),
+        ],
+      ),
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
+
+    await tester.tap(find.byKey(const Key('block-extra-kniffel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Eintragen'));
+    await tester.pumpAndSettle();
+
+    expect(game.state.isComplete, isTrue);
+    expect(find.byType(ResultScreen), findsOneWidget);
   });
 
   testWidgets('Digitaler Zusatz-Kniffel zeigt Hinweis und Höchstwerte', (

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/controllers/dice_controller.dart';
 import 'package:wuerfelblock/controllers/game_controller.dart';
 import 'package:wuerfelblock/models/game_models.dart';
+import 'package:wuerfelblock/models/saved_game_state.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
 class _DelayedRepository extends MemoryGameRepository {
@@ -11,7 +12,7 @@ class _DelayedRepository extends MemoryGameRepository {
   int saveCalls = 0;
 
   @override
-  Future<void> save(GameState state) async {
+  Future<void> save(SavedGameState state) async {
     saveCalls++;
     final completer = Completer<void>();
     pending.add(completer);
@@ -22,18 +23,128 @@ class _DelayedRepository extends MemoryGameRepository {
 
 class _FailingSaveRepository extends MemoryGameRepository {
   @override
-  Future<void> save(GameState state) => Future.error(Exception('save failed'));
+  Future<void> save(SavedGameState state) =>
+      Future.error(Exception('save failed'));
 }
 
 class _ToggleRepository extends MemoryGameRepository {
   bool fail = false;
 
   @override
-  Future<void> save(GameState state) =>
+  Future<void> save(SavedGameState state) =>
       fail ? Future.error(Exception('save failed')) : super.save(state);
 }
 
 void main() {
+  test('new Kniffel games require 2 to 8 players', () {
+    expect(
+      () => GameController.newGame(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.block,
+        names: ['Ada'],
+        repository: MemoryGameRepository(),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      GameController.newGame(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.block,
+        names: ['Ada', 'Berta'],
+        repository: MemoryGameRepository(),
+      ).state.players,
+      hasLength(2),
+    );
+    expect(
+      GameController.newGame(
+        ruleSet: RuleSet.yatzy,
+        mode: GameMode.block,
+        names: ['Ada'],
+        repository: MemoryGameRepository(),
+      ).state.players,
+      hasLength(1),
+    );
+  });
+
+  group('physical block Zusatz-Kniffel', () {
+    GameController game({GameRepository? repository, int firstKniffel = 50}) =>
+        GameController(
+          state: GameState(
+            ruleSet: RuleSet.kniffel,
+            mode: GameMode.block,
+            players: [
+              Player(name: 'Ada', scores: {ScoreCategory.yatzy: firstKniffel}),
+              Player(name: 'Berta'),
+            ],
+          ),
+          repository: repository ?? MemoryGameRepository(),
+        );
+
+    test('adds 50 bonus and category maximum for chosen player', () async {
+      final controller = game();
+      await controller.enterBlockExtraKniffelScore(
+        ScoreCategory.smallStraight,
+        playerIndex: 0,
+      );
+      expect(controller.state.players.first.extraKniffel, 1);
+      expect(
+        controller.state.players.first.scores[ScoreCategory.smallStraight],
+        30,
+      );
+    });
+
+    test('rejects without first Kniffel and rejects occupied target', () async {
+      final noFirst = game(firstKniffel: 0);
+      expect(
+        () => noFirst.enterBlockExtraKniffelScore(
+          ScoreCategory.ones,
+          playerIndex: 0,
+        ),
+        throwsStateError,
+      );
+      final occupied = game();
+      occupied.state.players.first.scores[ScoreCategory.ones] = 3;
+      expect(
+        () => occupied.enterBlockExtraKniffelScore(
+          ScoreCategory.ones,
+          playerIndex: 0,
+        ),
+        throwsStateError,
+      );
+    });
+
+    test('undo removes both category score and bonus', () async {
+      final controller = game();
+      await controller.enterBlockExtraKniffelScore(
+        ScoreCategory.ones,
+        playerIndex: 0,
+      );
+      await controller.undo();
+      expect(controller.state.players.first.extraKniffel, 0);
+      expect(
+        controller.state.players.first.scores.containsKey(ScoreCategory.ones),
+        isFalse,
+      );
+    });
+
+    test('save failure rolls back both category score and bonus', () async {
+      final controller = game(repository: _FailingSaveRepository());
+      await expectLater(
+        controller.enterBlockExtraKniffelScore(
+          ScoreCategory.ones,
+          playerIndex: 0,
+        ),
+        throwsException,
+      );
+      expect(controller.state.players.first.extraKniffel, 0);
+      expect(
+        controller.state.players.first.scores.containsKey(ScoreCategory.ones),
+        isFalse,
+      );
+      expect(controller.canUndo, isFalse);
+    });
+  });
+
   test('Wertung wechselt Spieler und Undo stellt Zustand wieder her', () async {
     final repository = MemoryGameRepository();
     final game = GameController.newGame(
@@ -70,7 +181,7 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,
       mode: GameMode.digital,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: MemoryGameRepository(),
     );
     var next = 0;
@@ -106,7 +217,7 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,
       mode: GameMode.digital,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: repository,
     );
     var next = 0;
@@ -115,8 +226,8 @@ void main() {
     await dice.roll();
     await dice.toggleHold(0);
 
-    final restored = await repository.load();
-    expect(restored!.rollCount, 1);
+    final restored = await repository.load() as GameState;
+    expect(restored.rollCount, 1);
     expect(restored.dice, dice.dice);
     expect(restored.held, [true, false, false, false, false]);
     final restoredDice = DiceController(
@@ -153,7 +264,7 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,
       mode: GameMode.digital,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: repository,
     );
 
@@ -170,7 +281,7 @@ void main() {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,
       mode: GameMode.block,
-      names: ['Ada'],
+      names: ['Ada', 'Berta'],
       repository: MemoryGameRepository(),
     );
     expect(
@@ -322,7 +433,7 @@ void main() {
       final game = GameController.newGame(
         ruleSet: RuleSet.kniffel,
         mode: GameMode.block,
-        names: ['Ada'],
+        names: ['Ada', 'Berta'],
         repository: repository,
       );
       await game.enterScore(ScoreCategory.ones, 1);
@@ -330,7 +441,7 @@ void main() {
 
       await expectLater(game.undo(), throwsException);
 
-      expect(game.state.players.single.scores, {ScoreCategory.ones: 1});
+      expect(game.state.players.first.scores, {ScoreCategory.ones: 1});
       expect(game.canUndo, isTrue);
     },
   );

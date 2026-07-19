@@ -1,0 +1,135 @@
+import 'package:flutter/material.dart';
+
+import '../controllers/qwixx_controller.dart';
+import '../models/qwixx_models.dart';
+import 'qwixx_game_screen.dart';
+
+class QwixxResultScreen extends StatefulWidget {
+  const QwixxResultScreen({required this.game, super.key});
+  final QwixxController game;
+
+  @override
+  State<QwixxResultScreen> createState() => _QwixxResultScreenState();
+}
+
+class _QwixxResultScreenState extends State<QwixxResultScreen> {
+  QwixxController get game => widget.game;
+
+  Future<void> _undo() async {
+    try {
+      await game.undo();
+      if (mounted) {
+        await Navigator.pushReplacement<void, void>(
+          context,
+          MaterialPageRoute(builder: (_) => QwixxGameScreen(game: game)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speichern fehlgeschlagen')),
+        );
+      }
+    }
+  }
+
+  Future<void> _finish() async {
+    try {
+      await game.abandon();
+      if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speichern fehlgeschlagen')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final winners = game.winners;
+    final title = winners.length == 1
+        ? '${winners.single.name} gewinnt!'
+        : 'Gleichstand: ${winners.map((player) => player.name).join(', ')}';
+    return PopScope<void>(
+      canPop: false,
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: const Text('Qwixx-Ergebnis'),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            const Icon(Icons.emoji_events, size: 72, color: Color(0xFFF2B705)),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 18),
+            for (final player in [
+              ...game.state.players,
+            ]..sort((a, b) => b.total.compareTo(a.total)))
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        player.name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 14,
+                        children: [
+                          for (final color in QwixxColor.values)
+                            Text('${color.label}: ${player.rowScore(color)}'),
+                          Text('Fehlwürfe: ${player.missPenalty}'),
+                        ],
+                      ),
+                      const Divider(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Gesamt',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          Text(
+                            '${player.total}',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: game.canUndo ? _undo : null,
+              icon: const Icon(Icons.undo),
+              label: const Text('Letzte Änderung rückgängig'),
+            ),
+            FilledButton(
+              onPressed: _finish,
+              child: const Text('Zur Startseite'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

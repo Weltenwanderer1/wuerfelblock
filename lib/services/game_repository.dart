@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/game_models.dart';
+import '../models/qwixx_models.dart';
+import '../models/saved_game_state.dart';
 
 abstract class GameRepository {
-  Future<void> save(GameState state);
-  Future<GameState?> load();
+  Future<void> save(SavedGameState state);
+  Future<SavedGameState?> load();
   Future<void> clear();
 }
 
@@ -16,17 +18,17 @@ class SharedPreferencesGameRepository implements GameRepository {
   final SharedPreferences preferences;
 
   @override
-  Future<void> save(GameState state) async {
+  Future<void> save(SavedGameState state) async {
     final saved = await preferences.setString(key, jsonEncode(state.toJson()));
     if (!saved) throw StateError('Spielstand konnte nicht gespeichert werden.');
   }
 
   @override
-  Future<GameState?> load() async {
+  Future<SavedGameState?> load() async {
     final value = preferences.getString(key);
     if (value == null) return null;
     try {
-      return GameState.fromJson(jsonDecode(value) as Map<String, dynamic>);
+      return decodeSavedGameState(jsonDecode(value) as Map<String, dynamic>);
     } catch (_) {
       try {
         await clear();
@@ -45,16 +47,22 @@ class SharedPreferencesGameRepository implements GameRepository {
 }
 
 class MemoryGameRepository implements GameRepository {
-  GameState? saved;
+  SavedGameState? saved;
+
   @override
-  Future<void> save(GameState state) async {
-    saved = GameState.fromJson(state.toJson());
+  Future<void> save(SavedGameState state) async {
+    saved = decodeSavedGameState(state.toJson());
   }
 
   @override
-  Future<GameState?> load() async =>
-      saved == null ? null : GameState.fromJson(saved!.toJson());
+  Future<SavedGameState?> load() async =>
+      saved == null ? null : decodeSavedGameState(saved!.toJson());
 
   @override
   Future<void> clear() async => saved = null;
 }
+
+SavedGameState decodeSavedGameState(Map<String, dynamic> json) =>
+    json['type'] == 'qwixx'
+    ? QwixxGameState.fromJson(json)
+    : GameState.fromJson(json);

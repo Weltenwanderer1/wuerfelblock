@@ -59,8 +59,13 @@ class GameController extends ChangeNotifier {
     required List<String> names,
     required GameRepository repository,
   }) {
-    if (names.isEmpty || names.length > 8) {
-      throw ArgumentError('Es sind 1 bis 8 Spieler erlaubt.');
+    final minimumPlayers = ruleSet == RuleSet.kniffel ? 2 : 1;
+    if (names.length < minimumPlayers || names.length > 8) {
+      throw ArgumentError(
+        ruleSet == RuleSet.kniffel
+            ? 'Bei Kniffel sind 2 bis 8 Spieler erlaubt.'
+            : 'Bei Yatzy sind 1 bis 8 Spieler erlaubt.',
+      );
     }
     return GameController(
       state: GameState(
@@ -112,6 +117,29 @@ class GameController extends ChangeNotifier {
     return _enterScore(
       category,
       category.maxScore(state.ruleSet),
+      extraKniffel: true,
+    );
+  }
+
+  Future<void> enterBlockExtraKniffelScore(
+    ScoreCategory category, {
+    required int playerIndex,
+  }) {
+    if (state.ruleSet != RuleSet.kniffel || state.mode != GameMode.block) {
+      throw StateError(
+        'Dieser Zusatz-Kniffel ist nur im Kniffel-Scoreblock verfügbar.',
+      );
+    }
+    if (playerIndex < 0 || playerIndex >= state.players.length) {
+      throw RangeError.index(playerIndex, state.players);
+    }
+    if (state.players[playerIndex].scores[ScoreCategory.yatzy] != 50) {
+      throw StateError('Der erste Kniffel wurde noch nicht gewertet.');
+    }
+    return _enterScore(
+      category,
+      category.maxScore(state.ruleSet),
+      playerIndex: playerIndex,
       extraKniffel: true,
     );
   }

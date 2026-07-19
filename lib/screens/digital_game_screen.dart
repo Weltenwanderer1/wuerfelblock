@@ -4,7 +4,9 @@ import '../controllers/dice_controller.dart';
 import '../controllers/game_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
+import '../models/rules_content.dart';
 import '../widgets/die_widget.dart';
+import '../widgets/rules_widgets.dart';
 import '../widgets/totals_card.dart';
 import 'result_screen.dart';
 
@@ -134,6 +136,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
       appBar: AppBar(
         title: Text(state.ruleSet.label),
         actions: [
+          ActiveRulesButton(ruleSet: state.ruleSet),
           IconButton(
             onPressed: widget.game.canUndo && !widget.game.isBusy
                 ? _undo
@@ -234,9 +237,19 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
                   color: category.isUpper ? AppColors.rose : AppColors.lavender,
                   child: ListTile(
                     minTileHeight: 56,
-                    title: Text(
-                      category.label,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            category.displayLabel(state.ruleSet),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        CategoryInfoButton(
+                          ruleSet: state.ruleSet,
+                          category: category,
+                        ),
+                      ],
                     ),
                     trailing: CircleAvatar(
                       backgroundColor: Colors.white,
@@ -265,7 +278,20 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
                 children: [
                   for (final category in state.ruleSet.categories)
                     if (player.scores[category] case final score?)
-                      Chip(label: Text('${category.label}: $score')),
+                      Chip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${category.displayLabel(state.ruleSet)}: $score',
+                            ),
+                            CategoryInfoButton(
+                              ruleSet: state.ruleSet,
+                              category: category,
+                            ),
+                          ],
+                        ),
+                      ),
                 ],
               ),
             ],

@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../controllers/game_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
+import '../models/rules_content.dart';
 import '../services/scoring_engine.dart';
+import '../widgets/classic_score_sheet.dart';
+import '../widgets/rules_widgets.dart';
 import 'result_screen.dart';
 
 class BlockGameScreen extends StatefulWidget {
@@ -92,6 +95,31 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
     }
   }
 
+  Future<void> _enterExtraKniffel() async {
+    if (widget.game.isBusy) return;
+    final selection = await showDialog<_ExtraKniffelSelection>(
+      context: context,
+      builder: (context) => _ExtraKniffelDialog(state: widget.game.state),
+    );
+    if (selection == null) return;
+    try {
+      await widget.game.enterBlockExtraKniffelScore(
+        selection.category,
+        playerIndex: selection.playerIndex,
+      );
+    } catch (_) {
+      _saveFailed();
+      return;
+    }
+    if (!mounted) return;
+    if (widget.game.state.isComplete) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => ResultScreen(game: widget.game)),
+      );
+    }
+  }
+
   void _saveFailed() {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -102,12 +130,11 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
   @override
   Widget build(BuildContext context) {
     final state = widget.game.state;
-    const labelWidth = 150.0;
-    const cellWidth = 92.0;
     return Scaffold(
       appBar: AppBar(
         title: Text('${state.ruleSet.label} · Scoreblock'),
         actions: [
+          ActiveRulesButton(ruleSet: state.ruleSet),
           IconButton(
             onPressed: widget.game.canUndo && !widget.game.isBusy
                 ? _undo
@@ -137,108 +164,29 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
+          if (state.ruleSet == RuleSet.kniffel)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Semantics(
+                button: true,
+                label: 'Zusatz-Kniffel im Scoreblock eintragen',
+                child: OutlinedButton.icon(
+                  key: const Key('block-extra-kniffel'),
+                  onPressed: widget.game.isBusy ? null : _enterExtraKniffel,
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Zusatz-Kniffel'),
+                ),
+              ),
+            ),
           Expanded(
             child: SingleChildScrollView(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                child: Column(
-                  children: [
-                    _row(
-                      color: AppColors.apricot,
-                      labelWidth: labelWidth,
-                      cellWidth: cellWidth,
-                      label: 'Kategorie',
-                      cells: [
-                        for (final player in state.players)
-                          Text(
-                            player.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                      ],
-                    ),
-                    for (final category in state.ruleSet.categories)
-                      _row(
-                        color: category.isUpper
-                            ? AppColors.rose
-                            : AppColors.lavender,
-                        labelWidth: labelWidth,
-                        cellWidth: cellWidth,
-                        label: category.label,
-                        cells: [
-                          for (
-                            var playerIndex = 0;
-                            playerIndex < state.players.length;
-                            playerIndex++
-                          )
-                            if (state.players[playerIndex].scores[category]
-                                case final score?)
-                              Semantics(
-                                label:
-                                    '${category.label} für ${state.players[playerIndex].name}: $score Punkte',
-                                child: Center(
-                                  child: Text(
-                                    '$score',
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else
-                              Semantics(
-                                button: true,
-                                label:
-                                    '${category.label} für ${state.players[playerIndex].name} eintragen',
-                                child: InkWell(
-                                  key: Key(
-                                    'score-${category.name}-$playerIndex',
-                                  ),
-                                  onTap: widget.game.isBusy
-                                      ? null
-                                      : () => _enter(category, playerIndex),
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.add_circle_outline,
-                                      color: AppColors.plum,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                        ],
-                      ),
-                    _summaryRow(
-                      'Obere Summe',
-                      [for (final player in state.players) player.upperTotal],
-                      labelWidth,
-                      cellWidth,
-                    ),
-                    _summaryRow(
-                      'Bonus',
-                      [
-                        for (final player in state.players)
-                          state.bonusFor(player),
-                      ],
-                      labelWidth,
-                      cellWidth,
-                      color: AppColors.apricot,
-                    ),
-                    _summaryRow(
-                      'Gesamt',
-                      [
-                        for (final player in state.players)
-                          state.totalFor(player),
-                      ],
-                      labelWidth,
-                      cellWidth,
-                      color: AppColors.plum,
-                      light: true,
-                    ),
-                  ],
+                child: ClassicScoreSheet(
+                  state: state,
+                  busy: widget.game.isBusy,
+                  onEnterScore: _enter,
                 ),
               ),
             ),
@@ -247,73 +195,116 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
       ),
     );
   }
+}
 
-  Widget _row({
-    required Color color,
-    required double labelWidth,
-    required double cellWidth,
-    required String label,
-    required List<Widget> cells,
-  }) => Container(
-    decoration: BoxDecoration(
-      color: color,
-      border: Border.all(color: AppColors.plum.withValues(alpha: 0.25)),
-    ),
-    child: Row(
-      children: [
-        SizedBox(
-          width: labelWidth,
-          height: 54,
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-        ),
-        for (final cell in cells)
-          Container(
-            width: cellWidth,
-            height: 54,
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(color: AppColors.plum.withValues(alpha: 0.25)),
-              ),
-            ),
-            child: cell,
-          ),
-      ],
-    ),
-  );
+class _ExtraKniffelSelection {
+  const _ExtraKniffelSelection(this.playerIndex, this.category);
 
-  Widget _summaryRow(
-    String label,
-    List<int> values,
-    double labelWidth,
-    double cellWidth, {
-    Color color = Colors.white,
-    bool light = false,
-  }) => _row(
-    color: color,
-    labelWidth: labelWidth,
-    cellWidth: cellWidth,
-    label: label,
-    cells: [
-      for (final value in values)
-        Center(
-          child: Text(
-            '$value',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: light ? Colors.white : AppColors.ink,
-            ),
+  final int playerIndex;
+  final ScoreCategory category;
+}
+
+class _ExtraKniffelDialog extends StatefulWidget {
+  const _ExtraKniffelDialog({required this.state});
+
+  final GameState state;
+
+  @override
+  State<_ExtraKniffelDialog> createState() => _ExtraKniffelDialogState();
+}
+
+class _ExtraKniffelDialogState extends State<_ExtraKniffelDialog> {
+  late final List<int> eligiblePlayers;
+  int? playerIndex;
+  ScoreCategory? category;
+
+  List<ScoreCategory> get freeCategories => playerIndex == null
+      ? const []
+      : widget.state.ruleSet.categories
+            .where(
+              (item) =>
+                  !widget.state.players[playerIndex!].scores.containsKey(item),
+            )
+            .toList();
+
+  @override
+  void initState() {
+    super.initState();
+    eligiblePlayers = [
+      for (var index = 0; index < widget.state.players.length; index++)
+        if (widget.state.players[index].scores[ScoreCategory.yatzy] == 50 &&
+            widget.state.players[index].scores.length <
+                widget.state.ruleSet.categories.length)
+          index,
+    ];
+    playerIndex = eligiblePlayers.firstOrNull;
+    category = freeCategories.firstOrNull;
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
+    title: const Text('Zusatz-Kniffel bestätigen'),
+    content: eligiblePlayers.isEmpty
+        ? const Text(
+            'Kein Spieler hat bereits 50 Punkte im Kniffel-Feld und ein freies Feld.',
+          )
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Nach ausdrücklicher Bestätigung gibt es +50 Zusatzpunkte und die Höchstpunktzahl im gewählten freien Feld.',
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                key: const Key('extra-kniffel-player'),
+                initialValue: playerIndex,
+                decoration: const InputDecoration(labelText: 'Spieler'),
+                items: [
+                  for (final index in eligiblePlayers)
+                    DropdownMenuItem(
+                      value: index,
+                      child: Text(widget.state.players[index].name),
+                    ),
+                ],
+                onChanged: (value) => setState(() {
+                  playerIndex = value;
+                  category = freeCategories.firstOrNull;
+                }),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<ScoreCategory>(
+                key: const Key('extra-kniffel-category'),
+                initialValue: category,
+                decoration: const InputDecoration(labelText: 'Freies Feld'),
+                items: [
+                  for (final item in freeCategories)
+                    DropdownMenuItem(
+                      value: item,
+                      child: Text(
+                        '${item.displayLabel(widget.state.ruleSet)} (${item.maxScore(widget.state.ruleSet)})',
+                      ),
+                    ),
+                ],
+                onChanged: (value) => setState(() => category = value),
+              ),
+            ],
           ),
-        ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Abbrechen'),
+      ),
+      FilledButton(
+        onPressed: playerIndex != null && category != null
+            ? () => Navigator.pop(
+                context,
+                _ExtraKniffelSelection(playerIndex!, category!),
+              )
+            : null,
+        child: const Text('Eintragen'),
+      ),
     ],
   );
 }

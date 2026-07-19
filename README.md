@@ -1,17 +1,19 @@
 # Würfelblock
 
-Eine vollständig offline nutzbare Android-App für **klassisches skandinavisches Yatzy** und **Kniffel**. Die App kann als digitaler Wertungsblock für echte Würfel oder als komplettes Würfelspiel verwendet werden.
+Eine vollständig offline nutzbare Android-App für **klassisches skandinavisches Yatzy**, **Kniffel** und **Qwixx**. Yatzy und Kniffel funktionieren als Wertungsblock für echte Würfel oder als komplettes digitales Würfelspiel; Qwixx besitzt einen eigenen farbigen Wertungsblock für echte Würfel.
 
 ## Funktionen
 
-- 1–8 Spieler mit frei wählbaren, eindeutigen Namen
+- Yatzy für 1–8, Kniffel für 2–8 und Qwixx für 2–5 Personen
 - Yatzy- und Kniffel-Regelwerk mit automatischen Summen und Bonus
-- **Blockmodus:** horizontale Papierblock-Matrix, validierte manuelle Eingabe, Streichen mit 0
+- **Blockmodus:** klassische Papierblock-Matrix, validierte manuelle Eingabe, Streichen mit 0 und Zusatz-Kniffel
 - **Digitalmodus:** fünf Würfel, bis zu drei Würfe, Hold per Tipp, automatische Wertungsvorschläge
+- **Qwixx:** vier Farbreihen, Links-nach-rechts-Sperren, Schlösser, Fehlwürfe und automatische Wertung
 - Spielerwechsel, Sieger- und Gleichstandserkennung
 - Undo des letzten Wertungseintrags
 - Lokales Fortsetzen via `shared_preferences`
-- Regelhilfe, Material-3-Design und zugängliche Touchflächen/Semantics
+- Getrennte, anfängerfreundliche Regelhilfen und Info-Tasten für jede Wertung
+- Zugängliche Touchflächen und Semantics
 - Keine Netzwerkberechtigung, Werbung, Konten oder Online-Dienste
 
 ## Entwicklung

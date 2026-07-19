@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
+import '../models/saved_game_state.dart';
+import 'qwixx_rules_screen.dart';
+import 'rules_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -10,7 +13,7 @@ class HomeScreen extends StatelessWidget {
     required this.onContinue,
     super.key,
   });
-  final GameState? savedGame;
+  final SavedGameState? savedGame;
   final VoidCallback onNewGame;
   final VoidCallback onContinue;
 
@@ -46,7 +49,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Der schöne Wertungsblock für Yatzy und Kniffel',
+                  'Der schöne Wertungsblock für Yatzy, Kniffel und Qwixx',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
@@ -66,7 +69,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                       subtitle: Text(
-                        '${savedGame!.ruleSet.label} · ${savedGame!.mode.label}\n${savedGame!.completedEntries} von ${savedGame!.totalEntries} Einträgen',
+                        '${savedGame!.gameLabel} · ${savedGame!.modeLabel}\n${savedGame!.progressLabel}',
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: onContinue,
@@ -80,10 +83,33 @@ class HomeScreen extends StatelessWidget {
                   label: const Text('Neue Partie'),
                 ),
                 const SizedBox(height: 12),
-                TextButton.icon(
-                  onPressed: () => Navigator.pushNamed(context, '/rules'),
-                  icon: const Icon(Icons.menu_book_outlined),
-                  label: const Text('Regelhilfe'),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final rules in RuleSet.values)
+                      TextButton.icon(
+                        onPressed: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RulesScreen(ruleSet: rules),
+                          ),
+                        ),
+                        icon: const Icon(Icons.menu_book_outlined),
+                        label: Text('${rules.label}-Regeln'),
+                      ),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const QwixxRulesScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.menu_book_outlined),
+                      label: const Text('Qwixx-Regeln'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 const Text(
