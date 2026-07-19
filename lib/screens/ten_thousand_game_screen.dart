@@ -353,7 +353,7 @@ class _RoundBanner extends StatelessWidget {
         SizedBox(width: 8),
         Expanded(
           child: Text(
-            'Normale Runde · ab 10.000 beginnt die letzte Runde.',
+            'Mindestens 350 Punkte sichern · ab 10.000 beginnt die letzte Runde.',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),

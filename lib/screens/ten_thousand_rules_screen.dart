@@ -8,32 +8,37 @@ class TenThousandRulesScreen extends StatelessWidget {
   static const sections = <(String, String, IconData)>[
     (
       'Ziel & Material',
-      'Spielt mit fünf echten Würfeln und sammelt als erste Person mindestens 10.000 Punkte. Traditionell gibt es unterschiedliche Angaben zur Gruppengröße; der praktische App-Block unterstützt 2–8 Personen.',
+      'Spielt mit sechs echten Würfeln. Mindestens 2 Personen sind nötig; der App-Block unterstützt 2–8 Personen. Wer zuerst mindestens 10.000 Punkte erreicht, eröffnet die Schlussrunde.',
       Icons.casino_outlined,
     ),
     (
-      'Werten und aufhören',
-      'Eine 1 zählt 100 Punkte, eine 5 zählt 50 Punkte. Nach einem wertbaren Wurf darfst du Punkte sichern und jederzeit aufhören. Wer weiterwürfelt, riskiert die noch ungesicherten Punkte.',
-      Icons.savings_outlined,
-    ),
-    (
-      'Fehlwurf',
-      'Zeigt ein Wurf keine wertbare Kombination, ist das ein Fehlwurf: Du verlierst alle ungesicherten Punkte dieser Runde. Bereits in früheren Runden eingetragene Punkte bleiben erhalten.',
-      Icons.block,
-    ),
-    (
-      'Pasch bestätigen',
-      'Ein besonderer Pasch reicht nicht allein: Danach brauchst du noch einen wertbaren Wurf, um ihn zu bestätigen und die Runde sichern zu dürfen. Misslingt dieser Bestätigungswurf, verfallen die ungesicherten Rundenpunkte.',
-      Icons.check_circle_outline,
-    ),
-    (
-      'Kombinationen',
-      'Ein Dreierpasch zählt Augenwert × 100; drei Einsen zählen 1.000 Punkte. Jeder weitere gleiche Würfel verdoppelt den Paschwert: Vier Zweien zählen 400 Punkte, vier Einsen 2.000 Punkte. Fünf gleiche Würfel verdoppeln erneut. Die Straße 1–2–3–4–5 zählt 2.000 Punkte.',
+      'Punkte & Kombinationen',
+      'Eine einzelne 1 zählt 100 Punkte, eine einzelne 5 zählt 50 Punkte; einzelne 2er, 3er, 4er und 6er zählen nichts. Dreierpasch: Augenwert × 100, drei Einsen zählen 1.000. Jeder weitere gleiche Würfel verdoppelt: Vier Zweien zählen 400 Punkte, vier Einsen 2.000 Punkte. Die Straße 1–2–3–4–5–6 zählt 1.000 Punkte, drei Paare zählen 500 Punkte.',
       Icons.format_list_numbered,
     ),
     (
+      'Würfeln, sichern oder riskieren',
+      'Du startest mit 6 Würfeln und legst nach jedem Wurf mindestens einen zählbaren Würfel oder eine Kombination beiseite. Mit den übrigen darfst du weiterwürfeln; die Punkte werden addiert. Einen Durchgang darfst du erst ab mindestens 350 Punkten aufschreiben. Pasche dürfen über mehrere Würfe ergänzt werden: Jeder passende zusätzliche Würfel verdoppelt den Pasch erneut.',
+      Icons.savings_outlined,
+    ),
+    (
+      'Alle 6 Würfel zählen',
+      'Sind alle 6 Würfel verwertbar, musst du mit allen 6 Würfeln weiterwürfeln. Das gilt besonders bei einer Straße oder drei Paaren: Der nächste Wurf muss mindestens 50 Punkte bringen. Gelingt er, werden die Punkte addiert; bei einer Macke verfallen alle Punkte dieses Durchgangs.',
+      Icons.check_circle_outline,
+    ),
+    (
+      'Macke',
+      'Zeigt ein Wurf weder eine 1, eine 5 noch eine andere zählbare Kombination, ist das eine Macke. Alle bis dahin ungesicherten Punkte dieses Durchgangs verfallen und die nächste Person ist dran. Frühere Einträge bleiben natürlich stehen.',
+      Icons.block,
+    ),
+    (
+      'Hausbau & Brennen',
+      'Liegen Würfel übereinander (Hausbau), schräg auf einer Kante oder fallen vom Tisch (Brennen), wird der gesamte Wurf wiederholt.',
+      Icons.replay,
+    ),
+    (
       'Letzte Runde',
-      'Wer zuerst mindestens 10.000 erreicht, löst die Schlussrunde aus. Jede andere Person erhält genau einen letzten Versuch. Danach gewinnt die höchste Gesamtsumme; Gleichstände sind möglich.',
+      'Sobald jemand mindestens 10.000 erreicht, dürfen die anderen noch nachwürfeln, bis die Person, die diese Schlussrunde begonnen hat, wieder an der Reihe wäre. Dann endet das Spiel. Es gewinnt die Person mit der höchsten Gesamtpunktzahl – also auch jemand, der erst beim Nachwürfeln überholt.',
       Icons.flag_outlined,
     ),
     (
@@ -63,7 +68,7 @@ class TenThousandRulesScreen extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Echte Würfel, klare Verdopplungsregel – die App bleibt euer übersichtlicher Papierblock.',
+              'Nach den Regeln der Berliner Würfelmeisterschaft – die App bleibt euer übersichtlicher Papierblock.',
               style: TextStyle(fontSize: 16, height: 1.35),
             ),
             const SizedBox(height: 14),

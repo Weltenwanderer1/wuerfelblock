@@ -19,7 +19,7 @@ extension on GameKind {
   String get detail => switch (this) {
     GameKind.yahtzeeKniffel => 'Klassischer Würfelspaß als Block oder digital',
     GameKind.qwixx => 'Farbreihen mit echten Würfeln',
-    GameKind.tenThousand => 'Punktejagd mit fünf echten Würfeln',
+    GameKind.tenThousand => 'Punktejagd mit sechs echten Würfeln',
   };
 }
 

@@ -113,6 +113,10 @@ class _PointsDialogState extends State<_PointsDialog> {
       setState(() => error = 'Nur 0 oder positive Vielfache von 50.');
       return;
     }
+    if (points > 0 && points < 350) {
+      setState(() => error = 'Mindestens 350 Punkte oder Macke (0).');
+      return;
+    }
     Navigator.pop(context, points);
   }
 
@@ -143,7 +147,7 @@ class _PointsDialogState extends State<_PointsDialog> {
             labelText: 'Punkte',
             hintText: 'z. B. 350',
             errorText: error,
-            helperText: '0 oder ein Vielfaches von 50',
+            helperText: 'Macke: 0 · sonst mindestens 350',
           ),
         ),
       ],

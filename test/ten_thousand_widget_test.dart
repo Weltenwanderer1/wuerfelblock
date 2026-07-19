@@ -19,33 +19,36 @@ void main() {
 
       for (final heading in [
         'Ziel & Material',
-        'Werten und aufhören',
-        'Fehlwurf',
-        'Pasch bestätigen',
-        'Kombinationen',
+        'Punkte & Kombinationen',
+        'Würfeln, sichern oder riskieren',
+        'Alle 6 Würfel zählen',
+        'Macke',
+        'Hausbau & Brennen',
         'Letzte Runde',
         'Die App als Block',
       ]) {
         expect(find.text(heading), findsOneWidget);
       }
       for (final fact in [
-        'fünf echten Würfeln',
+        'sechs echten Würfeln',
         '2–8 Personen',
-        'Eine 1 zählt 100 Punkte',
-        'eine 5 zählt 50 Punkte',
-        'jederzeit aufhören',
-        'ungesicherten Punkte dieser Runde',
-        'noch einen wertbaren Wurf',
+        'Eine einzelne 1 zählt 100 Punkte',
+        'eine einzelne 5 zählt 50 Punkte',
+        'mindestens 350 Punkte',
         'Dreierpasch',
         'Einsen zählen 1.000',
-        '1–2–3–4–5 zählt 2.000',
+        '1–2–3–4–5–6 zählt 1.000',
+        'drei Paare zählen 500 Punkte',
+        'mit allen 6 Würfeln weiterwürfeln',
+        'über mehrere Würfe ergänzt',
+        'mindestens 50 Punkte',
+        'alle Punkte dieses Durchgangs',
+        'Wurf wiederholt',
         'mindestens 10.000',
-        'genau einen letzten Versuch',
-        'Gleichstände sind möglich',
+        'höchsten Gesamtpunktzahl',
         'Verdopplungsregel',
         'Vier Zweien zählen 400 Punkte',
         'vier Einsen 2.000 Punkte',
-        'Fünf gleiche Würfel verdoppeln erneut',
         'keine Würfel',
         'nicht automatisch',
       ]) {
@@ -103,6 +106,22 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(AlertDialog), findsOneWidget);
+      expect(game.state.turns, isEmpty);
+    });
+
+    testWidgets('nonzero scores below 350 are rejected', (tester) async {
+      final game = _newGame();
+      await _pumpGame(tester, game);
+      await tester.tap(find.byKey(const Key('enter-points')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('points-field')), '250');
+      await tester.tap(find.byKey(const Key('save-points')));
+      await tester.pump();
+
+      expect(
+        find.text('Mindestens 350 Punkte oder Macke (0).'),
+        findsOneWidget,
+      );
       expect(game.state.turns, isEmpty);
     });
 
@@ -227,7 +246,7 @@ void main() {
       await _pumpGame(tester, game);
       await tester.tap(find.byKey(const Key('enter-points')));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('points-field')), '50');
+      await tester.enterText(find.byKey(const Key('points-field')), '350');
       await tester.tap(find.byKey(const Key('save-points')));
       await tester.pumpAndSettle();
 
