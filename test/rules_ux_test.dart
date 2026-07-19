@@ -7,6 +7,7 @@ import 'package:wuerfelblock/models/rules_content.dart';
 import 'package:wuerfelblock/screens/block_game_screen.dart';
 import 'package:wuerfelblock/screens/digital_game_screen.dart';
 import 'package:wuerfelblock/screens/rules_screen.dart';
+import 'package:wuerfelblock/screens/ten_thousand_rules_screen.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
 void main() {
@@ -22,21 +23,25 @@ void main() {
     expect(strike.body, isNot(contains('Der Scoreblock bleibt')));
   });
 
-  testWidgets('home offers separate Yatzy and Kniffel rules', (tester) async {
+  testWidgets('home offers exactly the three public rule actions', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       WuerfelblockApp(repository: MemoryGameRepository()),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Yatzy-Regeln'), findsOneWidget);
-    expect(find.text('Kniffel-Regeln'), findsOneWidget);
+    expect(find.text('Yahtzee/Kniffel-Regeln'), findsOneWidget);
+    expect(find.text('Qwixx-Regeln'), findsOneWidget);
+    expect(find.text('10.000-Regeln'), findsOneWidget);
+    expect(find.text('Yatzy-Regeln'), findsNothing);
+    expect(find.text('Kniffel-Regeln'), findsNothing);
+    expect(find.byIcon(Icons.menu_book_outlined), findsNWidgets(3));
     expect(find.text('Regelhilfe'), findsNothing);
 
-    await tester.tap(find.text('Yatzy-Regeln'));
+    await tester.tap(find.text('10.000-Regeln'));
     await tester.pumpAndSettle();
-    expect(find.byType(RulesScreen), findsOneWidget);
-    expect(find.text('Yatzy-Regeln'), findsOneWidget);
-    expect(find.text('Zusatz-Kniffel'), findsNothing);
+    expect(find.byType(TenThousandRulesScreen), findsOneWidget);
   });
 
   testWidgets('rules page is structured and ruleset-specific', (tester) async {
@@ -73,7 +78,7 @@ void main() {
     );
     await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
 
-    expect(find.byTooltip('Yatzy-Regeln öffnen'), findsOneWidget);
+    expect(find.byTooltip('Yatzy (klassisch)-Regeln öffnen'), findsOneWidget);
     expect(find.byKey(const Key('classic-score-sheet')), findsOneWidget);
     expect(find.text('⚀'), findsOneWidget);
     expect(find.text('OBERER BLOCK'), findsOneWidget);
@@ -105,7 +110,7 @@ void main() {
     );
     await tester.pumpWidget(MaterialApp(home: DigitalGameScreen(game: game)));
 
-    expect(find.byTooltip('Kniffel-Regeln öffnen'), findsOneWidget);
+    expect(find.byTooltip('Yahtzee/Kniffel-Regeln öffnen'), findsOneWidget);
     for (final category in RuleSet.kniffel.categories) {
       expect(find.byKey(Key('category-info-${category.name}')), findsOneWidget);
     }

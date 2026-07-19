@@ -10,11 +10,13 @@ class _ScoreUndo {
     this.category,
     this.currentPlayerIndex,
     this.previousExtraKniffel,
+    this.previousScore,
   );
   final int playerIndex;
   final ScoreCategory category;
   final int currentPlayerIndex;
   final int previousExtraKniffel;
+  final int? previousScore;
 }
 
 class _StateSnapshot {
@@ -63,8 +65,8 @@ class GameController extends ChangeNotifier {
     if (names.length < minimumPlayers || names.length > 8) {
       throw ArgumentError(
         ruleSet == RuleSet.kniffel
-            ? 'Bei Kniffel sind 2 bis 8 Spieler erlaubt.'
-            : 'Bei Yatzy sind 1 bis 8 Spieler erlaubt.',
+            ? 'Bei Yahtzee/Kniffel sind 2 bis 8 Spieler erlaubt.'
+            : 'Bei Yatzy (klassisch) sind 1 bis 8 Spieler erlaubt.',
       );
     }
     return GameController(
@@ -101,6 +103,53 @@ class GameController extends ChangeNotifier {
     int value, {
     int? playerIndex,
   }) => _enterScore(category, value, playerIndex: playerIndex);
+
+  Future<void> editBlockScore(
+    ScoreCategory category,
+    int? value, {
+    required int playerIndex,
+  }) {
+    if (_isBusy) return Future.value();
+    if (state.mode != GameMode.block) {
+      throw StateError('Wertungen können nur im Scoreblock bearbeitet werden.');
+    }
+    if (playerIndex < 0 || playerIndex >= state.players.length) {
+      throw RangeError.index(playerIndex, state.players);
+    }
+    if (!state.ruleSet.categories.contains(category)) {
+      throw ArgumentError('Kategorie gehört nicht zum Regelwerk.');
+    }
+    if (value != null &&
+        !ScoringEngine.allowedScores(state.ruleSet, category).contains(value)) {
+      throw ArgumentError('Ungültige Punktzahl.');
+    }
+    final player = state.players[playerIndex];
+    if (!player.scores.containsKey(category)) {
+      throw StateError('Kategorie wurde noch nicht gewertet.');
+    }
+    return _transaction(() async {
+      _undo = _ScoreUndo(
+        playerIndex,
+        category,
+        state.currentPlayerIndex,
+        player.extraKniffel,
+        player.scores[category],
+      );
+      if (value == null) {
+        player.scores.remove(category);
+      } else {
+        player.scores[category] = value;
+      }
+      if (category == ScoreCategory.yatzy &&
+          value != 50 &&
+          player.extraKniffel > 0) {
+        player.extraKniffel = 0;
+      }
+      _recomputeCompletion();
+      notifyListeners();
+      await repository.save(state);
+    });
+  }
 
   Future<void> enterExtraKniffelScore(ScoreCategory category) {
     if (state.ruleSet != RuleSet.kniffel || state.mode != GameMode.digital) {
@@ -171,13 +220,12 @@ class GameController extends ChangeNotifier {
         category,
         state.currentPlayerIndex,
         player.extraKniffel,
+        null,
       );
       player.scores[category] = value;
       if (extraKniffel) player.extraKniffel++;
       resetTurn();
-      state.isComplete = state.players.every(
-        (player) => player.scores.length == state.ruleSet.categories.length,
-      );
+      _recomputeCompletion();
       if (!state.isComplete && state.mode == GameMode.digital) {
         state.currentPlayerIndex =
             (state.currentPlayerIndex + 1) % state.players.length;
@@ -193,10 +241,14 @@ class GameController extends ChangeNotifier {
     if (undo == null) return;
     await _transaction(() async {
       final player = state.players[undo.playerIndex];
-      player.scores.remove(undo.category);
+      if (undo.previousScore == null) {
+        player.scores.remove(undo.category);
+      } else {
+        player.scores[undo.category] = undo.previousScore!;
+      }
       player.extraKniffel = undo.previousExtraKniffel;
       state.currentPlayerIndex = undo.currentPlayerIndex;
-      state.isComplete = false;
+      _recomputeCompletion();
       resetTurn();
       _undo = null;
       notifyListeners();
@@ -224,6 +276,12 @@ class GameController extends ChangeNotifier {
       state.dice[index] = 1;
       state.held[index] = false;
     }
+  }
+
+  void _recomputeCompletion() {
+    state.isComplete = state.players.every(
+      (player) => player.scores.length == state.ruleSet.categories.length,
+    );
   }
 
   Future<void> _transaction(Future<void> Function() operation) async {

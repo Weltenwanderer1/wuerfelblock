@@ -25,7 +25,8 @@ enum ScoreCategory {
 }
 
 extension RuleSetInfo on RuleSet {
-  String get label => this == RuleSet.yatzy ? 'Yatzy' : 'Kniffel';
+  String get label =>
+      this == RuleSet.yatzy ? 'Yatzy (klassisch)' : 'Yahtzee/Kniffel';
   List<ScoreCategory> get categories => [
     ScoreCategory.ones,
     ScoreCategory.twos,

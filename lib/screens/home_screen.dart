@@ -5,6 +5,7 @@ import '../models/game_models.dart';
 import '../models/saved_game_state.dart';
 import 'qwixx_rules_screen.dart';
 import 'rules_screen.dart';
+import 'ten_thousand_rules_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -49,7 +50,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Der schöne Wertungsblock für Yatzy, Kniffel und Qwixx',
+                  'Der schöne Wertungsblock für Yahtzee/Kniffel, Qwixx und 10.000',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
@@ -88,17 +89,17 @@ class HomeScreen extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final rules in RuleSet.values)
-                      TextButton.icon(
-                        onPressed: () => Navigator.push<void>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => RulesScreen(ruleSet: rules),
-                          ),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const RulesScreen(ruleSet: RuleSet.kniffel),
                         ),
-                        icon: const Icon(Icons.menu_book_outlined),
-                        label: Text('${rules.label}-Regeln'),
                       ),
+                      icon: const Icon(Icons.menu_book_outlined),
+                      label: const Text('Yahtzee/Kniffel-Regeln'),
+                    ),
                     TextButton.icon(
                       onPressed: () => Navigator.push<void>(
                         context,
@@ -108,6 +109,16 @@ class HomeScreen extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.menu_book_outlined),
                       label: const Text('Qwixx-Regeln'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TenThousandRulesScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.menu_book_outlined),
+                      label: const Text('10.000-Regeln'),
                     ),
                   ],
                 ),

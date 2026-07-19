@@ -2,25 +2,32 @@ import 'package:flutter/material.dart';
 
 import '../controllers/game_controller.dart';
 import '../controllers/qwixx_controller.dart';
+import '../controllers/ten_thousand_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../services/game_repository.dart';
 
-enum ScoreblockGame { yatzy, kniffel, qwixx }
+enum GameKind { yahtzeeKniffel, qwixx, tenThousand }
 
-extension on ScoreblockGame {
+extension on GameKind {
   String get label => switch (this) {
-    ScoreblockGame.yatzy => 'Yatzy',
-    ScoreblockGame.kniffel => 'Kniffel',
-    ScoreblockGame.qwixx => 'Qwixx',
+    GameKind.yahtzeeKniffel => 'Yahtzee/Kniffel',
+    GameKind.qwixx => 'Qwixx',
+    GameKind.tenThousand => '10.000',
   };
 
   String get detail => switch (this) {
-    ScoreblockGame.yatzy => 'Klassisch skandinavisch',
-    ScoreblockGame.kniffel => 'Schmidt-Regeln',
-    ScoreblockGame.qwixx => 'Farbreihen mit echten Würfeln',
+    GameKind.yahtzeeKniffel => 'Klassischer Würfelspaß als Block oder digital',
+    GameKind.qwixx => 'Farbreihen mit echten Würfeln',
+    GameKind.tenThousand => 'Punktejagd mit fünf echten Würfeln',
   };
 }
+
+const publicGameKinds = <GameKind>[
+  GameKind.yahtzeeKniffel,
+  GameKind.qwixx,
+  GameKind.tenThousand,
+];
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({
@@ -36,16 +43,18 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
-  ScoreblockGame game = ScoreblockGame.yatzy;
+  GameKind game = GameKind.yahtzeeKniffel;
   GameMode mode = GameMode.block;
   final List<TextEditingController> names = [
     TextEditingController(text: 'Spieler 1'),
+    TextEditingController(text: 'Spieler 2'),
   ];
   bool starting = false;
   String? startError;
 
-  bool get isQwixx => game == ScoreblockGame.qwixx;
-  int get minimumPlayers => game == ScoreblockGame.yatzy ? 1 : 2;
+  bool get isQwixx => game == GameKind.qwixx;
+  bool get isClassic => game == GameKind.yahtzeeKniffel;
+  int get minimumPlayers => 2;
   int get maximumPlayers => isQwixx ? 5 : 8;
 
   List<String> get cleanedNames =>
@@ -70,11 +79,13 @@ class _SetupScreenState extends State<SetupScreen> {
     super.dispose();
   }
 
-  void selectGame(ScoreblockGame selected) {
+  void selectGame(GameKind selected) {
     setState(() {
       game = selected;
-      if (isQwixx) {
+      if (!isClassic) {
         mode = GameMode.block;
+      }
+      if (isQwixx) {
         while (names.length > 5) {
           names.removeLast().dispose();
         }
@@ -111,22 +122,26 @@ class _SetupScreenState extends State<SetupScreen> {
       starting = true;
       startError = null;
     });
-    final Object controller = isQwixx
-        ? QwixxController.newGame(
-            names: cleanedNames,
-            repository: widget.repository,
-          )
-        : GameController.newGame(
-            ruleSet: game == ScoreblockGame.yatzy
-                ? RuleSet.yatzy
-                : RuleSet.kniffel,
-            mode: mode,
-            names: cleanedNames,
-            repository: widget.repository,
-          );
+    final Object controller = switch (game) {
+      GameKind.qwixx => QwixxController.newGame(
+        names: cleanedNames,
+        repository: widget.repository,
+      ),
+      GameKind.tenThousand => TenThousandController.newGame(
+        names: cleanedNames,
+        repository: widget.repository,
+      ),
+      GameKind.yahtzeeKniffel => GameController.newGame(
+        ruleSet: RuleSet.kniffel,
+        mode: mode,
+        names: cleanedNames,
+        repository: widget.repository,
+      ),
+    };
     try {
       await widget.repository.save(switch (controller) {
         QwixxController() => controller.state,
+        TenThousandController() => controller.state,
         GameController() => controller.state,
         _ => throw StateError('Unbekannter Controller.'),
       });
@@ -176,7 +191,7 @@ class _SetupScreenState extends State<SetupScreen> {
         const SizedBox(height: 10),
         Wrap(
           children: [
-            for (final item in ScoreblockGame.values)
+            for (final item in publicGameKinds)
               SizedBox(
                 width: 180,
                 child: _ChoiceCard(
@@ -188,7 +203,7 @@ class _SetupScreenState extends State<SetupScreen> {
               ),
           ],
         ),
-        if (!isQwixx) ...[
+        if (isClassic) ...[
           const SizedBox(height: 22),
           Text('Spielart', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
@@ -226,8 +241,10 @@ class _SetupScreenState extends State<SetupScreen> {
           ],
         ),
         if (isQwixx) const Text('Qwixx wird mit 2 bis 5 Personen gespielt.'),
-        if (game == ScoreblockGame.kniffel)
-          const Text('Kniffel wird mit 2 bis 8 Personen gespielt.'),
+        if (game == GameKind.yahtzeeKniffel)
+          const Text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),
+        if (game == GameKind.tenThousand)
+          const Text('10.000 wird mit 2 bis 8 Personen gespielt.'),
         for (var index = 0; index < names.length; index++)
           Padding(
             padding: const EdgeInsets.only(top: 10),

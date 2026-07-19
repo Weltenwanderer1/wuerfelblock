@@ -37,7 +37,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Qwixx-Regeln'), findsOneWidget);
-    expect(find.textContaining('Yatzy, Kniffel und Qwixx'), findsOneWidget);
+    expect(
+      find.textContaining('Yahtzee/Kniffel, Qwixx und 10.000'),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Qwixx-Regeln'));
     await tester.pumpAndSettle();
     expect(find.byType(QwixxRulesScreen), findsOneWidget);

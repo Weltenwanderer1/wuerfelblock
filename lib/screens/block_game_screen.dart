@@ -32,20 +32,61 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
 
   Future<void> _enter(ScoreCategory category, int playerIndex) async {
     if (widget.game.isBusy) return;
-    final value = await showDialog<int>(
+    final result = await showDialog<_ScoreEntryResult>(
       context: context,
       builder: (context) => _ScoreEntryDialog(
         playerName: widget.game.state.players[playerIndex].name,
         category: category,
+        ruleSet: widget.game.state.ruleSet,
         allowedScores: ScoringEngine.allowedScores(
           widget.game.state.ruleSet,
           category,
         ),
       ),
     );
-    if (value == null) return;
+    if (result == null) return;
     try {
-      await widget.game.enterScore(category, value, playerIndex: playerIndex);
+      await widget.game.enterScore(
+        category,
+        result.value!,
+        playerIndex: playerIndex,
+      );
+    } catch (_) {
+      _saveFailed();
+      return;
+    }
+    if (!mounted) return;
+    if (widget.game.state.isComplete) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => ResultScreen(game: widget.game)),
+      );
+    }
+  }
+
+  Future<void> _edit(ScoreCategory category, int playerIndex) async {
+    if (widget.game.isBusy) return;
+    final player = widget.game.state.players[playerIndex];
+    final result = await showDialog<_ScoreEntryResult>(
+      context: context,
+      builder: (context) => _ScoreEntryDialog(
+        playerName: player.name,
+        category: category,
+        ruleSet: widget.game.state.ruleSet,
+        allowedScores: ScoringEngine.allowedScores(
+          widget.game.state.ruleSet,
+          category,
+        ),
+        initialValue: player.scores[category],
+      ),
+    );
+    if (result == null) return;
+    try {
+      await widget.game.editBlockScore(
+        category,
+        result.value,
+        playerIndex: playerIndex,
+      );
     } catch (_) {
       _saveFailed();
       return;
@@ -180,14 +221,13 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
             ),
           Expanded(
             child: SingleChildScrollView(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                child: ClassicScoreSheet(
-                  state: state,
-                  busy: widget.game.isBusy,
-                  onEnterScore: _enter,
-                ),
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+              child: ClassicScoreSheet(
+                state: state,
+                busy: widget.game.isBusy,
+                onEnterScore: _enter,
+                onEditScore: _edit,
               ),
             ),
           ),
@@ -309,24 +349,42 @@ class _ExtraKniffelDialogState extends State<_ExtraKniffelDialog> {
   );
 }
 
+class _ScoreEntryResult {
+  const _ScoreEntryResult(this.value);
+
+  final int? value;
+}
+
 class _ScoreEntryDialog extends StatefulWidget {
   const _ScoreEntryDialog({
     required this.playerName,
     required this.category,
+    required this.ruleSet,
     required this.allowedScores,
+    this.initialValue,
   });
 
   final String playerName;
   final ScoreCategory category;
+  final RuleSet ruleSet;
   final Set<int> allowedScores;
+  final int? initialValue;
 
   @override
   State<_ScoreEntryDialog> createState() => _ScoreEntryDialogState();
 }
 
 class _ScoreEntryDialogState extends State<_ScoreEntryDialog> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller;
   String? _error;
+
+  bool get _isEditing => widget.initialValue != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue?.toString());
+  }
 
   @override
   void dispose() {
@@ -340,19 +398,19 @@ class _ScoreEntryDialogState extends State<_ScoreEntryDialog> {
       setState(() => _error = 'Ungültige Punktzahl für diese Kategorie.');
       return;
     }
-    Navigator.pop(context, value);
+    Navigator.pop(context, _ScoreEntryResult(value));
   }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
     scrollable: true,
-    title: const Text('Punkte eintragen'),
+    title: Text(_isEditing ? 'Punkte ändern' : 'Punkte eintragen'),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${widget.category.label} · ${widget.playerName}',
+          '${widget.category.displayLabel(widget.ruleSet)} · ${widget.playerName}',
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
@@ -380,10 +438,18 @@ class _ScoreEntryDialogState extends State<_ScoreEntryDialog> {
         onPressed: () => Navigator.pop(context),
         child: const Text('Abbrechen'),
       ),
-      TextButton(
-        onPressed: () => Navigator.pop(context, 0),
-        child: const Text('Streichen (0)'),
-      ),
+      if (_isEditing)
+        TextButton.icon(
+          onPressed: () =>
+              Navigator.pop(context, const _ScoreEntryResult(null)),
+          icon: const Icon(Icons.delete_outline),
+          label: const Text('Eintrag löschen'),
+        )
+      else
+        TextButton(
+          onPressed: () => Navigator.pop(context, const _ScoreEntryResult(0)),
+          child: const Text('Streichen (0)'),
+        ),
       FilledButton(onPressed: _save, child: const Text('Speichern')),
     ],
   );

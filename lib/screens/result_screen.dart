@@ -50,6 +50,15 @@ class _ResultScreenState extends State<ResultScreen> {
     ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
   }
 
+  void _correctBlockScores() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => BlockGameScreen(game: widget.game),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final winners = widget.game.winners;
@@ -85,6 +94,16 @@ class _ResultScreenState extends State<ResultScreen> {
                     const SizedBox(height: 24),
                     TotalsCard(state: widget.game.state),
                     const SizedBox(height: 20),
+                    if (widget.game.state.mode == GameMode.block) ...[
+                      OutlinedButton.icon(
+                        onPressed: widget.game.isBusy
+                            ? null
+                            : _correctBlockScores,
+                        icon: const Icon(Icons.edit_note),
+                        label: const Text('Wertungen korrigieren'),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                     if (widget.game.canUndo) ...[
                       OutlinedButton.icon(
                         onPressed: widget.game.isBusy ? null : _undo,

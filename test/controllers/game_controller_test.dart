@@ -177,6 +177,140 @@ void main() {
     expect(game.state.players.first.scores[ScoreCategory.yatzy], 0);
   });
 
+  group('Scoreblock-Wertungen bearbeiten', () {
+    GameController game({GameRepository? repository}) => GameController(
+      state: GameState(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.block,
+        players: [
+          Player(
+            name: 'Ada',
+            scores: {ScoreCategory.ones: 1, ScoreCategory.yatzy: 50},
+            extraKniffel: 2,
+          ),
+          Player(name: 'Berta'),
+        ],
+      ),
+      repository: repository ?? MemoryGameRepository(),
+    );
+
+    test('ändert einen vorhandenen Wert und speichert ihn', () async {
+      final controller = game();
+
+      await controller.editBlockScore(ScoreCategory.ones, 3, playerIndex: 0);
+
+      expect(controller.state.players.first.scores[ScoreCategory.ones], 3);
+      expect(
+        (await controller.repository.load() as GameState)
+            .players
+            .first
+            .scores[ScoreCategory.ones],
+        3,
+      );
+    });
+
+    test('löscht einen vorhandenen Wert und berechnet Abschluss neu', () async {
+      final scores = {
+        for (final category in RuleSet.kniffel.categories) category: 0,
+      }..[ScoreCategory.yatzy] = 50;
+      final controller = GameController(
+        state: GameState(
+          ruleSet: RuleSet.kniffel,
+          mode: GameMode.block,
+          players: [Player(name: 'Ada', scores: scores)],
+          isComplete: true,
+        ),
+        repository: MemoryGameRepository(),
+      );
+
+      await controller.editBlockScore(ScoreCategory.ones, null, playerIndex: 0);
+
+      expect(
+        controller.state.players.first.scores.containsKey(ScoreCategory.ones),
+        isFalse,
+      );
+      expect(controller.state.isComplete, isFalse);
+    });
+
+    test('Undo stellt geänderten Wert und Zusatz-Kniffel wieder her', () async {
+      final controller = game();
+
+      await controller.editBlockScore(ScoreCategory.yatzy, 0, playerIndex: 0);
+      expect(controller.state.players.first.extraKniffel, 0);
+      await controller.undo();
+
+      expect(controller.state.players.first.scores[ScoreCategory.yatzy], 50);
+      expect(controller.state.players.first.extraKniffel, 2);
+    });
+
+    test('Undo stellt einen gelöschten Wert wieder her', () async {
+      final controller = game();
+
+      await controller.editBlockScore(ScoreCategory.ones, null, playerIndex: 0);
+      await controller.undo();
+
+      expect(controller.state.players.first.scores[ScoreCategory.ones], 1);
+    });
+
+    test('Save-Fehler rollt Änderung und Undo-Zustand zurück', () async {
+      final repository = _ToggleRepository();
+      final controller = game(repository: repository);
+      await controller.editBlockScore(ScoreCategory.ones, 2, playerIndex: 0);
+      repository.fail = true;
+
+      await expectLater(
+        controller.editBlockScore(ScoreCategory.ones, 3, playerIndex: 0),
+        throwsException,
+      );
+
+      expect(controller.state.players.first.scores[ScoreCategory.ones], 2);
+      repository.fail = false;
+      await controller.undo();
+      expect(controller.state.players.first.scores[ScoreCategory.ones], 1);
+    });
+
+    test(
+      'validiert Modus, Spieler, Kategorie, Wert und vorhandenen Eintrag',
+      () {
+        final controller = game();
+        expect(
+          () =>
+              controller.editBlockScore(ScoreCategory.ones, 6, playerIndex: 0),
+          throwsArgumentError,
+        );
+        expect(
+          () =>
+              controller.editBlockScore(ScoreCategory.twos, 2, playerIndex: 0),
+          throwsStateError,
+        );
+        expect(
+          () => controller.editBlockScore(
+            ScoreCategory.onePair,
+            null,
+            playerIndex: 0,
+          ),
+          throwsArgumentError,
+        );
+        expect(
+          () =>
+              controller.editBlockScore(ScoreCategory.ones, 1, playerIndex: 3),
+          throwsRangeError,
+        );
+
+        final digital = GameController.newGame(
+          ruleSet: RuleSet.kniffel,
+          mode: GameMode.digital,
+          names: ['Ada', 'Berta'],
+          repository: MemoryGameRepository(),
+        );
+        expect(
+          () => digital.editBlockScore(ScoreCategory.ones, 1, playerIndex: 0),
+          throwsStateError,
+        );
+      },
+    );
+  });
+
   test('fünf Würfel, Hold und maximal drei Würfe', () async {
     final game = GameController.newGame(
       ruleSet: RuleSet.kniffel,

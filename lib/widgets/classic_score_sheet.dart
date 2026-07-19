@@ -9,12 +9,14 @@ class ClassicScoreSheet extends StatelessWidget {
     required this.state,
     required this.busy,
     required this.onEnterScore,
+    required this.onEditScore,
     super.key,
   });
 
   final GameState state;
   final bool busy;
   final void Function(ScoreCategory category, int playerIndex) onEnterScore;
+  final void Function(ScoreCategory category, int playerIndex) onEditScore;
 
   static const _paper = Color(0xFFFFFDF5);
   static const _ink = Color(0xFF17202A);
@@ -22,6 +24,9 @@ class ClassicScoreSheet extends StatelessWidget {
   static const _red = Color(0xFF9E2F35);
   static const _labelWidth = 190.0;
   static const _cellWidth = 88.0;
+  static const _headerHeight = 50.0;
+
+  double get _tableWidth => _labelWidth + state.players.length * _cellWidth + 4;
 
   @override
   Widget build(BuildContext context) {
@@ -31,80 +36,105 @@ class ClassicScoreSheet extends StatelessWidget {
     final lower = state.ruleSet.categories.where(
       (category) => !category.isUpper,
     );
-    return DecoratedBox(
-      key: const Key('classic-score-sheet'),
-      decoration: BoxDecoration(
-        color: _paper,
-        border: Border.all(color: _ink, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 8,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _headerRow(),
-          _sectionRow('OBERER BLOCK', _blue),
-          for (final category in upper) _categoryRow(category),
-          _summaryRow('Obere Summe', [
-            for (final player in state.players) player.upperTotal,
-          ]),
-          _summaryRow('Bonus ab 63', [
-            for (final player in state.players) state.bonusFor(player),
-          ], accent: _red),
-          _sectionRow('UNTERER BLOCK', _red),
-          for (final category in lower) _categoryRow(category),
-          if (state.ruleSet == RuleSet.kniffel)
-            _summaryRow('Zusatz-Kniffel', [
-              for (final player in state.players) player.extraKniffel * 50,
-            ]),
-          _summaryRow(
-            'GESAMT',
-            [for (final player in state.players) state.totalFor(player)],
-            accent: _blue,
-            inverted: true,
-          ),
-        ],
+    return SizedBox(
+      width: _tableWidth,
+      child: DecoratedBox(
+        key: const Key('classic-score-sheet'),
+        decoration: const BoxDecoration(
+          color: _paper,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x26000000),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: CustomScrollView(
+          key: const Key('score-sheet-scroll'),
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _ScoreSheetHeaderDelegate(child: _headerRow()),
+            ),
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  _sectionRow('OBERER BLOCK', _blue),
+                  for (final category in upper) _categoryRow(category),
+                  _summaryRow('Obere Summe', [
+                    for (final player in state.players) player.upperTotal,
+                  ]),
+                  _summaryRow('Bonus ab 63', [
+                    for (final player in state.players) state.bonusFor(player),
+                  ], accent: _red),
+                  _sectionRow('UNTERER BLOCK', _red),
+                  for (final category in lower) _categoryRow(category),
+                  if (state.ruleSet == RuleSet.kniffel)
+                    _summaryRow('Zusatz-Kniffel', [
+                      for (final player in state.players)
+                        player.extraKniffel * 50,
+                    ]),
+                  _summaryRow(
+                    'GESAMT',
+                    [
+                      for (final player in state.players)
+                        state.totalFor(player),
+                    ],
+                    accent: _blue,
+                    inverted: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _headerRow() => _gridRow(
-    height: 50,
-    background: _blue,
-    foreground: Colors.white,
-    label: const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 10),
-      child: Text(
-        'KATEGORIE',
-        style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.8),
-      ),
-    ),
-    cells: [
-      for (final player in state.players)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: Text(
-            player.name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
+  Widget _headerRow() => KeyedSubtree(
+    key: const Key('score-sheet-header'),
+    child: _gridRow(
+      height: _headerHeight,
+      background: _blue,
+      foreground: Colors.white,
+      topBorder: true,
+      label: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 10),
+        child: Text(
+          'KATEGORIE',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.8),
         ),
-    ],
+      ),
+      cells: [
+        for (final player in state.players)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              player.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+      ],
+    ),
   );
 
   Widget _sectionRow(String label, Color accent) => Container(
+    width: _tableWidth,
     height: 34,
     alignment: Alignment.centerLeft,
     padding: const EdgeInsets.symmetric(horizontal: 10),
     decoration: BoxDecoration(
       color: accent.withValues(alpha: 0.12),
-      border: const Border(bottom: BorderSide(color: _ink, width: 1.5)),
+      border: const Border(
+        left: BorderSide(color: _ink, width: 2),
+        right: BorderSide(color: _ink, width: 2),
+        bottom: BorderSide(color: _ink, width: 1.5),
+      ),
     ),
     child: Text(
       label,
@@ -160,14 +190,21 @@ class ClassicScoreSheet extends StatelessWidget {
   Widget _scoreCell(ScoreCategory category, int playerIndex) {
     final player = state.players[playerIndex];
     final score = player.scores[category];
+    final key = Key('score-${category.name}-$playerIndex');
     if (score != null) {
       return Semantics(
+        button: true,
         label:
             '${category.displayLabel(state.ruleSet)} für ${player.name}: $score Punkte',
-        child: Center(
-          child: Text(
-            '$score',
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+        hint: 'Punkte ändern oder Eintrag löschen',
+        child: InkWell(
+          key: key,
+          onTap: busy ? null : () => onEditScore(category, playerIndex),
+          child: Center(
+            child: Text(
+              '$score',
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            ),
           ),
         ),
       );
@@ -177,7 +214,7 @@ class ClassicScoreSheet extends StatelessWidget {
       label:
           '${category.displayLabel(state.ruleSet)} für ${player.name} eintragen',
       child: InkWell(
-        key: Key('score-${category.name}-$playerIndex'),
+        key: key,
         onTap: busy ? null : () => onEnterScore(category, playerIndex),
         child: const Center(child: Icon(Icons.add, size: 23, color: _blue)),
       ),
@@ -214,20 +251,29 @@ class ClassicScoreSheet extends StatelessWidget {
     required List<Widget> cells,
     Color? background,
     Color foreground = _ink,
+    bool topBorder = false,
   }) => Container(
-    color: background ?? _paper,
+    width: _tableWidth,
+    height: height,
+    decoration: BoxDecoration(
+      color: background ?? _paper,
+      border: Border(
+        left: const BorderSide(color: _ink, width: 2),
+        right: const BorderSide(color: _ink, width: 2),
+        top: topBorder
+            ? const BorderSide(color: _ink, width: 2)
+            : BorderSide.none,
+        bottom: const BorderSide(color: _ink),
+      ),
+    ),
     child: DefaultTextStyle.merge(
       style: TextStyle(color: foreground),
       child: Row(
         children: [
-          Container(
+          SizedBox(
             width: _labelWidth,
             height: height,
-            alignment: Alignment.centerLeft,
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: _ink)),
-            ),
-            child: label,
+            child: Align(alignment: Alignment.centerLeft, child: label),
           ),
           for (final cell in cells)
             Container(
@@ -235,10 +281,7 @@ class ClassicScoreSheet extends StatelessWidget {
               height: height,
               alignment: Alignment.center,
               decoration: const BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: _ink),
-                  bottom: BorderSide(color: _ink),
-                ),
+                border: Border(left: BorderSide(color: _ink)),
               ),
               child: cell,
             ),
@@ -246,4 +289,27 @@ class ClassicScoreSheet extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _ScoreSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _ScoreSheetHeaderDelegate({required this.child});
+
+  final Widget child;
+
+  @override
+  double get minExtent => ClassicScoreSheet._headerHeight;
+
+  @override
+  double get maxExtent => ClassicScoreSheet._headerHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => child;
+
+  @override
+  bool shouldRebuild(_ScoreSheetHeaderDelegate oldDelegate) =>
+      child != oldDelegate.child;
 }

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/game_models.dart';
 import '../models/qwixx_models.dart';
 import '../models/saved_game_state.dart';
+import '../models/ten_thousand_models.dart';
 
 abstract class GameRepository {
   Future<void> save(SavedGameState state);
@@ -63,6 +64,9 @@ class MemoryGameRepository implements GameRepository {
 }
 
 SavedGameState decodeSavedGameState(Map<String, dynamic> json) =>
-    json['type'] == 'qwixx'
-    ? QwixxGameState.fromJson(json)
-    : GameState.fromJson(json);
+    switch (json['type']) {
+      null || 'classic' => GameState.fromJson(json),
+      'qwixx' => QwixxGameState.fromJson(json),
+      'tenThousand' => TenThousandGameState.fromJson(json),
+      _ => throw FormatException('Unbekannter Spieltyp: ${json['type']}'),
+    };

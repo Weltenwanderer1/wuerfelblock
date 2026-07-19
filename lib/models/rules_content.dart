@@ -48,7 +48,7 @@ class RulesContent {
         RuleSection(
           'Material',
           rules == RuleSet.kniffel
-              ? 'Kniffel ist für 2 bis 8 Personen. Zum offiziellen Material gehören fünf Würfel, ein Würfelbecher, ein Kniffel-Block und vier Bleistifte. Im digitalen Spiel sind die Würfel bereits in der App enthalten.'
+              ? 'Yahtzee/Kniffel ist für 2 bis 8 Personen. Zum offiziellen Material gehören fünf Würfel, ein Würfelbecher, ein Kniffel-Block und vier Bleistifte. Im digitalen Spiel sind die Würfel bereits in der App enthalten.'
               : 'Du brauchst fünf Würfel und den Wertungsblock. Im digitalen Spiel sind die Würfel bereits in der App enthalten.',
         ),
         if (rules == RuleSet.kniffel)

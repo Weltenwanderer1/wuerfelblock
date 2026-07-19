@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/app.dart';
 import 'package:wuerfelblock/controllers/game_controller.dart';
+
 import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/saved_game_state.dart';
+import 'package:wuerfelblock/models/ten_thousand_models.dart';
 import 'package:wuerfelblock/screens/block_game_screen.dart';
 import 'package:wuerfelblock/screens/digital_game_screen.dart';
 import 'package:wuerfelblock/screens/result_screen.dart';
 import 'package:wuerfelblock/screens/setup_screen.dart';
+import 'package:wuerfelblock/screens/ten_thousand_game_screen.dart';
+import 'package:wuerfelblock/screens/ten_thousand_result_screen.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
 class _FailingRepository extends MemoryGameRepository {
@@ -24,8 +28,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Würfelblock'), findsWidgets);
     expect(find.text('Neue Partie'), findsOneWidget);
-    expect(find.text('Yatzy-Regeln'), findsOneWidget);
-    expect(find.text('Kniffel-Regeln'), findsOneWidget);
+    expect(find.text('Yahtzee/Kniffel-Regeln'), findsOneWidget);
+    expect(find.text('Qwixx-Regeln'), findsOneWidget);
+    expect(find.text('10.000-Regeln'), findsOneWidget);
+    expect(find.text('Yatzy-Regeln'), findsNothing);
   });
 
   testWidgets('Setup verlangt eindeutige, nicht leere Namen', (tester) async {
@@ -67,6 +73,118 @@ void main() {
     expect(game.state.players.first.scores[ScoreCategory.ones], 3);
   });
 
+  testWidgets('Yahtzee/Kniffel-Dialog zeigt keinen alten Yatzy-Namen', (
+    tester,
+  ) async {
+    final game = GameController.newGame(
+      ruleSet: RuleSet.kniffel,
+      mode: GameMode.block,
+      names: ['Ada', 'Berta'],
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
+    final cell = find.byKey(const Key('score-yatzy-0'));
+    await tester.ensureVisible(cell);
+    await tester.pumpAndSettle();
+    await tester.tap(cell);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Kniffel · Ada'), findsOneWidget);
+    expect(find.textContaining('Yatzy / Kniffel'), findsNothing);
+  });
+
+  testWidgets('gefüllte Blockzelle ist bearbeitbar und vorausgefüllt', (
+    tester,
+  ) async {
+    final game = GameController(
+      state: GameState(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.block,
+        players: [
+          Player(name: 'Ada', scores: {ScoreCategory.ones: 1}),
+          Player(name: 'Berta'),
+        ],
+      ),
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
+
+    await tester.tap(find.byKey(const Key('score-ones-0')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Punkte ändern'), findsOneWidget);
+    final input = tester.widget<TextField>(
+      find.byKey(const Key('score-input')),
+    );
+    expect(input.controller!.text, '1');
+    expect(find.text('Eintrag löschen'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('score-input')), '3');
+    await tester.tap(find.text('Speichern'));
+    await tester.pumpAndSettle();
+    expect(game.state.players.first.scores[ScoreCategory.ones], 3);
+  });
+
+  testWidgets('gefüllte Blockzelle kann gelöscht werden', (tester) async {
+    final game = GameController(
+      state: GameState(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.block,
+        players: [
+          Player(name: 'Ada', scores: {ScoreCategory.ones: 1}),
+          Player(name: 'Berta'),
+        ],
+      ),
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
+
+    await tester.tap(find.byKey(const Key('score-ones-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Eintrag löschen'));
+    await tester.pumpAndSettle();
+
+    expect(
+      game.state.players.first.scores.containsKey(ScoreCategory.ones),
+      isFalse,
+    );
+    expect(find.byIcon(Icons.add), findsWidgets);
+  });
+
+  testWidgets('Scoreblock-Kopf bleibt beim vertikalen Scrollen stehen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final game = GameController.newGame(
+      ruleSet: RuleSet.kniffel,
+      mode: GameMode.block,
+      names: ['Ada', 'Berta'],
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
+
+    final header = find.byKey(const Key('score-sheet-header'));
+    final scroll = find.byKey(const Key('score-sheet-scroll'));
+    expect(header, findsOneWidget);
+    expect(scroll, findsOneWidget);
+    final initialY = tester.getTopLeft(header).dy;
+    expect(
+      tester.getTopLeft(find.text('OBERER BLOCK')).dy,
+      greaterThanOrEqualTo(tester.getBottomLeft(header).dy),
+    );
+
+    await tester.drag(scroll, const Offset(0, -350));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(header).dy, closeTo(initialY, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Digitalwürfel können geworfen und gehalten werden', (
     tester,
   ) async {
@@ -97,7 +215,11 @@ void main() {
     );
     await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
     final cell = find.byKey(const Key('score-smallStraight-0'));
-    await tester.ensureVisible(cell);
+    await tester.drag(
+      find.byKey(const Key('score-sheet-scroll')),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(cell);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('score-input')), '17');
@@ -192,6 +314,33 @@ void main() {
     expect(game.state.isComplete, isFalse);
   });
 
+  testWidgets('Ergebnis öffnet den Block zum Korrigieren aller Wertungen', (
+    tester,
+  ) async {
+    final scores = {
+      for (final category in RuleSet.kniffel.categories) category: 0,
+    };
+    final game = GameController(
+      state: GameState(
+        ruleSet: RuleSet.kniffel,
+        mode: GameMode.block,
+        players: [
+          Player(name: 'Ada', scores: scores),
+          Player(name: 'Berta', scores: scores),
+        ],
+        isComplete: true,
+      ),
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: ResultScreen(game: game)));
+
+    await tester.tap(find.text('Wertungen korrigieren'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BlockGameScreen), findsOneWidget);
+    expect(game.state.isComplete, isTrue);
+  });
+
   testWidgets('gespeicherte Blockzelle hat vollständige Semantik', (
     tester,
   ) async {
@@ -207,7 +356,9 @@ void main() {
       find.byWidgetPredicate(
         (widget) =>
             widget is Semantics &&
-            widget.properties.label == 'Einser für Ada: 3 Punkte',
+            widget.properties.button == true &&
+            widget.properties.label == 'Einser für Ada: 3 Punkte' &&
+            widget.properties.hint == 'Punkte ändern oder Eintrag löschen',
       ),
       findsOneWidget,
     );
@@ -258,10 +409,11 @@ void main() {
     expect(fields.map((field) => field.controller!.text), [
       'Spieler 1',
       'Spieler 2',
+      'Spieler 3',
     ]);
   });
 
-  testWidgets('Kniffel setup automatically requires two players', (
+  testWidgets('Setup offers exactly three public games and combined defaults', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(800, 1200);
@@ -278,14 +430,94 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.text('Kniffel'));
+    expect(find.text('Yahtzee/Kniffel'), findsOneWidget);
+    expect(find.text('Qwixx'), findsOneWidget);
+    expect(find.text('10.000'), findsOneWidget);
+    expect(find.text('Yatzy'), findsNothing);
+    expect(find.byType(TextFormField), findsNWidgets(2));
+    expect(
+      find.text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),
+      findsOneWidget,
+    );
+    expect(find.text('Spielart'), findsOneWidget);
+    expect(find.text('Echte Würfel'), findsOneWidget);
+    expect(find.text('Digital würfeln'), findsOneWidget);
+  });
+
+  testWidgets('combined setup saves Kniffel and supports both modes', (
+    tester,
+  ) async {
+    final repository = MemoryGameRepository();
+    Object? started;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SetupScreen(
+          repository: repository,
+          onStarted: (controller) => started = controller,
+        ),
+      ),
+    );
+    await tester.tap(find.text('Digital würfeln'));
+    await tester.tap(find.byKey(const Key('start-game')));
+    await tester.pumpAndSettle();
+
+    expect(started, isA<GameController>());
+    final state = await repository.load() as GameState;
+    expect(state.ruleSet, RuleSet.kniffel);
+    expect(state.mode, GameMode.digital);
+    expect(state.players, hasLength(2));
+  });
+
+  testWidgets('10.000 setup enforces physical 2–8 and routes to game', (
+    tester,
+  ) async {
+    final repository = MemoryGameRepository();
+    await tester.pumpWidget(WuerfelblockApp(repository: repository));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Neue Partie'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('10.000'));
     await tester.pump();
 
     expect(find.byType(TextFormField), findsNWidgets(2));
     expect(
-      find.text('Kniffel wird mit 2 bis 8 Personen gespielt.'),
+      find.text('10.000 wird mit 2 bis 8 Personen gespielt.'),
       findsOneWidget,
     );
+    expect(find.text('Spielart'), findsNothing);
+    expect(find.text('Digital würfeln'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('start-game')));
+    await tester.pumpAndSettle();
+    expect(find.byType(TenThousandGameScreen), findsOneWidget);
+    expect(await repository.load(), isA<TenThousandGameState>());
+  });
+
+  testWidgets('saved incomplete and complete 10.000 route correctly', (
+    tester,
+  ) async {
+    final repository = MemoryGameRepository();
+    await repository.save(TenThousandGameState.newGame(['Ada', 'Bea']));
+    await tester.pumpWidget(WuerfelblockApp(repository: repository));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('10.000 · Echte Würfel'), findsOneWidget);
+    await tester.tap(find.text('Partie fortsetzen'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TenThousandGameScreen), findsOneWidget);
+
+    await repository.save(
+      TenThousandGameState(
+        players: [TenThousandPlayer('Ada'), TenThousandPlayer('Bea')],
+        turns: [TenThousandTurn(0, 10000), TenThousandTurn(1, 0)],
+      ),
+    );
+    await tester.pumpWidget(
+      WuerfelblockApp(key: const Key('completed-app'), repository: repository),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Partie fortsetzen'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TenThousandResultScreen), findsOneWidget);
   });
 
   testWidgets('Block Zusatz-Kniffel confirms player, category and scoring', (
