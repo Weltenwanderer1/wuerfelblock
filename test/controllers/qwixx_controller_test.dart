@@ -38,7 +38,7 @@ void main() {
 
     expect(controller.state.activePlayerIndex, 1);
     expect(controller.state.players[0].misses, 0);
-    final saved = await repository.load() as QwixxGameState;
+    final saved = (await repository.load()).state as QwixxGameState;
     expect(saved.players[0].crossed[QwixxColor.red], {8});
     expect(saved.hasRolled, isFalse);
   });
@@ -62,7 +62,7 @@ void main() {
     repository.failSave = false;
     await controller.retryDigitalSave();
     expect(controller.needsDigitalSaveRetry, isFalse);
-    final saved = await repository.load() as QwixxGameState;
+    final saved = (await repository.load()).state as QwixxGameState;
     expect(saved.dice, [2, 5, 3, 4, 6, 1]);
   });
 
@@ -76,8 +76,9 @@ void main() {
     await controller.mark(QwixxColor.red, 5, playerIndex: 1);
     expect(controller.state.players[1].crossed[QwixxColor.red], {5});
     expect(
-      (await repository.load() as QwixxGameState).players[1].crossed[QwixxColor
-          .red],
+      ((await repository.load()).state as QwixxGameState)
+          .players[1]
+          .crossed[QwixxColor.red],
       {5},
     );
     expect(controller.canUndo, isTrue);
@@ -85,8 +86,9 @@ void main() {
     await controller.undo();
     expect(controller.state.players[1].crossed[QwixxColor.red], isEmpty);
     expect(
-      (await repository.load() as QwixxGameState).players[1].crossed[QwixxColor
-          .red],
+      ((await repository.load()).state as QwixxGameState)
+          .players[1]
+          .crossed[QwixxColor.red],
       isEmpty,
     );
   });
@@ -145,7 +147,7 @@ void main() {
 
     expect(controller.state.closedColors, {QwixxColor.red});
     expect(controller.state.pendingClosedColors, isEmpty);
-    final saved = await repository.load() as QwixxGameState;
+    final saved = (await repository.load()).state as QwixxGameState;
     expect(saved.closedColors, {QwixxColor.red});
     expect(saved.pendingClosedColors, isEmpty);
   });
@@ -170,6 +172,6 @@ void main() {
     );
     await repository.save(controller.state);
     await controller.abandon();
-    expect(await repository.load(), isNull);
+    expect((await repository.load()).state, isNull);
   });
 }

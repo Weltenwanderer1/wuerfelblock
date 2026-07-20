@@ -305,10 +305,12 @@ class BalutGameState implements SavedGameState {
   bool get isComplete => _players.every((player) => player.isComplete);
   List<BalutPlayer> get winners {
     final best = _players
-        .map((player) => player.incentivePoints)
+        .map((player) => player.rawTotal + player.incentivePoints)
         .reduce((a, b) => a > b ? a : b);
     return List.unmodifiable(
-      _players.where((player) => player.incentivePoints == best),
+      _players.where(
+        (player) => player.rawTotal + player.incentivePoints == best,
+      ),
     );
   }
 

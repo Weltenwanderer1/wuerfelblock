@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/balut_controller.dart';
 import '../models/balut_models.dart';
+import 'balut_rules_screen.dart';
 
 const _balutPaper = Color(0xFFFFF3D6);
 const _balutInk = Color(0xFF2D2923);
@@ -53,6 +54,17 @@ class _BalutResultScreenState extends State<BalutResultScreen> {
         appBar: AppBar(
           title: const Text('Balut · Ergebnis'),
           automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+              key: const Key('balut-result-rules'),
+              tooltip: 'Balut-Regeln',
+              onPressed: () => Navigator.push<void>(
+                context,
+                MaterialPageRoute(builder: (_) => const BalutRulesScreen()),
+              ),
+              icon: const Icon(Icons.menu_book_outlined),
+            ),
+          ],
         ),
         body: SafeArea(
           child: ListView(

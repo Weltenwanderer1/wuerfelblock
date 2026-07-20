@@ -201,7 +201,7 @@ void main() {
 
       expect(controller.state.players.first.scores[ScoreCategory.ones], 3);
       expect(
-        (await controller.repository.load() as GameState)
+        ((await controller.repository.load()).state as GameState)
             .players
             .first
             .scores[ScoreCategory.ones],
@@ -360,7 +360,7 @@ void main() {
     await dice.roll();
     await dice.toggleHold(0);
 
-    final restored = await repository.load() as GameState;
+    final restored = (await repository.load()).state as GameState;
     expect(restored.rollCount, 1);
     expect(restored.dice, dice.dice);
     expect(restored.held, [true, false, false, false, false]);

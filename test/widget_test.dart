@@ -325,7 +325,7 @@ void main() {
     await tester.tap(find.text('Verwerfen'));
     await tester.pumpAndSettle();
     expect(find.byType(SetupScreen), findsOneWidget);
-    expect((await repository.load())!.players.first.name, 'Alt');
+    expect(((await repository.load()).state)!.players.first.name, 'Alt');
   });
 
   testWidgets('Resultat kann letzten Eintrag rückgängig machen', (
@@ -497,7 +497,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(started, isA<GameController>());
-    final state = await repository.load() as GameState;
+    final state = (await repository.load()).state as GameState;
     expect(state.ruleSet, RuleSet.kniffel);
     expect(state.mode, GameMode.digital);
     expect(state.players, hasLength(2));
@@ -528,7 +528,7 @@ void main() {
     await tester.tap(find.byKey(const Key('start-game')));
     await tester.pumpAndSettle();
     expect(find.byType(TenThousandDigitalGameScreen), findsOneWidget);
-    final saved = await repository.load() as TenThousandGameState;
+    final saved = (await repository.load()).state as TenThousandGameState;
     expect(saved.mode, GameMode.digital);
   });
 
@@ -589,7 +589,7 @@ void main() {
     await tester.tap(find.byKey(const Key('start-game')));
     await tester.pumpAndSettle();
     expect(find.byType(BalutGameScreen), findsOneWidget);
-    final saved = await repository.load() as BalutGameState;
+    final saved = (await repository.load()).state as BalutGameState;
     expect(saved.mode, GameMode.digital);
     expect(saved.players, hasLength(2));
   });

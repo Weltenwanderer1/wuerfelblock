@@ -51,7 +51,7 @@ void main() {
     expect(controller.state.turns.single.points, 1000);
     expect(controller.state.activePlayerIndex, 1);
     expect(controller.state.digitalTurn!.roundPoints, 0);
-    final saved = await repository.load() as TenThousandGameState;
+    final saved = (await repository.load()).state as TenThousandGameState;
     expect(saved.turns.single.points, 1000);
 
     await controller.undo();
@@ -78,7 +78,7 @@ void main() {
     repository.failSave = false;
     await controller.retryDigitalSave();
     expect(controller.needsDigitalSaveRetry, isFalse);
-    final saved = await repository.load() as TenThousandGameState;
+    final saved = (await repository.load()).state as TenThousandGameState;
     expect(saved.digitalTurn!.dice, [1, 2, 3, 4, 5, 6]);
   });
 
@@ -127,11 +127,17 @@ void main() {
     await controller.enterTurn(500);
     expect(controller.state.totals, [500, 0]);
     expect(controller.canUndo, isTrue);
-    expect((await repository.load() as TenThousandGameState).totals, [500, 0]);
+    expect(((await repository.load()).state as TenThousandGameState).totals, [
+      500,
+      0,
+    ]);
 
     await controller.undo();
     expect(controller.state.turns, isEmpty);
-    expect((await repository.load() as TenThousandGameState).turns, isEmpty);
+    expect(
+      ((await repository.load()).state as TenThousandGameState).turns,
+      isEmpty,
+    );
     expect(controller.canUndo, isFalse);
   });
 
@@ -184,7 +190,7 @@ void main() {
       expect(controller.state.turns, hasLength(4));
       expect(controller.state.turns.first.points, 9950);
       expect(
-        (await repository.load() as TenThousandGameState).turns,
+        ((await repository.load()).state as TenThousandGameState).turns,
         hasLength(4),
       );
     },
@@ -271,6 +277,6 @@ void main() {
     await controller.enterTurn(10000);
     expect(controller.winners.map((player) => player.name), ['A', 'B']);
     await controller.abandon();
-    expect(await repository.load(), isNull);
+    expect((await repository.load()).state, isNull);
   });
 }

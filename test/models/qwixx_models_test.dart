@@ -305,7 +305,8 @@ void main() {
         final repository = SharedPreferencesGameRepository(preferences);
         final qwixx = QwixxGameState.newGame(['Ada', 'Bea']);
         await repository.save(qwixx);
-        expect(await repository.load(), isA<QwixxGameState>());
+        final loadedResult = await repository.load();
+        expect(loadedResult.state, isA<QwixxGameState>());
 
         final legacy = GameState(
           ruleSet: RuleSet.yatzy,
@@ -316,9 +317,9 @@ void main() {
           SharedPreferencesGameRepository.key,
           jsonEncode(legacy.toJson()..remove('type')),
         );
-        final loaded = await repository.load();
-        expect(loaded, isA<GameState>());
-        expect((loaded as GameState).players.single.name, 'Alt');
+        final legacyResult = await repository.load();
+        expect(legacyResult.state, isA<GameState>());
+        expect((legacyResult.state as GameState).players.single.name, 'Alt');
       },
     );
   });

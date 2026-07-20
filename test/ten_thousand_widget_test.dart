@@ -148,7 +148,7 @@ void main() {
       expect(game.state.activePlayer?.name, 'Bea');
       expect(find.text('350'), findsWidgets);
       expect(find.bySemanticsLabel('Aktive Person: Bea'), findsOneWidget);
-      expect((await repository.load() as TenThousandGameState).totals, [
+      expect(((await repository.load()).state as TenThousandGameState).totals, [
         350,
         0,
       ]);

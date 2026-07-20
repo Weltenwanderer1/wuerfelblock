@@ -88,7 +88,7 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
     }
   }
 
-  Future<void> _openBlockDialog({
+  Future<void> _editBlock({
     required int playerIndex,
     required BalutCategory category,
     required int index,
@@ -110,6 +110,35 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
       () =>
           _game.scoreBlock(category, index, entered, playerIndex: playerIndex),
     );
+  }
+
+  Future<void> _scoreDigital(BalutCategory category) async {
+    if (_state.mode != GameMode.digital) return;
+    if (_state.rollCount == 0) return;
+    final score = BalutScoring.score(category, _state.dice);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${category.label}: $score Punkte?'),
+        content: Text(
+          'Wertung wird in den nächsten freien Eintrag von '
+          '${_state.activePlayer.name} übernommen.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            key: const Key('confirm-score'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Werten'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _run(() => _game.scoreDigital(category));
   }
 
   Future<void> _openResult() async {
@@ -163,17 +192,22 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final compact = constraints.maxWidth < 540;
-                    final dicePanel = _DicePanel(game: _game, compact: compact);
+                    final dicePanel = _DicePanel(
+                      game: _game,
+                      compact: compact,
+                      onRun: _run,
+                    );
                     final sheet = _BalutSheet(
                       state: state,
                       displayedPlayerIndex: _displayedPlayerIndex,
                       onSelectPlayer: (index) =>
                           setState(() => _displayedPlayerIndex = index),
-                      onTapSlot: (category, index) => _openBlockDialog(
+                      onEditBlock: (category, index) => _editBlock(
                         playerIndex: _displayedPlayerIndex,
                         category: category,
                         index: index,
                       ),
+                      onScoreDigital: (category) => _scoreDigital(category),
                     );
                     if (compact) {
                       return Column(
@@ -236,14 +270,18 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
 }
 
 class _DicePanel extends StatelessWidget {
-  const _DicePanel({required this.game, required this.compact});
+  const _DicePanel({
+    required this.game,
+    required this.compact,
+    required this.onRun,
+  });
   final BalutController game;
   final bool compact;
+  final Future<void> Function(Future<void> Function()) onRun;
 
   @override
   Widget build(BuildContext context) {
     final state = game.state;
-    final blocked = game.isBusy || game.needsDigitalSaveRetry;
     final isDigital = state.mode == GameMode.digital;
     return Card(
       margin: EdgeInsets.zero,
@@ -252,51 +290,68 @@ class _DicePanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Wurf ${state.rollCount}/3',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                color: _balutInk,
+            if (isDigital) ...[
+              Text(
+                'Wurf ${state.rollCount}/3',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: _balutInk,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (var index = 0; index < state.dice.length; index++)
-                  DieWidget(
-                    key: Key('balut-die-$index'),
-                    value: state.dice[index],
-                    held: state.held[index],
-                    selectedSemantic: 'festgehalten',
-                    unselectedSemantic: 'wird neu gewürfelt',
-                    index: 200 + index,
-                    onTap:
-                        isDigital &&
-                            state.rollCount > 0 &&
-                            state.rollCount < 3 &&
-                            !blocked
-                        ? () => game.toggleHold(index)
-                        : null,
+              const SizedBox(height: 6),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (var index = 0; index < state.dice.length; index++)
+                    DieWidget(
+                      key: Key('balut-die-$index'),
+                      value: state.dice[index],
+                      held: state.held[index],
+                      selectedSemantic: 'festgehalten',
+                      unselectedSemantic: 'wird neu gewürfelt',
+                      index: 200 + index,
+                      onTap:
+                          isDigital &&
+                              state.rollCount > 0 &&
+                              state.rollCount < 3 &&
+                              !game.isBusy
+                          ? () => onRun(() => game.toggleHold(index))
+                          : null,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+            ] else
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Blockmodus: Mit echten Würfeln spielen und Werte unten eintragen.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: _balutInk,
                   ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            if (game.needsDigitalSaveRetry)
+                ),
+              ),
+            if (isDigital && game.needsDigitalSaveRetry)
               FilledButton.icon(
                 key: const Key('balut-retry-save'),
-                onPressed: blocked ? null : () => game.retryDigitalSave(),
+                // Retry must remain clickable while needsDigitalSaveRetry is
+                // true; only isBusy should disable it.
+                onPressed: game.isBusy
+                    ? null
+                    : () => onRun(game.retryDigitalSave),
                 icon: const Icon(Icons.save_outlined, size: 18),
-                label: const Text('Speichern'),
+                label: const Text('Erneut speichern'),
               )
-            else
+            else if (isDigital)
               FilledButton.icon(
                 key: const Key('balut-roll'),
-                onPressed: isDigital && !blocked && state.rollCount < 3
-                    ? () => game.rollDigital()
+                onPressed: isDigital && !game.isBusy && state.rollCount < 3
+                    ? () => onRun(game.rollDigital)
                     : null,
                 icon: const Icon(Icons.casino, size: 18),
                 label: Text(
@@ -317,13 +372,15 @@ class _BalutSheet extends StatelessWidget {
     required this.state,
     required this.displayedPlayerIndex,
     required this.onSelectPlayer,
-    required this.onTapSlot,
+    required this.onEditBlock,
+    required this.onScoreDigital,
   });
 
   final BalutGameState state;
   final int displayedPlayerIndex;
   final ValueChanged<int> onSelectPlayer;
-  final void Function(BalutCategory category, int index) onTapSlot;
+  final void Function(BalutCategory category, int index) onEditBlock;
+  final ValueChanged<BalutCategory> onScoreDigital;
 
   @override
   Widget build(BuildContext context) {
@@ -350,7 +407,8 @@ class _BalutSheet extends StatelessWidget {
                       category: category,
                       player: player,
                       state: state,
-                      onTapSlot: (index) => onTapSlot(category, index),
+                      onEditBlock: (cat, idx) => onEditBlock(cat, idx),
+                      onScoreDigital: (cat) => onScoreDigital(cat),
                     ),
                 ],
               ),
@@ -408,12 +466,14 @@ class _CategoryRow extends StatelessWidget {
     required this.category,
     required this.player,
     required this.state,
-    required this.onTapSlot,
+    required this.onEditBlock,
+    required this.onScoreDigital,
   });
   final BalutCategory category;
   final BalutPlayer player;
   final BalutGameState state;
-  final ValueChanged<int> onTapSlot;
+  final void Function(BalutCategory category, int index) onEditBlock;
+  final ValueChanged<BalutCategory> onScoreDigital;
 
   @override
   Widget build(BuildContext context) {
@@ -457,11 +517,24 @@ class _CategoryRow extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: _SlotCell(
+                      key: ValueKey(
+                        isDigital
+                            ? 'balut-score-${_categoryKey(category)}-$index'
+                            : 'balut-edit-${_categoryKey(category)}-$index',
+                      ),
                       category: category,
                       index: index,
                       value: entries[index],
-                      isDigital: isDigital,
-                      onTap: () => onTapSlot(index),
+                      canTap: isDigital ? entries[index] == null : true,
+                      onTap: () {
+                        if (isDigital) {
+                          if (entries[index] == null) {
+                            onScoreDigital(category);
+                          }
+                        } else {
+                          onEditBlock(category, index);
+                        }
+                      },
                     ),
                   ),
                 ),
@@ -473,25 +546,36 @@ class _CategoryRow extends StatelessWidget {
   }
 }
 
+String _categoryKey(BalutCategory category) => switch (category) {
+  BalutCategory.fours => 'fours',
+  BalutCategory.fives => 'fives',
+  BalutCategory.sixes => 'sixes',
+  BalutCategory.straights => 'straights',
+  BalutCategory.fullHouse => 'fullHouse',
+  BalutCategory.choice => 'choice',
+  BalutCategory.balut => 'balut',
+};
+
 class _SlotCell extends StatelessWidget {
   const _SlotCell({
+    super.key,
     required this.category,
     required this.index,
     required this.value,
-    required this.isDigital,
+    required this.canTap,
     required this.onTap,
   });
   final BalutCategory category;
   final int index;
   final int? value;
-  final bool isDigital;
+  final bool canTap;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final filled = value != null;
     return InkWell(
-      onTap: onTap,
+      onTap: canTap ? onTap : null,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         height: 36,

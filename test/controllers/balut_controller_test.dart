@@ -46,7 +46,7 @@ void main() {
     ]);
     expect(controller.state.activePlayerIndex, 1);
     expect(
-      (await repository.load() as BalutGameState).toJson(),
+      ((await repository.load()).state as BalutGameState).toJson(),
       controller.state.toJson(),
     );
     expect(controller.canUndo, isTrue);
@@ -58,7 +58,7 @@ void main() {
     );
     expect(controller.state.activePlayerIndex, 0);
     expect(
-      (await repository.load() as BalutGameState).toJson(),
+      ((await repository.load()).state as BalutGameState).toJson(),
       controller.state.toJson(),
     );
     expect(controller.canUndo, isFalse);
@@ -102,7 +102,7 @@ void main() {
     expect(controller.state.rollCount, 0);
     expect(controller.state.held, everyElement(isFalse));
     expect(
-      (await repository.load() as BalutGameState).toJson(),
+      ((await repository.load()).state as BalutGameState).toJson(),
       controller.state.toJson(),
     );
   });
@@ -174,7 +174,13 @@ void main() {
       repository.failSave = false;
       await controller.retryDigitalSave();
       expect(controller.needsDigitalSaveRetry, isFalse);
-      expect((await repository.load() as BalutGameState).dice, [1, 2, 3, 4, 5]);
+      expect(((await repository.load()).state as BalutGameState).dice, [
+        1,
+        2,
+        3,
+        4,
+        5,
+      ]);
     },
   );
 
@@ -217,7 +223,7 @@ void main() {
     );
     await repository.save(controller.state);
     await controller.abandon();
-    expect(await repository.load(), isNull);
+    expect((await repository.load()).state, isNull);
     expect(controller.isBusy, isFalse);
 
     await repository.save(controller.state);

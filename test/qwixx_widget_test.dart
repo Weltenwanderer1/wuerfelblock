@@ -186,8 +186,9 @@ void main() {
 
     expect(controller.state.players[1].crossed[QwixxColor.red], {5});
     expect(
-      (await repository.load() as QwixxGameState).players[1].crossed[QwixxColor
-          .red],
+      ((await repository.load()).state as QwixxGameState)
+          .players[1]
+          .crossed[QwixxColor.red],
       {5},
     );
     await tester.tap(find.byTooltip('Letzte Änderung rückgängig'));

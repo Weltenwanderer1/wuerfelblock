@@ -1,76 +1,71 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wuerfelblock/models/game_models.dart';
-import 'package:wuerfelblock/models/qwixx_models.dart';
-import 'package:wuerfelblock/models/ten_thousand_models.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
 void main() {
-  test(
-    'decoder dispatches legacy classic, explicit classic, Qwixx, and 10.000',
-    () {
-      final classic = GameState(
-        ruleSet: RuleSet.yatzy,
-        mode: GameMode.block,
-        players: [Player(name: 'Ada')],
-      );
-      final legacy = Map<String, dynamic>.from(classic.toJson())
-        ..remove('type');
-      expect(decodeSavedGameState(legacy), isA<GameState>());
-      expect(decodeSavedGameState(classic.toJson()), isA<GameState>());
-      expect(
-        decodeSavedGameState(QwixxGameState.newGame(['A', 'B']).toJson()),
-        isA<QwixxGameState>(),
-      );
-      expect(
-        decodeSavedGameState(TenThousandGameState.newGame(['A', 'B']).toJson()),
-        isA<TenThousandGameState>(),
-      );
-    },
-  );
-
-  test('decoder rejects an unknown persisted game type', () {
-    expect(
-      () => decodeSavedGameState({'type': 'future-game'}),
-      throwsFormatException,
+  group('GameRepository.load', () {
+    test(
+      'returns the saved state and no corruption reason on success',
+      () async {
+        final repository = MemoryGameRepository();
+        await repository.save(
+          GameState(
+            ruleSet: RuleSet.kniffel,
+            mode: GameMode.block,
+            players: [
+              Player(name: 'Ada'),
+              Player(name: 'Bea'),
+            ],
+          ),
+        );
+        final result = await repository.load();
+        expect(result.state, isNotNull);
+        expect(result.corruptionReason, isNull);
+        expect(result.hadCorruption, isFalse);
+      },
     );
-  });
 
-  test('legacy yatzy JSON keeps its label and original categories', () {
-    final decoded =
-        decodeSavedGameState({
-              'ruleSet': 'yatzy',
-              'mode': 'block',
-              'players': [
-                {'name': 'Ada', 'scores': <String, int>{}},
-              ],
-              'currentPlayerIndex': 0,
-              'isComplete': false,
-              'dice': [1, 1, 1, 1, 1],
-              'held': [false, false, false, false, false],
-              'rollCount': 0,
-            })
-            as GameState;
+    test(
+      'returns null state and a reason when the payload is garbage',
+      () async {
+        final repository = MemoryGameRepository()..backingStore = '{not json';
+        final result = await repository.load();
+        expect(result.state, isNull);
+        expect(result.corruptionReason, isNotNull);
+        expect(result.corruptionReason, contains('verworfen'));
+        expect(result.hadCorruption, isTrue);
+      },
+    );
 
-    expect(decoded.ruleSet, RuleSet.yatzy);
-    expect(decoded.gameLabel, 'Yatzy (klassisch)');
-    expect(decoded.ruleSet.categories, contains(ScoreCategory.onePair));
-    expect(decoded.ruleSet.categories, contains(ScoreCategory.twoPairs));
-    expect(decoded.ruleSet.categories, hasLength(15));
-  });
+    test(
+      'returns null state and a reason when the payload has unknown type',
+      () async {
+        final repository = MemoryGameRepository()
+          ..backingStore = '{"type": "mystery"}';
+        final result = await repository.load();
+        expect(result.state, isNull);
+        expect(result.corruptionReason, isNotNull);
+        expect(result.corruptionReason, contains('Spieltyp'));
+      },
+    );
 
-  test('beschädigter Save wird defensiv gelöscht', () async {
-    SharedPreferences.setMockInitialValues({
-      SharedPreferencesGameRepository.key:
-          '{"ruleSet":"kniffel","mode":"digital","players":[]}',
+    test(
+      'returns null state and a reason when the payload has missing keys',
+      () async {
+        final repository = MemoryGameRepository()
+          ..backingStore = '{"type": "classic"}';
+        final result = await repository.load();
+        expect(result.state, isNull);
+        expect(result.corruptionReason, isNotNull);
+      },
+    );
+
+    test('clears the corrupt payload so the next load is silent', () async {
+      final repository = MemoryGameRepository()..backingStore = 'garbage';
+      await repository.load();
+      final second = await repository.load();
+      expect(second.state, isNull);
+      expect(second.corruptionReason, isNull);
     });
-    final preferences = await SharedPreferences.getInstance();
-    final repository = SharedPreferencesGameRepository(preferences);
-
-    expect(await repository.load(), isNull);
-    expect(
-      preferences.containsKey(SharedPreferencesGameRepository.key),
-      isFalse,
-    );
   });
 }

@@ -55,10 +55,13 @@ class _HomeHostState extends State<_HomeHost> {
     _reload();
   }
 
-  Future<void> _reload() async {
+  Future<void> _reload({bool showCorruptionMessage = false}) async {
     SavedGameState? loaded;
+    String? corruptionReason;
     try {
-      loaded = await widget.repository.load();
+      final result = await widget.repository.load();
+      loaded = result.state;
+      corruptionReason = result.corruptionReason;
     } catch (_) {
       loaded = null;
     }
@@ -67,6 +70,14 @@ class _HomeHostState extends State<_HomeHost> {
         saved = loaded;
         loading = false;
       });
+      if (showCorruptionMessage && corruptionReason != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(corruptionReason),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
     }
   }
 
