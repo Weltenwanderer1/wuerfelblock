@@ -140,15 +140,15 @@ void main() {
     await tester.pump();
 
     expect(find.text('Spielart'), findsOneWidget);
-    expect(find.text('Digital würfeln'), findsOneWidget);
-    expect(find.text('Spieler (2/5)'), findsOneWidget);
+    expect(find.text('Digital würfeln'), findsWidgets);
+    expect(find.text('Spieler (2/5)', skipOffstage: false), findsOneWidget);
     expect(
       tester
           .widget<FilledButton>(find.byKey(const Key('start-game')))
           .onPressed,
       isNotNull,
     );
-    await tester.tap(find.text('Digital würfeln'));
+    await tester.tap(find.byKey(const Key('game-mode-digital')));
     await tester.tap(find.byKey(const Key('start-game')));
     await tester.pumpAndSettle();
     expect(started, isA<QwixxController>());

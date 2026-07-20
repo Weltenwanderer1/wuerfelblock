@@ -46,7 +46,7 @@ void main() {
     await tester.tap(find.text('Neue Partie'));
     await tester.pumpAndSettle();
     expect(find.text('Partie starten'), findsOneWidget);
-    final addPlayer = find.byKey(const Key('add-player'));
+    final addPlayer = find.byKey(const Key('add-player'), skipOffstage: false);
     await tester.ensureVisible(addPlayer);
     await tester.tap(addPlayer);
     await tester.pump();
@@ -54,7 +54,7 @@ void main() {
     await tester.enterText(fields.at(1), 'Spieler 1');
     await tester.pump();
     final button = tester.widget<FilledButton>(
-      find.byKey(const Key('start-game')),
+      find.byKey(const Key('start-game'), skipOffstage: false),
     );
     expect(button.onPressed, isNull);
     expect(find.text('Namen müssen eindeutig sein.'), findsOneWidget);
@@ -475,8 +475,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Spielart'), findsOneWidget);
-    expect(find.text('Echte Würfel'), findsOneWidget);
-    expect(find.text('Digital würfeln'), findsOneWidget);
+    expect(find.text('Echte Würfel'), findsWidgets);
+    expect(find.text('Digital würfeln'), findsWidgets);
   });
 
   testWidgets('combined setup saves Kniffel and supports both modes', (
@@ -492,7 +492,7 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.text('Digital würfeln'));
+    await tester.tap(find.byKey(const Key('game-mode-digital')));
     await tester.tap(find.byKey(const Key('start-game')));
     await tester.pumpAndSettle();
 
@@ -501,6 +501,39 @@ void main() {
     expect(state.ruleSet, RuleSet.kniffel);
     expect(state.mode, GameMode.digital);
     expect(state.players, hasLength(2));
+  });
+
+  testWidgets('setup explains the selected game mode in plain German', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      WuerfelblockApp(repository: MemoryGameRepository()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Neue Partie'));
+    await tester.pumpAndSettle();
+
+    final help = find.byKey(const Key('game-mode-help'), skipOffstage: false);
+    expect(help, findsOneWidget);
+    expect(tester.widget<Text>(help).data, contains('Papierblock'));
+    expect(
+      find.bySemanticsLabel(RegExp(r'Papierblock')),
+      findsAtLeastNWidgets(1),
+    );
+    await tester.tap(find.byKey(const Key('game-mode-digital')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const Key('game-mode-help'), skipOffstage: false),
+          )
+          .data,
+      contains('Halten, Zugwechsel und Wertung'),
+    );
+    expect(
+      find.bySemanticsLabel(RegExp(r'Halten, Zugwechsel und Wertung')),
+      findsAtLeastNWidgets(1),
+    );
   });
 
   testWidgets('10.000 setup supports digital 2–8 and routes to game', (
@@ -514,8 +547,8 @@ void main() {
     await tester.tap(find.text('10.000'));
     await tester.pump();
     expect(find.text('Spielart'), findsOneWidget);
-    expect(find.text('Digital würfeln'), findsOneWidget);
-    await tester.tap(find.text('Digital würfeln'));
+    expect(find.text('Digital würfeln'), findsWidgets);
+    await tester.tap(find.byKey(const Key('game-mode-digital')));
     await tester.drag(find.byType(ListView), const Offset(0, -400));
     await tester.pump();
 
@@ -582,7 +615,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Spielart'), findsOneWidget);
-    await tester.tap(find.text('Digital würfeln'));
+    await tester.tap(find.byKey(const Key('game-mode-digital')));
     await tester.pumpAndSettle();
     await tester.drag(find.byType(ListView), const Offset(0, -400));
     await tester.pump();

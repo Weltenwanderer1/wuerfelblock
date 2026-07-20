@@ -6,6 +6,22 @@ enum RuleSet { yatzy, kniffel }
 
 enum GameMode { block, digital }
 
+extension GameModeDescription on GameMode {
+  String get shortDescription => switch (this) {
+    GameMode.block => 'Echte Würfel',
+    GameMode.digital => 'Digital würfeln',
+  };
+
+  String get longDescription => switch (this) {
+    GameMode.block =>
+      'Ihr würfelt am Tisch. Die App ersetzt nur den Papierblock; '
+          'Einträge können korrigiert werden.',
+    GameMode.digital =>
+      'Die App würfelt und prüft gültige Aktionen. '
+          'Halten, Zugwechsel und Wertung laufen in der App.',
+  };
+}
+
 enum ScoreCategory {
   ones,
   twos,

@@ -220,15 +220,26 @@ class _SetupScreenState extends State<SetupScreen> {
             for (final item in GameMode.values)
               Expanded(
                 child: _ChoiceCard(
+                  key: Key('game-mode-${item.name}'),
                   label: item.label,
-                  detail: item == GameMode.block
-                      ? 'App als Scoreblock'
-                      : 'Würfel auf dem Handy',
+                  detail: item.shortDescription,
                   selected: mode == item,
                   onTap: () => setState(() => mode = item),
                 ),
               ),
           ],
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            mode.longDescription,
+            key: const Key('game-mode-help'),
+            style: const TextStyle(
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
         const SizedBox(height: 22),
         Row(
@@ -282,6 +293,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
 class _ChoiceCard extends StatelessWidget {
   const _ChoiceCard({
+    super.key,
     required this.label,
     required this.detail,
     required this.selected,
