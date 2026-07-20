@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/qwixx_controller.dart';
 import '../models/qwixx_models.dart';
+import '../services/qwixx_orientation.dart';
 import 'qwixx_game_screen.dart';
 
 class QwixxResultScreen extends StatefulWidget {
@@ -14,6 +15,18 @@ class QwixxResultScreen extends StatefulWidget {
 
 class _QwixxResultScreenState extends State<QwixxResultScreen> {
   QwixxController get game => widget.game;
+
+  @override
+  void initState() {
+    super.initState();
+    QwixxOrientation.acquire();
+  }
+
+  @override
+  void dispose() {
+    QwixxOrientation.release();
+    super.dispose();
+  }
 
   Future<void> _undo() async {
     try {

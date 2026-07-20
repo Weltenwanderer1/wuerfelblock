@@ -6,7 +6,7 @@ class QwixxRulesScreen extends StatelessWidget {
   static const sections = <(String, String)>[
     (
       'Ziel & Material',
-      'Ihr braucht den Qwixx-Würfelsatz mit zwei weißen und je einem roten, gelben, grünen und blauen Würfel. Die App ersetzt nur den Papierblock – gewürfelt wird gemeinsam mit echten Würfeln. Sammelt möglichst viele Kreuze und damit die meisten Punkte.',
+      'Qwixx nutzt zwei weiße und je einen roten, gelben, grünen und blauen Würfel. Ihr könnt mit echten Würfeln im Blockmodus oder direkt digital in der App spielen. Sammelt möglichst viele Kreuze und damit die meisten Punkte.',
     ),
     (
       'Von links nach rechts',
@@ -51,9 +51,7 @@ class QwixxRulesScreen extends StatelessWidget {
             style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Für 2–5 Personen · echte Würfel · diese App ist der Block',
-          ),
+          const Text('Für 2–5 Personen · Blockmodus oder digitale Würfel'),
           const SizedBox(height: 16),
           for (final section in sections)
             Card(

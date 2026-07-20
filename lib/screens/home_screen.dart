@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../models/saved_game_state.dart';
+import 'balut_rules_screen.dart';
 import 'qwixx_rules_screen.dart';
 import 'rules_screen.dart';
 import 'ten_thousand_rules_screen.dart';
@@ -50,7 +51,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Der schöne Wertungsblock für Yahtzee/Kniffel, Qwixx und 10.000',
+                  'Der schöne Wertungsblock für Yahtzee/Kniffel, Qwixx, 10.000 und Balut',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
@@ -119,6 +120,16 @@ class HomeScreen extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.menu_book_outlined),
                       label: const Text('10.000-Regeln'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BalutRulesScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.menu_book_outlined),
+                      label: const Text('Balut-Regeln'),
                     ),
                   ],
                 ),

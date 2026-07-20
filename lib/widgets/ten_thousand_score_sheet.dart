@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../models/game_models.dart';
 import '../models/ten_thousand_models.dart';
 
 const tenThousandPaper = Color(0xFFFFF3D6);
@@ -176,8 +177,8 @@ class TenThousandScoreSheet extends StatelessWidget {
   });
 
   final TenThousandGameState state;
-  final ValueChanged<int> onEdit;
-  final ValueChanged<int> onDelete;
+  final ValueChanged<int>? onEdit;
+  final ValueChanged<int>? onDelete;
   final bool showSummary;
 
   @override
@@ -224,8 +225,10 @@ class TenThousandScoreSheet extends StatelessWidget {
             _TurnRow(
               state: state,
               turn: turn,
-              onEdit: () => onEdit(turn.ordinal),
-              onDelete: turn.isDeleted ? null : () => onDelete(turn.ordinal),
+              onEdit: onEdit == null ? null : () => onEdit!(turn.ordinal),
+              onDelete: turn.isDeleted || onDelete == null
+                  ? null
+                  : () => onDelete!(turn.ordinal),
             ),
       ],
     ),
@@ -252,11 +255,11 @@ class _ScoreHeader extends StatelessWidget {
           child: const Icon(Icons.casino_outlined, color: Colors.white),
         ),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 '10.000',
                 style: TextStyle(
                   color: tenThousandInk,
@@ -266,8 +269,10 @@ class _ScoreHeader extends StatelessWidget {
                 ),
               ),
               Text(
-                'PUNKTEBLOCK · ECHTE WÜRFEL',
-                style: TextStyle(fontSize: 10),
+                state.mode == GameMode.digital
+                    ? 'PUNKTEBLOCK · DIGITAL'
+                    : 'PUNKTEBLOCK · ECHTE WÜRFEL',
+                style: const TextStyle(fontSize: 10),
               ),
             ],
           ),
@@ -367,7 +372,7 @@ class _TurnRow extends StatelessWidget {
 
   final TenThousandGameState state;
   final TenThousandTurn turn;
-  final VoidCallback onEdit;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   @override

@@ -1,8 +1,13 @@
 import 'saved_game_state.dart';
+import 'game_models.dart';
 
 enum QwixxColor { red, yellow, green, blue }
 
+enum QwixxDigitalAction { white, color }
+
 extension QwixxColorInfo on QwixxColor {
+  int get digitalDieIndex => index + 2;
+
   List<int> get numbers => switch (this) {
     QwixxColor.red || QwixxColor.yellow => [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     QwixxColor.green || QwixxColor.blue => [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2],
@@ -124,14 +129,24 @@ class QwixxPlayer {
 class QwixxGameState implements SavedGameState {
   QwixxGameState({
     required this.players,
+    this.mode = GameMode.block,
     Set<QwixxColor>? closedColors,
     Set<QwixxColor>? pendingClosedColors,
     this.activePlayerIndex = 0,
     this.isComplete = false,
+    List<int>? dice,
+    this.hasRolled = false,
+    Set<int>? whiteMarkedPlayerIndices,
+    this.colorMarked = false,
   }) : closedColors = Set.of(closedColors ?? const {}),
-       pendingClosedColors = Set.of(pendingClosedColors ?? const {});
+       pendingClosedColors = Set.of(pendingClosedColors ?? const {}),
+       dice = List.of(dice ?? const [1, 1, 1, 1, 1, 1]),
+       whiteMarkedPlayerIndices = Set.of(whiteMarkedPlayerIndices ?? const {});
 
-  factory QwixxGameState.newGame(List<String> names) {
+  factory QwixxGameState.newGame(
+    List<String> names, {
+    GameMode mode = GameMode.block,
+  }) {
     final cleaned = names.map((name) => name.trim()).toList();
     if (cleaned.length < 2 || cleaned.length > 5) {
       throw ArgumentError('Bei Qwixx sind 2 bis 5 Spieler erlaubt.');
@@ -142,16 +157,32 @@ class QwixxGameState implements SavedGameState {
     }
     return QwixxGameState(
       players: cleaned.map((name) => QwixxPlayer(name: name)).toList(),
+      mode: mode,
     );
   }
 
   @override
   final List<QwixxPlayer> players;
+  final GameMode mode;
   final Set<QwixxColor> closedColors;
   final Set<QwixxColor> pendingClosedColors;
   int activePlayerIndex;
   @override
   bool isComplete;
+  final List<int> dice;
+  bool hasRolled;
+  final Set<int> whiteMarkedPlayerIndices;
+  bool colorMarked;
+
+  int get whiteSum => dice[0] + dice[1];
+
+  Map<QwixxColor, Set<int>> get coloredSums => {
+    for (final color in QwixxColor.values)
+      color: {
+        dice[0] + dice[color.digitalDieIndex],
+        dice[1] + dice[color.digitalDieIndex],
+      },
+  };
 
   QwixxPlayer get activePlayer => players[activePlayerIndex];
   bool canMark(int playerIndex, QwixxColor color, int value) {
@@ -175,6 +206,79 @@ class QwixxGameState implements SavedGameState {
     if (players[playerIndex].lockedColors.contains(color)) {
       pendingClosedColors.add(color);
     }
+  }
+
+  void rollDigital(List<int> values) {
+    if (mode != GameMode.digital || isComplete || hasRolled) {
+      throw StateError('Jetzt kann nicht gewürfelt werden.');
+    }
+    if (values.length != 6 || values.any((value) => value < 1 || value > 6)) {
+      throw ArgumentError.value(
+        values,
+        'values',
+        'Sechs gültige Würfel nötig.',
+      );
+    }
+    dice.setAll(0, values);
+    hasRolled = true;
+  }
+
+  bool canMarkDigital(
+    int playerIndex,
+    QwixxColor color,
+    int value,
+    QwixxDigitalAction action,
+  ) {
+    if (mode != GameMode.digital ||
+        !hasRolled ||
+        !canMark(playerIndex, color, value)) {
+      return false;
+    }
+    return switch (action) {
+      QwixxDigitalAction.white =>
+        value == whiteSum && !whiteMarkedPlayerIndices.contains(playerIndex),
+      QwixxDigitalAction.color =>
+        playerIndex == activePlayerIndex &&
+            !colorMarked &&
+            coloredSums[color]!.contains(value),
+    };
+  }
+
+  void markDigital(
+    int playerIndex,
+    QwixxColor color,
+    int value,
+    QwixxDigitalAction action,
+  ) {
+    if (!canMarkDigital(playerIndex, color, value, action)) {
+      throw StateError('Diese Würfelaktion ist nicht verfügbar.');
+    }
+    mark(playerIndex, color, value);
+    if (action == QwixxDigitalAction.white) {
+      whiteMarkedPlayerIndices.add(playerIndex);
+    } else {
+      colorMarked = true;
+    }
+  }
+
+  void finishDigitalTurn() {
+    if (mode != GameMode.digital || !hasRolled || isComplete) {
+      throw StateError('Der digitale Zug kann nicht beendet werden.');
+    }
+    final activeMarked =
+        whiteMarkedPlayerIndices.contains(activePlayerIndex) || colorMarked;
+    if (!activeMarked) {
+      final player = activePlayer;
+      if (player.misses >= 4) throw StateError('Vier Fehlwürfe sind erreicht.');
+      player.misses++;
+    }
+    _finalizePendingClosures();
+    if (!isComplete) {
+      activePlayerIndex = (activePlayerIndex + 1) % players.length;
+    }
+    hasRolled = false;
+    whiteMarkedPlayerIndices.clear();
+    colorMarked = false;
   }
 
   void nextPlayer() {
@@ -212,13 +316,14 @@ class QwixxGameState implements SavedGameState {
   @override
   String get gameLabel => 'Qwixx';
   @override
-  String get modeLabel => 'Echte Würfel';
+  String get modeLabel => mode.label;
   @override
   String get progressLabel => '${closedColors.length} von 2 Reihen geschlossen';
 
   @override
   Map<String, dynamic> toJson() => {
     'type': 'qwixx',
+    'mode': mode.name,
     'players': players.map((player) => player.toJson()).toList(),
     'closedColors': closedColors.map((color) => color.name).toList(),
     'pendingClosedColors': pendingClosedColors
@@ -226,6 +331,10 @@ class QwixxGameState implements SavedGameState {
         .toList(),
     'activePlayerIndex': activePlayerIndex,
     'isComplete': isComplete,
+    'dice': dice,
+    'hasRolled': hasRolled,
+    'whiteMarkedPlayerIndices': whiteMarkedPlayerIndices.toList()..sort(),
+    'colorMarked': colorMarked,
   };
 
   factory QwixxGameState.fromJson(Map<String, dynamic> json) {
@@ -244,12 +353,35 @@ class QwixxGameState implements SavedGameState {
           .toSet();
       final active = json['activePlayerIndex'] as int;
       final complete = json['isComplete'] as bool;
+      final mode = GameMode.values.byName(
+        json['mode'] as String? ?? GameMode.block.name,
+      );
+      final dice = (json['dice'] as List? ?? const [1, 1, 1, 1, 1, 1])
+          .map((value) => value as int)
+          .toList();
+      final hasRolled = json['hasRolled'] as bool? ?? false;
+      final whiteMarkedPlayerIndices =
+          (json['whiteMarkedPlayerIndices'] as List? ?? const [])
+              .map((value) => value as int)
+              .toSet();
+      final colorMarked = json['colorMarked'] as bool? ?? false;
       if (players.length < 2 ||
           players.length > 5 ||
           players.map((player) => player.name).toSet().length !=
               players.length ||
           active < 0 ||
-          active >= players.length) {
+          active >= players.length ||
+          dice.length != 6 ||
+          dice.any((value) => value < 1 || value > 6) ||
+          whiteMarkedPlayerIndices.any(
+            (index) => index < 0 || index >= players.length,
+          ) ||
+          (mode == GameMode.block &&
+              (hasRolled ||
+                  whiteMarkedPlayerIndices.isNotEmpty ||
+                  colorMarked)) ||
+          (!hasRolled &&
+              (whiteMarkedPlayerIndices.isNotEmpty || colorMarked))) {
         throw const FormatException('Ungültiger Qwixx-Spielstand.');
       }
       final actualClosures = players
@@ -268,10 +400,15 @@ class QwixxGameState implements SavedGameState {
       }
       return QwixxGameState(
         players: players,
+        mode: mode,
         closedColors: closed,
         pendingClosedColors: pending,
         activePlayerIndex: active,
         isComplete: complete,
+        dice: dice,
+        hasRolled: hasRolled,
+        whiteMarkedPlayerIndices: whiteMarkedPlayerIndices,
+        colorMarked: colorMarked,
       );
     } on FormatException {
       rethrow;

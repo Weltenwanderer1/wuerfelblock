@@ -3,13 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/app.dart';
 import 'package:wuerfelblock/controllers/game_controller.dart';
 
+import 'package:wuerfelblock/models/balut_models.dart';
 import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/saved_game_state.dart';
 import 'package:wuerfelblock/models/ten_thousand_models.dart';
+import 'package:wuerfelblock/screens/balut_game_screen.dart';
 import 'package:wuerfelblock/screens/block_game_screen.dart';
 import 'package:wuerfelblock/screens/digital_game_screen.dart';
 import 'package:wuerfelblock/screens/result_screen.dart';
 import 'package:wuerfelblock/screens/setup_screen.dart';
+import 'package:wuerfelblock/screens/ten_thousand_digital_game_screen.dart';
 import 'package:wuerfelblock/screens/ten_thousand_game_screen.dart';
 import 'package:wuerfelblock/screens/ten_thousand_result_screen.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
@@ -31,6 +34,7 @@ void main() {
     expect(find.text('Yahtzee/Kniffel-Regeln'), findsOneWidget);
     expect(find.text('Qwixx-Regeln'), findsOneWidget);
     expect(find.text('10.000-Regeln'), findsOneWidget);
+    expect(find.text('Balut-Regeln'), findsOneWidget);
     expect(find.text('Yatzy-Regeln'), findsNothing);
   });
 
@@ -185,6 +189,36 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Kniffel-Block für zwei Personen passt auf 360 px', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final game = GameController.newGame(
+      ruleSet: RuleSet.kniffel,
+      mode: GameMode.block,
+      names: ['Ada', 'Berta'],
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(MaterialApp(home: BlockGameScreen(game: game)));
+
+    final horizontal = find.byKey(const Key('score-sheet-horizontal-scroll'));
+    expect(horizontal, findsOneWidget);
+    final scrollables = tester
+        .stateList<ScrollableState>(
+          find.descendant(of: horizontal, matching: find.byType(Scrollable)),
+        )
+        .where((item) => item.position.axisDirection == AxisDirection.right)
+        .toList();
+    expect(scrollables, hasLength(1));
+    expect(scrollables.single.position.maxScrollExtent, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Digitalwürfel können geworfen und gehalten werden', (
     tester,
   ) async {
@@ -201,7 +235,7 @@ void main() {
     await tester.tap(find.byKey(const Key('die-0')));
     await tester.pump();
     expect(
-      find.bySemanticsLabel(RegExp(r'^Würfel [1-6] gehalten$')),
+      find.bySemanticsLabel(RegExp(r'^Würfel [1-6], gehalten$')),
       findsOneWidget,
     );
   });
@@ -433,6 +467,7 @@ void main() {
     expect(find.text('Yahtzee/Kniffel'), findsOneWidget);
     expect(find.text('Qwixx'), findsOneWidget);
     expect(find.text('10.000'), findsOneWidget);
+    expect(find.text('Balut'), findsOneWidget);
     expect(find.text('Yatzy'), findsNothing);
     expect(find.byType(TextFormField), findsNWidgets(2));
     expect(
@@ -468,7 +503,7 @@ void main() {
     expect(state.players, hasLength(2));
   });
 
-  testWidgets('10.000 setup enforces physical 2–8 and routes to game', (
+  testWidgets('10.000 setup supports digital 2–8 and routes to game', (
     tester,
   ) async {
     final repository = MemoryGameRepository();
@@ -478,19 +513,23 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('10.000'));
     await tester.pump();
+    expect(find.text('Spielart'), findsOneWidget);
+    expect(find.text('Digital würfeln'), findsOneWidget);
+    await tester.tap(find.text('Digital würfeln'));
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pump();
 
     expect(find.byType(TextFormField), findsNWidgets(2));
     expect(
       find.text('10.000 wird mit 2 bis 8 Personen gespielt.'),
       findsOneWidget,
     );
-    expect(find.text('Spielart'), findsNothing);
-    expect(find.text('Digital würfeln'), findsNothing);
 
     await tester.tap(find.byKey(const Key('start-game')));
     await tester.pumpAndSettle();
-    expect(find.byType(TenThousandGameScreen), findsOneWidget);
-    expect(await repository.load(), isA<TenThousandGameState>());
+    expect(find.byType(TenThousandDigitalGameScreen), findsOneWidget);
+    final saved = await repository.load() as TenThousandGameState;
+    expect(saved.mode, GameMode.digital);
   });
 
   testWidgets('saved incomplete and complete 10.000 route correctly', (
@@ -518,6 +557,52 @@ void main() {
     await tester.tap(find.text('Partie fortsetzen'));
     await tester.pumpAndSettle();
     expect(find.byType(TenThousandResultScreen), findsOneWidget);
+  });
+
+  testWidgets('Balut setup supports block/digital and routes to game', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final repository = MemoryGameRepository();
+    await tester.pumpWidget(WuerfelblockApp(repository: repository));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Neue Partie'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Balut'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pump();
+    expect(
+      find.text('Balut wird mit 2 bis 8 Personen gespielt.'),
+      findsOneWidget,
+    );
+    expect(find.text('Spielart'), findsOneWidget);
+    await tester.tap(find.text('Digital würfeln'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('start-game')));
+    await tester.pumpAndSettle();
+    expect(find.byType(BalutGameScreen), findsOneWidget);
+    final saved = await repository.load() as BalutGameState;
+    expect(saved.mode, GameMode.digital);
+    expect(saved.players, hasLength(2));
+  });
+
+  testWidgets('saved Balut game resumes into the block screen', (tester) async {
+    final repository = MemoryGameRepository();
+    await repository.save(BalutGameState.newGame(['Ada', 'Bea']));
+    await tester.pumpWidget(WuerfelblockApp(repository: repository));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Balut · Echte Würfel'), findsOneWidget);
+    await tester.tap(find.text('Partie fortsetzen'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BalutGameScreen), findsOneWidget);
   });
 
   testWidgets('Block Zusatz-Kniffel confirms player, category and scoring', (

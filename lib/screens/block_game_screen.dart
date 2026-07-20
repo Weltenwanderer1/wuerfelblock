@@ -221,6 +221,7 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
             ),
           Expanded(
             child: SingleChildScrollView(
+              key: const Key('score-sheet-horizontal-scroll'),
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
               child: ClassicScoreSheet(

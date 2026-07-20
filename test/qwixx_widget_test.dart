@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/app.dart';
 import 'package:wuerfelblock/controllers/qwixx_controller.dart';
+import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/qwixx_models.dart';
 import 'package:wuerfelblock/screens/qwixx_game_screen.dart';
 import 'package:wuerfelblock/screens/qwixx_result_screen.dart';
@@ -10,9 +11,11 @@ import 'package:wuerfelblock/screens/setup_screen.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
 void main() {
-  testWidgets('Qwixx scoreblock fits a narrow phone screen', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 3;
+  testWidgets('Qwixx scoreblock fits landscape without scrolling', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 360);
+    tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
@@ -27,6 +30,62 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('digital Qwixx rolls six dice and enables matching cells', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 360);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final values = <int>[2, 5, 3, 4, 6, 1];
+    final controller = QwixxController.newGame(
+      names: ['Ada', 'Bea'],
+      mode: GameMode.digital,
+      repository: MemoryGameRepository(),
+      roller: () => values.removeAt(0),
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: QwixxGameScreen(game: controller)),
+    );
+
+    expect(find.byKey(const Key('qwixx-roll')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('qwixx-roll')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('qwixx-die-0')), findsOneWidget);
+    expect(find.text('Weiß: 7'), findsOneWidget);
+    expect(find.byKey(const Key('qwixx-finish-turn')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('digital Qwixx with five players fits landscape', (tester) async {
+    tester.view.physicalSize = const Size(800, 360);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    final controller = QwixxController.newGame(
+      names: ['Ada', 'Bea', 'Cem', 'Dora', 'Eli'],
+      mode: GameMode.digital,
+      repository: MemoryGameRepository(),
+      roller: () => 3,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: QwixxGameScreen(game: controller)),
+    );
+    await tester.tap(find.byKey(const Key('qwixx-roll')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Scrollable), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -38,7 +97,7 @@ void main() {
 
     expect(find.text('Qwixx-Regeln'), findsOneWidget);
     expect(
-      find.textContaining('Yahtzee/Kniffel, Qwixx und 10.000'),
+      find.textContaining('Yahtzee/Kniffel, Qwixx, 10.000 und Balut'),
       findsOneWidget,
     );
     await tester.tap(find.text('Qwixx-Regeln'));
@@ -65,7 +124,7 @@ void main() {
     }
   });
 
-  testWidgets('setup selects Qwixx, hides mode and enforces 2 to 5 players', (
+  testWidgets('setup selects Qwixx digital mode and enforces 2 to 5 players', (
     tester,
   ) async {
     Object? started;
@@ -80,7 +139,8 @@ void main() {
     await tester.tap(find.text('Qwixx'));
     await tester.pump();
 
-    expect(find.text('Spielart'), findsNothing);
+    expect(find.text('Spielart'), findsOneWidget);
+    expect(find.text('Digital würfeln'), findsOneWidget);
     expect(find.text('Spieler (2/5)'), findsOneWidget);
     expect(
       tester
@@ -88,9 +148,11 @@ void main() {
           .onPressed,
       isNotNull,
     );
+    await tester.tap(find.text('Digital würfeln'));
     await tester.tap(find.byKey(const Key('start-game')));
     await tester.pumpAndSettle();
     expect(started, isA<QwixxController>());
+    expect((started as QwixxController).state.mode, GameMode.digital);
   });
 
   testWidgets('Qwixx gameplay switches sheet, marks, persists and undoes', (
@@ -112,8 +174,10 @@ void main() {
     );
 
     expect(find.text('Aktiv: Ada'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('display-player-1')));
-    await tester.pump();
+    await tester.tap(find.byKey(const Key('display-player-picker')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bea').last);
+    await tester.pumpAndSettle();
     expect(find.text('Block von Bea'), findsOneWidget);
     await tester.tap(find.byKey(const Key('qwixx-red-5')));
     await tester.pumpAndSettle();

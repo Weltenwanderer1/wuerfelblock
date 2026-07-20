@@ -1,6 +1,8 @@
 import 'dart:collection';
 
+import 'game_models.dart';
 import 'saved_game_state.dart';
+import 'ten_thousand_dice.dart';
 
 class TenThousandPlayer {
   TenThousandPlayer(String name) : name = name.trim() {
@@ -84,8 +86,13 @@ class TenThousandGameState implements SavedGameState {
   TenThousandGameState({
     required List<TenThousandPlayer> players,
     List<TenThousandTurn> turns = const [],
+    this.mode = GameMode.block,
+    TenThousandDiceTurn? digitalTurn,
   }) : _players = List<TenThousandPlayer>.unmodifiable(players),
-       _turns = List<TenThousandTurn>.unmodifiable(turns) {
+       _turns = List<TenThousandTurn>.unmodifiable(turns),
+       digitalTurn = mode == GameMode.digital
+           ? digitalTurn ?? TenThousandDiceTurn.fresh()
+           : null {
     _validatePlayers(_players);
     _validateLedgerShape(_turns);
     _replay = _Replay.compute(_players.length, _turns);
@@ -96,7 +103,10 @@ class TenThousandGameState implements SavedGameState {
     }
   }
 
-  factory TenThousandGameState.newGame(List<String> names) {
+  factory TenThousandGameState.newGame(
+    List<String> names, {
+    GameMode mode = GameMode.block,
+  }) {
     final cleaned = names.map((name) => name.trim()).toList(growable: false);
     if (cleaned.length < 2 || cleaned.length > 8) {
       throw ArgumentError('Bei 10.000 sind 2 bis 8 Spieler erlaubt.');
@@ -107,6 +117,7 @@ class TenThousandGameState implements SavedGameState {
     }
     return TenThousandGameState(
       players: cleaned.map(TenThousandPlayer.new).toList(growable: false),
+      mode: mode,
     );
   }
 
@@ -115,6 +126,8 @@ class TenThousandGameState implements SavedGameState {
 
   final List<TenThousandPlayer> _players;
   final List<TenThousandTurn> _turns;
+  final GameMode mode;
+  final TenThousandDiceTurn? digitalTurn;
   late final _Replay _replay;
 
   @override
@@ -179,11 +192,15 @@ class TenThousandGameState implements SavedGameState {
   );
 
   TenThousandGameState withTurn(int points) {
-    _validatePoints(points);
+    _validateBankablePoints(points);
     if (isComplete) throw StateError('Die Partie ist bereits beendet.');
     return TenThousandGameState(
       players: _players,
       turns: [..._turns, TenThousandTurn(_turns.length, points)],
+      mode: mode,
+      digitalTurn: mode == GameMode.digital
+          ? TenThousandDiceTurn.fresh()
+          : null,
     );
   }
 
@@ -194,9 +211,16 @@ class TenThousandGameState implements SavedGameState {
     if (replacement.ordinal != ordinal) {
       throw ArgumentError('Der Ersatzzug muss dieselbe Ordnungsnummer haben.');
     }
-    _validatePoints(replacement.points);
+    _validateBankablePoints(replacement.points);
     final replaced = List<TenThousandTurn>.of(_turns)..[ordinal] = replacement;
-    return TenThousandGameState(players: _players, turns: replaced);
+    return TenThousandGameState(
+      players: _players,
+      turns: replaced,
+      mode: mode,
+      digitalTurn: mode == GameMode.digital
+          ? TenThousandDiceTurn.fresh()
+          : null,
+    );
   }
 
   int legalTurnCountAfterReplacing(int ordinal, TenThousandTurn replacement) {
@@ -206,7 +230,7 @@ class TenThousandGameState implements SavedGameState {
     if (replacement.ordinal != ordinal) {
       throw ArgumentError('Der Ersatzzug muss dieselbe Ordnungsnummer haben.');
     }
-    _validatePoints(replacement.points);
+    _validateBankablePoints(replacement.points);
     final replaced = List<TenThousandTurn>.of(_turns)..[ordinal] = replacement;
     return _Replay.compute(_players.length, replaced).legalTurnCount;
   }
@@ -220,17 +244,37 @@ class TenThousandGameState implements SavedGameState {
     return TenThousandGameState(
       players: _players,
       turns: replaced.sublist(0, legalCount),
+      mode: mode,
+      digitalTurn: mode == GameMode.digital
+          ? TenThousandDiceTurn.fresh()
+          : null,
     );
   }
 
-  TenThousandGameState copy() =>
-      TenThousandGameState(players: _players, turns: _turns);
+  TenThousandGameState copy() => TenThousandGameState(
+    players: _players,
+    turns: _turns,
+    mode: mode,
+    digitalTurn: digitalTurn,
+  );
+
+  TenThousandGameState withDigitalTurn(TenThousandDiceTurn turn) {
+    if (mode != GameMode.digital || isComplete) {
+      throw StateError('Kein digitaler Zug verfügbar.');
+    }
+    return TenThousandGameState(
+      players: _players,
+      turns: _turns,
+      mode: mode,
+      digitalTurn: turn,
+    );
+  }
 
   @override
   String get gameLabel => '10.000';
 
   @override
-  String get modeLabel => 'Echte Würfel';
+  String get modeLabel => mode.label;
 
   @override
   String get progressLabel => '${_turns.length} Züge';
@@ -239,24 +283,49 @@ class TenThousandGameState implements SavedGameState {
   Map<String, dynamic> toJson() => {
     'type': 'tenThousand',
     'schemaVersion': schemaVersion,
+    'mode': mode.name,
+    'digitalTurn': digitalTurn?.toJson(),
     'players': _players.map((player) => player.toJson()).toList(),
     'turns': _turns.map((turn) => turn.toJson()).toList(),
   };
 
   factory TenThousandGameState.fromJson(Map<String, dynamic> json) {
     try {
-      _requireExactKeys(json, const {
-        'type',
-        'schemaVersion',
-        'players',
-        'turns',
-      });
+      const legacyKeys = {'type', 'schemaVersion', 'players', 'turns'};
+      final actualKeys = json.keys.toSet();
+      final currentKeys = {...legacyKeys, 'mode'};
+      final digitalKeys = {...currentKeys, 'digitalTurn'};
+      final isLegacy =
+          actualKeys.length == legacyKeys.length &&
+          actualKeys.containsAll(legacyKeys);
+      final isCurrent =
+          actualKeys.length == currentKeys.length &&
+          actualKeys.containsAll(currentKeys);
+      final isDigitalCurrent =
+          actualKeys.length == digitalKeys.length &&
+          actualKeys.containsAll(digitalKeys);
+      if (!isLegacy && !isCurrent && !isDigitalCurrent) {
+        throw const FormatException('Unbekannte oder fehlende JSON-Felder.');
+      }
       if (json['type'] != 'tenThousand' ||
           json['schemaVersion'] != schemaVersion) {
         throw const FormatException('Ungültiger 10.000-Spielstand.');
       }
       final rawPlayers = json['players'];
       final rawTurns = json['turns'];
+      final mode = GameMode.values.byName(
+        json['mode'] as String? ?? GameMode.block.name,
+      );
+      final rawDigitalTurn = json['digitalTurn'];
+      if (mode == GameMode.digital &&
+          (!json.containsKey('digitalTurn') || rawDigitalTurn == null)) {
+        throw const FormatException('Digitaler Zug fehlt.');
+      }
+      final digitalTurn = rawDigitalTurn == null
+          ? null
+          : TenThousandDiceTurn.fromJson(
+              Map<String, dynamic>.from(rawDigitalTurn as Map),
+            );
       if (rawPlayers is! List || rawTurns is! List) {
         throw const FormatException('Ungültiger 10.000-Spielstand.');
       }
@@ -274,7 +343,15 @@ class TenThousandGameState implements SavedGameState {
             return TenThousandTurn.fromJson(Map<String, dynamic>.from(value));
           })
           .toList(growable: false);
-      return TenThousandGameState(players: players, turns: turns);
+      if (mode == GameMode.block && digitalTurn != null) {
+        throw const FormatException('Blockmodus mit digitalem Zug.');
+      }
+      return TenThousandGameState(
+        players: players,
+        turns: turns,
+        mode: mode,
+        digitalTurn: digitalTurn,
+      );
     } on FormatException {
       rethrow;
     } catch (error) {
@@ -361,6 +438,17 @@ void _validatePoints(int points, {bool formatException = false}) {
       points,
       'points',
       'Erlaubt sind 0 oder positive Vielfache von 50.',
+    );
+  }
+}
+
+void _validateBankablePoints(int points) {
+  _validatePoints(points);
+  if (points > 0 && points < 350) {
+    throw ArgumentError.value(
+      points,
+      'points',
+      'Erlaubt sind 0 oder mindestens 350 Punkte.',
     );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wuerfelblock/models/game_models.dart';
+import 'package:wuerfelblock/models/ten_thousand_dice.dart';
 import 'package:wuerfelblock/models/ten_thousand_models.dart';
 
 void main() {
@@ -31,27 +33,43 @@ void main() {
       }
     });
 
-    test('accepts zero and positive multiples of 50 only', () {
+    test('accepts only zero or at least 350 for new ledger turns', () {
       final state = TenThousandGameState.newGame(['A', 'B']);
       expect(state.withTurn(0).turns.single.points, 0);
-      expect(state.withTurn(50).turns.single.points, 50);
-      for (final points in [-50, 1, 49, 75]) {
+      expect(state.withTurn(350).turns.single.points, 350);
+      for (final points in [-50, 1, 49, 50, 100, 300]) {
         expect(() => state.withTurn(points), throwsArgumentError);
+      }
+      for (final points in [-50, 1, 49, 75]) {
         expect(() => TenThousandTurn(0, points), throwsArgumentError);
       }
+      expect(TenThousandTurn(0, 50).points, 50);
       expect(() => TenThousandTurn(-1, 50), throwsArgumentError);
     });
   });
 
   group('replay', () {
+    test('historical correction resets a started digital turn', () {
+      final started = TenThousandDiceTurn.fresh().rolled([1, 2, 3, 4, 5, 6]);
+      final state = TenThousandGameState(
+        players: [TenThousandPlayer('A'), TenThousandPlayer('B')],
+        turns: [TenThousandTurn(0, 350)],
+        mode: GameMode.digital,
+        digitalTurn: started,
+      );
+
+      final corrected = state.replacingTurn(0, TenThousandTurn(0, 400));
+      expect(corrected.digitalTurn!.isFresh, isTrue);
+    });
+
     test('assigns turns cyclically and derives totals', () {
       var state = TenThousandGameState.newGame(['A', 'B', 'C']);
-      for (final points in [100, 0, 250, 300]) {
+      for (final points in [350, 0, 350, 350]) {
         state = state.withTurn(points);
       }
       expect(state.turns.map((turn) => turn.ordinal), [0, 1, 2, 3]);
       expect(state.playerIndexForTurn(3), 0);
-      expect(state.totals, [400, 0, 250]);
+      expect(state.totals, [700, 0, 350]);
       expect(state.activePlayerIndex, 1);
       expect(state.finalRoundRemainingPlayerIndices, isEmpty);
     });
@@ -82,7 +100,7 @@ void main() {
       state = state.withTurn(0);
       expect(state.isComplete, isTrue);
       expect(state.finalRoundRemainingPlayerIndices, isEmpty);
-      expect(() => state.withTurn(50), throwsStateError);
+      expect(() => state.withTurn(350), throwsStateError);
     });
 
     test('derives ties and winners from final totals', () {
@@ -95,25 +113,40 @@ void main() {
 
     test('tombstones score zero while retaining ordinal ownership', () {
       var state = TenThousandGameState.newGame(['A', 'B']);
-      state = state.withTurn(500).withTurn(250);
+      state = state.withTurn(500).withTurn(350);
       final deleted = state.replacingTurn(0, state.turns[0].asDeleted());
       expect(deleted.turns, hasLength(2));
       expect(deleted.turns[0].ordinal, 0);
       expect(deleted.turns[0].isDeleted, isTrue);
       expect(deleted.playerIndexForTurn(0), 0);
-      expect(deleted.totals, [0, 250]);
+      expect(deleted.totals, [0, 350]);
     });
   });
 
   group('JSON', () {
+    test('digital saves require their persisted active turn', () {
+      final json = TenThousandGameState.newGame([
+        'A',
+        'B',
+      ], mode: GameMode.digital).toJson();
+      expect(
+        () => TenThousandGameState.fromJson({...json}..remove('digitalTurn')),
+        throwsFormatException,
+      );
+      expect(
+        () => TenThousandGameState.fromJson({...json, 'digitalTurn': null}),
+        throwsFormatException,
+      );
+    });
+
     test('roundtrips normal, final, complete, and tombstoned states', () {
       final states = <TenThousandGameState>[
-        TenThousandGameState.newGame(['A', 'B']).withTurn(50),
+        TenThousandGameState.newGame(['A', 'B']).withTurn(350),
         TenThousandGameState.newGame(['A', 'B', 'C']).withTurn(10000),
         TenThousandGameState.newGame(['A', 'B']).withTurn(10000).withTurn(0),
         TenThousandGameState.newGame(['A', 'B'])
-            .withTurn(50)
-            .replacingTurn(0, TenThousandTurn(0, 50, isDeleted: true)),
+            .withTurn(350)
+            .replacingTurn(0, TenThousandTurn(0, 350, isDeleted: true)),
       ];
       for (final state in states) {
         final decoded = TenThousandGameState.fromJson(state.toJson());
@@ -126,8 +159,15 @@ void main() {
       final json = TenThousandGameState.newGame([
         'A',
         'B',
-      ]).withTurn(50).toJson();
-      expect(json.keys, {'type', 'schemaVersion', 'players', 'turns'});
+      ]).withTurn(350).toJson();
+      expect(json.keys, {
+        'type',
+        'schemaVersion',
+        'mode',
+        'digitalTurn',
+        'players',
+        'turns',
+      });
       expect(json['type'], 'tenThousand');
       expect(json['schemaVersion'], TenThousandGameState.schemaVersion);
     });

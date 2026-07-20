@@ -8,7 +8,7 @@ class TenThousandRulesScreen extends StatelessWidget {
   static const sections = <(String, String, IconData)>[
     (
       'Ziel & Material',
-      'Spielt mit sechs echten Würfeln. Mindestens 2 Personen sind nötig; der App-Block unterstützt 2–8 Personen. Wer zuerst mindestens 10.000 Punkte erreicht, eröffnet die Schlussrunde.',
+      'Gespielt wird mit sechs Würfeln – echt im Blockmodus oder digital in der App. Unterstützt werden 2–8 Personen. Wer zuerst mindestens 10.000 Punkte erreicht, eröffnet die Schlussrunde.',
       Icons.casino_outlined,
     ),
     (
@@ -18,7 +18,7 @@ class TenThousandRulesScreen extends StatelessWidget {
     ),
     (
       'Würfeln, sichern oder riskieren',
-      'Du startest mit 6 Würfeln und legst nach jedem Wurf mindestens einen zählbaren Würfel oder eine Kombination beiseite. Mit den übrigen darfst du weiterwürfeln; die Punkte werden addiert. Einen Durchgang darfst du erst ab mindestens 350 Punkten aufschreiben. Pasche dürfen über mehrere Würfe ergänzt werden: Jeder passende zusätzliche Würfel verdoppelt den Pasch erneut.',
+      'Du startest mit 6 Würfeln und legst nach jedem Wurf mindestens einen zählbaren Würfel oder eine Kombination beiseite. Mit den übrigen darfst du weiterwürfeln; die Punkte werden addiert. Einen Durchgang darfst du erst ab mindestens 350 Punkten aufschreiben. Beendest du ihn vorher freiwillig, wird eine Nullrunde eingetragen. Pasche dürfen über mehrere Würfe ergänzt werden: Jeder passende zusätzliche Würfel verdoppelt den Pasch erneut.',
       Icons.savings_outlined,
     ),
     (
@@ -42,8 +42,8 @@ class TenThousandRulesScreen extends StatelessWidget {
       Icons.flag_outlined,
     ),
     (
-      'Die App als Block',
-      'Diese App ist ein manueller Punkteblock. Sie sieht keine Würfel, prüft keine Würfe und berechnet Kombinationen nicht automatisch. Tragt die nach der Verdopplungsregel gesicherten Rundenpunkte ein; „Fehlwurf (0)“ dokumentiert eine Runde ohne Punkte.',
+      'Block oder digitale Würfel',
+      'Im Blockmodus tragt ihr die mit echten Würfeln gesicherten Rundenpunkte selbst ein. Im Digitalmodus würfelt die App, ihr wählt die wertenden Würfel aus und die Kombinationen werden automatisch nach der Verdopplungsregel geprüft. Eine Macke beendet den ganzen Durchgang mit 0 Punkten.',
       Icons.edit_note,
     ),
   ];
@@ -68,7 +68,7 @@ class TenThousandRulesScreen extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Nach den Regeln der Berliner Würfelmeisterschaft – die App bleibt euer übersichtlicher Papierblock.',
+              'Nach den Regeln der Berliner Würfelmeisterschaft – als klassischer Block oder mit digitalen Würfeln.',
               style: TextStyle(fontSize: 16, height: 1.35),
             ),
             const SizedBox(height: 14),

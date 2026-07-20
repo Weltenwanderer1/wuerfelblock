@@ -7,6 +7,81 @@ import 'package:wuerfelblock/models/qwixx_models.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
 void main() {
+  group('Qwixx digital dice', () {
+    test('allows each player white sum and active player one color sum', () {
+      final state = QwixxGameState.newGame([
+        'Ada',
+        'Bea',
+      ], mode: GameMode.digital);
+      state.rollDigital([2, 5, 3, 4, 6, 1]);
+
+      expect(state.whiteSum, 7);
+      expect(state.coloredSums[QwixxColor.red], {5, 8});
+      expect(
+        state.canMarkDigital(1, QwixxColor.yellow, 7, QwixxDigitalAction.white),
+        isTrue,
+      );
+      expect(
+        state.canMarkDigital(1, QwixxColor.yellow, 6, QwixxDigitalAction.color),
+        isFalse,
+      );
+      state.markDigital(1, QwixxColor.yellow, 7, QwixxDigitalAction.white);
+      state.markDigital(0, QwixxColor.red, 8, QwixxDigitalAction.color);
+      expect(
+        state.canMarkDigital(1, QwixxColor.blue, 7, QwixxDigitalAction.white),
+        isFalse,
+      );
+      expect(
+        state.canMarkDigital(0, QwixxColor.green, 11, QwixxDigitalAction.color),
+        isFalse,
+      );
+    });
+
+    test(
+      'finishing rotates player and misses only if active marked nothing',
+      () {
+        final state = QwixxGameState.newGame([
+          'Ada',
+          'Bea',
+        ], mode: GameMode.digital);
+        state.rollDigital([1, 2, 3, 4, 5, 6]);
+        state.markDigital(1, QwixxColor.red, 3, QwixxDigitalAction.white);
+        state.finishDigitalTurn();
+        expect(state.players[0].misses, 1);
+        expect(state.activePlayerIndex, 1);
+        expect(state.hasRolled, isFalse);
+        expect(state.whiteMarkedPlayerIndices, isEmpty);
+      },
+    );
+
+    test('digital turn and legacy block mode survive JSON', () {
+      final state = QwixxGameState.newGame([
+        'Ada',
+        'Bea',
+      ], mode: GameMode.digital)..rollDigital([1, 2, 3, 4, 5, 6]);
+      final decoded = QwixxGameState.fromJson(state.toJson());
+      expect(decoded.mode, GameMode.digital);
+      expect(decoded.dice, [1, 2, 3, 4, 5, 6]);
+      expect(decoded.hasRolled, isTrue);
+
+      final legacy = Map<String, dynamic>.from(state.toJson())
+        ..remove('mode')
+        ..remove('dice')
+        ..remove('hasRolled')
+        ..remove('whiteMarkedPlayerIndices')
+        ..remove('colorMarked');
+      expect(QwixxGameState.fromJson(legacy).mode, GameMode.block);
+
+      final invalidBlock = state.toJson()
+        ..['mode'] = GameMode.block.name
+        ..['hasRolled'] = true;
+      expect(
+        () => QwixxGameState.fromJson(invalidBlock),
+        throwsFormatException,
+      );
+    });
+  });
+
   group('Qwixx rows', () {
     test('number orders match the four official rows', () {
       expect(QwixxColor.red.numbers, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);

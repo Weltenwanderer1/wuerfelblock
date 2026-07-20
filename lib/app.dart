@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
+import 'controllers/balut_controller.dart';
 import 'controllers/game_controller.dart';
 import 'controllers/qwixx_controller.dart';
 import 'controllers/ten_thousand_controller.dart';
 import 'core/app_theme.dart';
+import 'models/balut_models.dart';
 import 'models/game_models.dart';
 import 'models/qwixx_models.dart';
 import 'models/saved_game_state.dart';
 import 'models/ten_thousand_models.dart';
+import 'screens/balut_game_screen.dart';
+import 'screens/balut_result_screen.dart';
 import 'screens/block_game_screen.dart';
 import 'screens/digital_game_screen.dart';
 import 'screens/home_screen.dart';
@@ -16,6 +20,7 @@ import 'screens/qwixx_result_screen.dart';
 import 'screens/result_screen.dart';
 import 'screens/setup_screen.dart';
 import 'screens/ten_thousand_game_screen.dart';
+import 'screens/ten_thousand_digital_game_screen.dart';
 import 'screens/ten_thousand_result_screen.dart';
 import 'services/game_repository.dart';
 
@@ -74,11 +79,17 @@ class _HomeHostState extends State<_HomeHost> {
       TenThousandController game =>
         game.state.isComplete
             ? TenThousandResultScreen(game: game)
+            : game.state.mode == GameMode.digital
+            ? TenThousandDigitalGameScreen(game: game)
             : TenThousandGameScreen(game: game),
       QwixxController game =>
         game.state.isComplete
             ? QwixxResultScreen(game: game)
             : QwixxGameScreen(game: game),
+      BalutController game =>
+        game.state.isComplete
+            ? BalutResultScreen(game: game)
+            : BalutGameScreen(game: game),
       GameController game =>
         game.state.isComplete
             ? ResultScreen(game: game)
@@ -152,6 +163,11 @@ class _HomeHostState extends State<_HomeHost> {
           _openController(
             context,
             TenThousandController(state: state, repository: widget.repository),
+          );
+        } else if (state is BalutGameState) {
+          _openController(
+            context,
+            BalutController(state: state, repository: widget.repository),
           );
         } else if (state is GameState) {
           _openController(

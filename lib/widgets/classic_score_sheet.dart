@@ -22,8 +22,8 @@ class ClassicScoreSheet extends StatelessWidget {
   static const _ink = Color(0xFF17202A);
   static const _blue = Color(0xFF264F78);
   static const _red = Color(0xFF9E2F35);
-  static const _labelWidth = 190.0;
-  static const _cellWidth = 88.0;
+  static const _labelWidth = 172.0;
+  static const _cellWidth = 80.0;
   static const _headerHeight = 50.0;
 
   double get _tableWidth => _labelWidth + state.players.length * _cellWidth + 4;

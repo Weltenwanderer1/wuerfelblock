@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../controllers/balut_controller.dart';
 import '../controllers/game_controller.dart';
 import '../controllers/qwixx_controller.dart';
 import '../controllers/ten_thousand_controller.dart';
@@ -7,19 +8,21 @@ import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../services/game_repository.dart';
 
-enum GameKind { yahtzeeKniffel, qwixx, tenThousand }
+enum GameKind { yahtzeeKniffel, qwixx, tenThousand, balut }
 
 extension on GameKind {
   String get label => switch (this) {
     GameKind.yahtzeeKniffel => 'Yahtzee/Kniffel',
     GameKind.qwixx => 'Qwixx',
     GameKind.tenThousand => '10.000',
+    GameKind.balut => 'Balut',
   };
 
   String get detail => switch (this) {
     GameKind.yahtzeeKniffel => 'Klassischer Würfelspaß als Block oder digital',
-    GameKind.qwixx => 'Farbreihen mit echten Würfeln',
-    GameKind.tenThousand => 'Punktejagd mit sechs echten Würfeln',
+    GameKind.qwixx => 'Farbreihen als Block oder digital',
+    GameKind.tenThousand => 'Punktejagd als Block oder digital',
+    GameKind.balut => '28 Wertungen pro Spieler – Block oder digital',
   };
 }
 
@@ -27,6 +30,7 @@ const publicGameKinds = <GameKind>[
   GameKind.yahtzeeKniffel,
   GameKind.qwixx,
   GameKind.tenThousand,
+  GameKind.balut,
 ];
 
 class SetupScreen extends StatefulWidget {
@@ -82,9 +86,6 @@ class _SetupScreenState extends State<SetupScreen> {
   void selectGame(GameKind selected) {
     setState(() {
       game = selected;
-      if (!isClassic) {
-        mode = GameMode.block;
-      }
       if (isQwixx) {
         while (names.length > 5) {
           names.removeLast().dispose();
@@ -126,10 +127,17 @@ class _SetupScreenState extends State<SetupScreen> {
       GameKind.qwixx => QwixxController.newGame(
         names: cleanedNames,
         repository: widget.repository,
+        mode: mode,
       ),
       GameKind.tenThousand => TenThousandController.newGame(
         names: cleanedNames,
         repository: widget.repository,
+        mode: mode,
+      ),
+      GameKind.balut => BalutController.newGame(
+        names: cleanedNames,
+        repository: widget.repository,
+        mode: mode,
       ),
       GameKind.yahtzeeKniffel => GameController.newGame(
         ruleSet: RuleSet.kniffel,
@@ -142,6 +150,7 @@ class _SetupScreenState extends State<SetupScreen> {
       await widget.repository.save(switch (controller) {
         QwixxController() => controller.state,
         TenThousandController() => controller.state,
+        BalutController() => controller.state,
         GameController() => controller.state,
         _ => throw StateError('Unbekannter Controller.'),
       });
@@ -203,26 +212,24 @@ class _SetupScreenState extends State<SetupScreen> {
               ),
           ],
         ),
-        if (isClassic) ...[
-          const SizedBox(height: 22),
-          Text('Spielart', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              for (final item in GameMode.values)
-                Expanded(
-                  child: _ChoiceCard(
-                    label: item.label,
-                    detail: item == GameMode.block
-                        ? 'App als Scoreblock'
-                        : 'Würfel auf dem Handy',
-                    selected: mode == item,
-                    onTap: () => setState(() => mode = item),
-                  ),
+        const SizedBox(height: 22),
+        Text('Spielart', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            for (final item in GameMode.values)
+              Expanded(
+                child: _ChoiceCard(
+                  label: item.label,
+                  detail: item == GameMode.block
+                      ? 'App als Scoreblock'
+                      : 'Würfel auf dem Handy',
+                  selected: mode == item,
+                  onTap: () => setState(() => mode = item),
                 ),
-            ],
-          ),
-        ],
+              ),
+          ],
+        ),
         const SizedBox(height: 22),
         Row(
           children: [
@@ -245,6 +252,8 @@ class _SetupScreenState extends State<SetupScreen> {
           const Text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),
         if (game == GameKind.tenThousand)
           const Text('10.000 wird mit 2 bis 8 Personen gespielt.'),
+        if (game == GameKind.balut)
+          const Text('Balut wird mit 2 bis 8 Personen gespielt.'),
         for (var index = 0; index < names.length; index++)
           Padding(
             padding: const EdgeInsets.only(top: 10),

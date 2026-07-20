@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/controllers/qwixx_controller.dart';
+import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/qwixx_models.dart';
 import 'package:wuerfelblock/models/saved_game_state.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
@@ -15,6 +16,56 @@ class _FailingRepository extends MemoryGameRepository {
 }
 
 void main() {
+  test('digital roll, mark and finish persist atomically', () async {
+    final repository = MemoryGameRepository();
+    final values = <int>[2, 5, 3, 4, 6, 1];
+    final controller = QwixxController.newGame(
+      names: ['Ada', 'Bea'],
+      mode: GameMode.digital,
+      repository: repository,
+      roller: () => values.removeAt(0),
+    );
+
+    await controller.rollDigital();
+    expect(controller.state.dice, [2, 5, 3, 4, 6, 1]);
+    await controller.markDigital(
+      QwixxColor.red,
+      8,
+      QwixxDigitalAction.color,
+      playerIndex: 0,
+    );
+    await controller.finishDigitalTurn();
+
+    expect(controller.state.activePlayerIndex, 1);
+    expect(controller.state.players[0].misses, 0);
+    final saved = await repository.load() as QwixxGameState;
+    expect(saved.players[0].crossed[QwixxColor.red], {8});
+    expect(saved.hasRolled, isFalse);
+  });
+
+  test('failed digital roll keeps dice and requires save retry', () async {
+    final repository = _FailingRepository()..failSave = true;
+    final values = <int>[2, 5, 3, 4, 6, 1];
+    final controller = QwixxController.newGame(
+      names: ['Ada', 'Bea'],
+      mode: GameMode.digital,
+      repository: repository,
+      roller: () => values.removeAt(0),
+    );
+
+    await expectLater(controller.rollDigital(), throwsA(isA<StateError>()));
+    expect(controller.state.dice, [2, 5, 3, 4, 6, 1]);
+    expect(controller.state.hasRolled, isTrue);
+    expect(controller.needsDigitalSaveRetry, isTrue);
+    expect(controller.finishDigitalTurn, throwsStateError);
+
+    repository.failSave = false;
+    await controller.retryDigitalSave();
+    expect(controller.needsDigitalSaveRetry, isFalse);
+    final saved = await repository.load() as QwixxGameState;
+    expect(saved.dice, [2, 5, 3, 4, 6, 1]);
+  });
+
   test('mark persists, can be undone, and undo persists', () async {
     final repository = MemoryGameRepository();
     final controller = QwixxController.newGame(

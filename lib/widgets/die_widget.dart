@@ -8,12 +8,16 @@ class DieWidget extends StatelessWidget {
     required this.held,
     required this.onTap,
     required this.index,
+    this.selectedSemantic = 'gehalten',
+    this.unselectedSemantic = 'nicht gehalten',
     super.key,
   });
   final int value;
   final bool held;
   final VoidCallback? onTap;
   final int index;
+  final String selectedSemantic;
+  final String unselectedSemantic;
 
   static const positions = <int, List<Alignment>>{
     1: [Alignment.center],
@@ -45,7 +49,7 @@ class DieWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     button: onTap != null,
-    label: 'Würfel $value${held ? ' gehalten' : ', nicht gehalten'}',
+    label: 'Würfel $value, ${held ? selectedSemantic : unselectedSemantic}',
     child: InkWell(
       key: Key('die-$index'),
       onTap: onTap,

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/ten_thousand_controller.dart';
+import '../models/game_models.dart';
 import '../widgets/ten_thousand_score_sheet.dart';
+import 'ten_thousand_digital_game_screen.dart';
 import 'ten_thousand_game_screen.dart';
 
 class TenThousandResultScreen extends StatefulWidget {
@@ -43,7 +45,11 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
     if (!mounted || game.state.isComplete) return;
     await Navigator.pushReplacement<void, void>(
       context,
-      MaterialPageRoute(builder: (_) => TenThousandGameScreen(game: game)),
+      MaterialPageRoute(
+        builder: (_) => game.state.mode == GameMode.digital
+            ? TenThousandDigitalGameScreen(game: game)
+            : TenThousandGameScreen(game: game),
+      ),
     );
   }
 

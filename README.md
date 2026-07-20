@@ -1,21 +1,22 @@
 # Würfelblock
 
-Eine vollständig offline nutzbare Android-App für **Yahtzee/Kniffel**, **Qwixx** und **10.000**. Yahtzee/Kniffel funktioniert als Wertungsblock für echte Würfel oder als komplettes digitales Würfelspiel; Qwixx und 10.000 werden mit echten Würfeln gespielt und in der App gewertet.
+Eine vollständig offline nutzbare Android-App für **Yahtzee/Kniffel**, **Qwixx**, **10.000** und **Balut**. Alle vier Spiele funktionieren wahlweise als Wertungsblock für echte Würfel oder als komplettes digitales Würfelspiel.
 
 Ältere, gespeicherte Partien des ursprünglich angebotenen skandinavischen Yatzy bleiben kompatibel. Sie werden als **Yatzy (klassisch)** mit ihren ursprünglichen Kategorien, Wertungen und Regeln fortgesetzt, stehen aber nicht mehr zur Auswahl für neue Partien.
 
 ## Funktionen
 
-- Yahtzee/Kniffel für 2–8, Qwixx für 2–5 und 10.000 für 2–8 Personen
+- Yahtzee/Kniffel für 2–8, Qwixx für 2–5, 10.000 und Balut für 2–8 Personen
 - Yahtzee/Kniffel-Regelwerk mit automatischen Summen, Bonus und Zusatz-Kniffel
 - **Blockmodus:** klassische Papierblock-Matrix mit klebenden Spielernamen, validierter Eingabe sowie nachträglichem Ändern und Löschen
-- **Digitalmodus:** fünf Würfel, bis zu drei Würfe, Hold per Tipp, automatische Wertungsvorschläge
-- **Qwixx:** vier Farbreihen, Links-nach-rechts-Sperren, Schlösser, Fehlwürfe und automatische Wertung
-- **10.000:** manueller Block für fünf echte Würfel, Verdopplungsregel für Pasche, vollständiger Zugverlauf, nachträgliche Korrektur und automatisch geführte letzte Runde
+- **Digitalmodus:** spielgerechte Würfel und automatische Wertungsprüfung für alle vier Spiele
+- **Qwixx:** sechs farbige Würfel, vier Farbreihen, Links-nach-rechts-Sperren, Schlösser, Fehlwürfe und automatische Wertung im kompakten Querformat
+- **10.000:** sechs Würfel nach Berliner Meisterschaftsregeln, Pasch-Verdopplung über mehrere Würfe, Straße, drei Paare, Macke und automatisch geführte Schlussrunde
+- **Balut:** fünf Würfel, sieben Kategorien mit je vier Wertungen, 28 Einträge pro Person, plus automatische Schwellen- und Balut-Boni
 - Spielerwechsel, Sieger- und Gleichstandserkennung
 - Undo des letzten Wertungseintrags
 - Lokales Fortsetzen via `shared_preferences`
-- Anfängergerechte Regelhilfen für alle drei öffentlichen Spiele und Info-Tasten für jede Yahtzee/Kniffel-Wertung
+- Anfängergerechte Regelhilfen für alle vier öffentlichen Spiele und Info-Tasten für jede Yahtzee/Kniffel-Wertung
 - Zugängliche Touchflächen und Semantics
 - Keine Netzwerkberechtigung, Werbung, Konten oder Online-Dienste
 

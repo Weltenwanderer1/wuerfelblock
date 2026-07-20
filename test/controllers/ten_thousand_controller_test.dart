@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/controllers/ten_thousand_controller.dart';
+import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/saved_game_state.dart';
 import 'package:wuerfelblock/models/ten_thousand_models.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
@@ -29,6 +30,94 @@ class _ControlledRepository extends MemoryGameRepository {
 }
 
 void main() {
+  test('digital turn rolls, banks and secures into ledger', () async {
+    final repository = MemoryGameRepository();
+    final values = <int>[1, 1, 1, 2, 3, 4];
+    final controller = TenThousandController.newGame(
+      names: ['Ada', 'Bea'],
+      mode: GameMode.digital,
+      repository: repository,
+      roller: () => values.removeAt(0),
+    );
+
+    await controller.rollDigital();
+    await controller.toggleDigitalDie(0);
+    await controller.toggleDigitalDie(1);
+    await controller.toggleDigitalDie(2);
+    await controller.bankDigitalSelection();
+    expect(controller.state.digitalTurn!.roundPoints, 1000);
+    await controller.secureDigitalTurn();
+
+    expect(controller.state.turns.single.points, 1000);
+    expect(controller.state.activePlayerIndex, 1);
+    expect(controller.state.digitalTurn!.roundPoints, 0);
+    final saved = await repository.load() as TenThousandGameState;
+    expect(saved.turns.single.points, 1000);
+
+    await controller.undo();
+    expect(controller.state.turns, isEmpty);
+    expect(controller.state.digitalTurn!.roundPoints, 0);
+  });
+
+  test('failed digital roll keeps dice and requires save retry', () async {
+    final repository = _ControlledRepository()..failSave = true;
+    final values = <int>[1, 2, 3, 4, 5, 6];
+    final controller = TenThousandController.newGame(
+      names: ['Ada', 'Bea'],
+      mode: GameMode.digital,
+      repository: repository,
+      roller: () => values.removeAt(0),
+    );
+
+    await expectLater(controller.rollDigital(), throwsA(isA<StateError>()));
+    expect(controller.state.digitalTurn!.dice, [1, 2, 3, 4, 5, 6]);
+    expect(controller.state.digitalTurn!.hasRolled, isTrue);
+    expect(controller.needsDigitalSaveRetry, isTrue);
+    expect(() => controller.toggleDigitalDie(0), throwsStateError);
+
+    repository.failSave = false;
+    await controller.retryDigitalSave();
+    expect(controller.needsDigitalSaveRetry, isFalse);
+    final saved = await repository.load() as TenThousandGameState;
+    expect(saved.digitalTurn!.dice, [1, 2, 3, 4, 5, 6]);
+  });
+
+  test('a started digital turn below 350 can be forfeited as zero', () async {
+    final repository = MemoryGameRepository();
+    final values = <int>[1, 2, 3, 4, 5, 6];
+    final controller = TenThousandController.newGame(
+      names: ['A', 'B'],
+      mode: GameMode.digital,
+      repository: repository,
+      roller: () => values.removeAt(0),
+    );
+
+    await controller.rollDigital();
+    await controller.forfeitDigitalTurn();
+
+    expect(controller.state.turns.single.points, 0);
+    expect(controller.state.activePlayerIndex, 1);
+    expect(controller.canUndo, isTrue);
+  });
+
+  test(
+    'starting a digital turn clears undo for an older ledger turn',
+    () async {
+      final controller = TenThousandController.newGame(
+        names: ['A', 'B'],
+        mode: GameMode.digital,
+        repository: MemoryGameRepository(),
+        roller: () => 1,
+      );
+      await controller.enterTurn(350);
+      expect(controller.canUndo, isTrue);
+
+      await controller.rollDigital();
+
+      expect(controller.canUndo, isFalse);
+    },
+  );
+
   test('newGame trims names and turn entry persists with undo', () async {
     final repository = MemoryGameRepository();
     final controller = TenThousandController.newGame(
@@ -52,9 +141,9 @@ void main() {
       repository: MemoryGameRepository(),
     );
     await controller.enterTurn(500);
-    await controller.enterTurn(250);
+    await controller.enterTurn(350);
     await controller.editTurn(0, 750);
-    expect(controller.state.totals, [750, 250]);
+    expect(controller.state.totals, [750, 350]);
     await controller.deleteTurn(1);
     expect(controller.state.turns[1].isDeleted, isTrue);
     expect(controller.state.totals, [750, 0]);
@@ -122,7 +211,7 @@ void main() {
     );
     await controller.enterTurn(10000);
     await controller.enterTurn(0);
-    await expectLater(controller.enterTurn(50), throwsStateError);
+    await expectLater(controller.enterTurn(350), throwsStateError);
   });
 
   test('save failure restores state and prior undo snapshot', () async {
@@ -131,10 +220,10 @@ void main() {
       names: ['A', 'B'],
       repository: repository,
     );
-    await controller.enterTurn(50);
+    await controller.enterTurn(350);
     repository.failSave = true;
-    await expectLater(controller.enterTurn(100), throwsStateError);
-    expect(controller.state.turns.map((turn) => turn.points), [50]);
+    await expectLater(controller.enterTurn(400), throwsStateError);
+    expect(controller.state.turns.map((turn) => turn.points), [350]);
     expect(controller.canUndo, isTrue);
 
     repository.failSave = false;
@@ -148,7 +237,7 @@ void main() {
       names: ['A', 'B'],
       repository: repository,
     );
-    await controller.enterTurn(50);
+    await controller.enterTurn(350);
     repository.failSave = true;
     await expectLater(controller.undo(), throwsStateError);
     expect(controller.state.turns, hasLength(1));
@@ -162,14 +251,14 @@ void main() {
       repository: repository,
     );
     repository.saveGate = Completer<void>();
-    final first = controller.enterTurn(50);
+    final first = controller.enterTurn(350);
     expect(controller.isBusy, isTrue);
-    await controller.enterTurn(100);
+    await controller.enterTurn(400);
     await controller.undo();
     expect(repository.saveCalls, 1);
     repository.saveGate!.complete();
     await first;
-    expect(controller.state.turns.map((turn) => turn.points), [50]);
+    expect(controller.state.turns.map((turn) => turn.points), [350]);
   });
 
   test('winners and abandon delegate to replay/repository', () async {

@@ -34,9 +34,10 @@ void main() {
     expect(find.text('Yahtzee/Kniffel-Regeln'), findsOneWidget);
     expect(find.text('Qwixx-Regeln'), findsOneWidget);
     expect(find.text('10.000-Regeln'), findsOneWidget);
+    expect(find.text('Balut-Regeln'), findsOneWidget);
     expect(find.text('Yatzy-Regeln'), findsNothing);
     expect(find.text('Kniffel-Regeln'), findsNothing);
-    expect(find.byIcon(Icons.menu_book_outlined), findsNWidgets(3));
+    expect(find.byIcon(Icons.menu_book_outlined), findsNWidgets(4));
     expect(find.text('Regelhilfe'), findsNothing);
 
     await tester.tap(find.text('10.000-Regeln'));

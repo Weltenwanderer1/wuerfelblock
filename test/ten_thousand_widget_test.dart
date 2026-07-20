@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/controllers/ten_thousand_controller.dart';
+import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/saved_game_state.dart';
 import 'package:wuerfelblock/models/ten_thousand_models.dart';
 import 'package:wuerfelblock/screens/ten_thousand_game_screen.dart';
+import 'package:wuerfelblock/screens/ten_thousand_digital_game_screen.dart';
 import 'package:wuerfelblock/screens/ten_thousand_result_screen.dart';
 import 'package:wuerfelblock/screens/ten_thousand_rules_screen.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
@@ -25,12 +27,12 @@ void main() {
         'Macke',
         'Hausbau & Brennen',
         'Letzte Runde',
-        'Die App als Block',
+        'Block oder digitale Würfel',
       ]) {
         expect(find.text(heading), findsOneWidget);
       }
       for (final fact in [
-        'sechs echten Würfeln',
+        'sechs Würfeln',
         '2–8 Personen',
         'Eine einzelne 1 zählt 100 Punkte',
         'eine einzelne 5 zählt 50 Punkte',
@@ -49,8 +51,8 @@ void main() {
         'Verdopplungsregel',
         'Vier Zweien zählen 400 Punkte',
         'vier Einsen 2.000 Punkte',
-        'keine Würfel',
-        'nicht automatisch',
+        'Blockmodus',
+        'automatisch',
       ]) {
         expect(find.textContaining(fact), findsAtLeastNWidgets(1));
       }
@@ -60,6 +62,66 @@ void main() {
   });
 
   group('10.000 game', () {
+    testWidgets('digital dice can be selected, banked and secured', (
+      tester,
+    ) async {
+      final values = <int>[1, 1, 1, 2, 3, 4];
+      final game = TenThousandController.newGame(
+        names: ['Ada', 'Bea'],
+        mode: GameMode.digital,
+        repository: MemoryGameRepository(),
+        roller: () => values.removeAt(0),
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: TenThousandDigitalGameScreen(game: game)),
+      );
+
+      await tester.tap(find.byKey(const Key('tenk-roll')));
+      await tester.pumpAndSettle();
+      for (var index = 0; index < 3; index++) {
+        await tester.tap(find.byKey(Key('tenk-die-$index')));
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('Auswahl: 1000 Punkte'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('tenk-bank')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('tenk-secure')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('tenk-secure')));
+      await tester.pumpAndSettle();
+      expect(game.state.turns.single.points, 1000);
+      expect(game.state.activePlayer?.name, 'Bea');
+    });
+
+    testWidgets('fresh dice stay hidden and a low turn can be forfeited', (
+      tester,
+    ) async {
+      final values = <int>[1, 2, 3, 4, 5, 6];
+      final game = TenThousandController.newGame(
+        names: ['Ada', 'Bea'],
+        mode: GameMode.digital,
+        repository: MemoryGameRepository(),
+        roller: () => values.removeAt(0),
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: TenThousandDigitalGameScreen(game: game)),
+      );
+
+      expect(find.byKey(const Key('tenk-die-0')), findsNothing);
+      expect(find.text('6 Würfel bereit'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('tenk-roll')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tenk-die-0')));
+      await tester.pumpAndSettle();
+      expect(
+        find.bySemanticsLabel('Würfel 1, zur Wertung ausgewählt'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const Key('tenk-forfeit')));
+      await tester.pumpAndSettle();
+      expect(game.state.turns.single.points, 0);
+      expect(game.state.activePlayer?.name, 'Bea');
+    });
+
     testWidgets('enters valid points, rotates active player and persists', (
       tester,
     ) async {
@@ -145,8 +207,8 @@ void main() {
       tester,
     ) async {
       final game = _newGame();
-      await game.enterTurn(300);
-      await game.enterTurn(200);
+      await game.enterTurn(350);
+      await game.enterTurn(400);
       await _pumpGame(tester, game);
 
       await tester.tap(find.byKey(const Key('turn-0')));
@@ -156,12 +218,12 @@ void main() {
             .widget<TextField>(find.byKey(const Key('points-field')))
             .controller!
             .text,
-        '300',
+        '350',
       );
       await tester.enterText(find.byKey(const Key('points-field')), '450');
       await tester.tap(find.byKey(const Key('save-points')));
       await tester.pumpAndSettle();
-      expect(game.state.totals, [450, 200]);
+      expect(game.state.totals, [450, 400]);
 
       await tester.tap(find.byKey(const Key('delete-turn-0')));
       await tester.pumpAndSettle();
@@ -184,7 +246,7 @@ void main() {
       await tester.tap(find.byKey(const Key('save-points')));
       await tester.pumpAndSettle();
       expect(game.state.turns.first.isDeleted, isFalse);
-      expect(game.state.totals, [450, 200]);
+      expect(game.state.totals, [450, 400]);
     });
 
     testWidgets('correction impact names and confirms truncated entries', (

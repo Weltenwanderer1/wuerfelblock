@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/ten_thousand_models.dart';
+import '../models/game_models.dart';
 import '../services/game_repository.dart';
 
 class TenThousandCorrectionImpact implements Exception {
@@ -20,24 +23,111 @@ class TenThousandCorrectionImpact implements Exception {
 }
 
 class TenThousandController extends ChangeNotifier {
-  TenThousandController({required this.state, required this.repository});
+  TenThousandController({
+    required this.state,
+    required this.repository,
+    int Function()? roller,
+  }) : _roller = roller ?? _secureRoller();
+
+  static int Function() _secureRoller() {
+    final random = Random.secure();
+    return () => random.nextInt(6) + 1;
+  }
 
   factory TenThousandController.newGame({
     required List<String> names,
     required GameRepository repository,
+    GameMode mode = GameMode.block,
+    int Function()? roller,
   }) => TenThousandController(
-    state: TenThousandGameState.newGame(names),
+    state: TenThousandGameState.newGame(names, mode: mode),
     repository: repository,
+    roller: roller,
   );
 
   TenThousandGameState state;
   final GameRepository repository;
+  final int Function() _roller;
   TenThousandGameState? _undoState;
   bool _isBusy = false;
+  bool _needsDigitalSaveRetry = false;
 
   bool get canUndo => _undoState != null;
   bool get isBusy => _isBusy;
+  bool get needsDigitalSaveRetry => _needsDigitalSaveRetry;
   List<TenThousandPlayer> get winners => state.winners;
+
+  Future<void> rollDigital() {
+    _ensureDigitalSaveReady();
+    final turn = state.digitalTurn;
+    if (turn == null) throw StateError('Kein digitaler Zug.');
+    return _mutateTransient(
+      () => state.withDigitalTurn(
+        turn.rolled(List.generate(turn.activeDiceCount, (_) => _roller())),
+      ),
+    );
+  }
+
+  Future<void> toggleDigitalDie(int index) {
+    _ensureDigitalSaveReady();
+    final turn = state.digitalTurn;
+    if (turn == null) throw StateError('Kein digitaler Zug.');
+    return _mutateTransient(() => state.withDigitalTurn(turn.toggled(index)));
+  }
+
+  Future<void> bankDigitalSelection() {
+    _ensureDigitalSaveReady();
+    final turn = state.digitalTurn;
+    if (turn == null) throw StateError('Kein digitaler Zug.');
+    return _mutateTransient(() => state.withDigitalTurn(turn.banked()));
+  }
+
+  Future<void> secureDigitalTurn() {
+    _ensureDigitalSaveReady();
+    final turn = state.digitalTurn;
+    if (turn == null || !turn.canSecure) {
+      throw StateError('Dieser Durchgang kann noch nicht gesichert werden.');
+    }
+    final undoBaseline = TenThousandGameState(
+      players: state.players,
+      turns: state.turns,
+      mode: state.mode,
+    );
+    return _mutate(
+      () => state.withTurn(turn.roundPoints),
+      undoBaseline: undoBaseline,
+    );
+  }
+
+  Future<void> confirmDigitalMacke() {
+    _ensureDigitalSaveReady();
+    final turn = state.digitalTurn;
+    if (turn == null || !turn.isMacke) {
+      throw StateError('Der aktuelle Wurf ist keine Macke.');
+    }
+    final undoBaseline = TenThousandGameState(
+      players: state.players,
+      turns: state.turns,
+      mode: state.mode,
+    );
+    return _mutate(() => state.withTurn(0), undoBaseline: undoBaseline);
+  }
+
+  Future<void> forfeitDigitalTurn() {
+    _ensureDigitalSaveReady();
+    final turn = state.digitalTurn;
+    if (turn == null || turn.isFresh || turn.roundPoints >= 350) {
+      throw StateError(
+        'Dieser Durchgang kann nicht als Nullrunde beendet werden.',
+      );
+    }
+    final undoBaseline = TenThousandGameState(
+      players: state.players,
+      turns: state.turns,
+      mode: state.mode,
+    );
+    return _mutate(() => state.withTurn(0), undoBaseline: undoBaseline);
+  }
 
   Future<void> enterTurn(int points) {
     if (_isBusy) return Future<void>.value();
@@ -89,7 +179,10 @@ class TenThousandController extends ChangeNotifier {
     );
   }
 
-  Future<void> _mutate(TenThousandGameState Function() mutation) async {
+  Future<void> _mutate(
+    TenThousandGameState Function() mutation, {
+    TenThousandGameState? undoBaseline,
+  }) async {
     if (_isBusy) return;
     final before = state.copy();
     final previousUndo = _undoState;
@@ -99,7 +192,7 @@ class TenThousandController extends ChangeNotifier {
       state = mutation();
       notifyListeners();
       await repository.save(state);
-      _undoState = before;
+      _undoState = undoBaseline ?? before;
     } catch (_) {
       state = before;
       _undoState = previousUndo;
@@ -108,6 +201,50 @@ class TenThousandController extends ChangeNotifier {
     } finally {
       _isBusy = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _mutateTransient(
+    TenThousandGameState Function() mutation,
+  ) async {
+    if (_isBusy) return;
+    _isBusy = true;
+    notifyListeners();
+    try {
+      state = mutation();
+      notifyListeners();
+      await repository.save(state);
+      _needsDigitalSaveRetry = false;
+      _undoState = null;
+    } catch (_) {
+      _needsDigitalSaveRetry = true;
+      notifyListeners();
+      rethrow;
+    } finally {
+      _isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> retryDigitalSave() async {
+    if (_isBusy || !_needsDigitalSaveRetry) return;
+    _isBusy = true;
+    notifyListeners();
+    try {
+      await repository.save(state);
+      _needsDigitalSaveRetry = false;
+      _undoState = null;
+    } finally {
+      _isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  void _ensureDigitalSaveReady() {
+    if (_needsDigitalSaveRetry) {
+      throw StateError(
+        'Der letzte Würfelstand muss zuerst gespeichert werden.',
+      );
     }
   }
 
