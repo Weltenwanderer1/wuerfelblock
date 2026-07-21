@@ -47,7 +47,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Der schöne Wertungsblock für Yahtzee/Kniffel, Qwixx, 10.000 und Balut',
+                  'Der schöne Wertungsblock für Yahtzee/Kniffel, Qwixx, 10.000, Balut und Escalero',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),

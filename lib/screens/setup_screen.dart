@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/balut_controller.dart';
+import '../controllers/escalero_controller.dart';
 import '../controllers/game_controller.dart';
 import '../controllers/qwixx_controller.dart';
 import '../controllers/ten_thousand_controller.dart';
@@ -8,7 +9,7 @@ import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../services/game_repository.dart';
 
-enum GameKind { yahtzeeKniffel, qwixx, tenThousand, balut }
+enum GameKind { yahtzeeKniffel, qwixx, tenThousand, balut, escalero }
 
 extension on GameKind {
   String get label => switch (this) {
@@ -16,6 +17,7 @@ extension on GameKind {
     GameKind.qwixx => 'Qwixx',
     GameKind.tenThousand => '10.000',
     GameKind.balut => 'Balut',
+    GameKind.escalero => 'Escalero',
   };
 
   String get detail => switch (this) {
@@ -23,6 +25,7 @@ extension on GameKind {
     GameKind.qwixx => 'Farbreihen als Block oder digital',
     GameKind.tenThousand => 'Punktejagd als Block oder digital',
     GameKind.balut => '28 Wertungen pro Spieler – Block oder digital',
+    GameKind.escalero => 'Pokerwürfel · 3 Kolonnen',
   };
 }
 
@@ -31,6 +34,7 @@ const publicGameKinds = <GameKind>[
   GameKind.qwixx,
   GameKind.tenThousand,
   GameKind.balut,
+  GameKind.escalero,
 ];
 
 class SetupScreen extends StatefulWidget {
@@ -58,8 +62,13 @@ class _SetupScreenState extends State<SetupScreen> {
 
   bool get isQwixx => game == GameKind.qwixx;
   bool get isClassic => game == GameKind.yahtzeeKniffel;
+  bool get isEscalero => game == GameKind.escalero;
   int get minimumPlayers => 2;
-  int get maximumPlayers => isQwixx ? 5 : 8;
+  int get maximumPlayers => isEscalero
+      ? 3
+      : isQwixx
+      ? 5
+      : 8;
 
   List<String> get cleanedNames =>
       names.map((controller) => controller.text.trim()).toList();
@@ -86,8 +95,8 @@ class _SetupScreenState extends State<SetupScreen> {
   void selectGame(GameKind selected) {
     setState(() {
       game = selected;
-      if (isQwixx) {
-        while (names.length > 5) {
+      if (isQwixx || isEscalero) {
+        while (names.length > maximumPlayers) {
           names.removeLast().dispose();
         }
       }
@@ -139,6 +148,11 @@ class _SetupScreenState extends State<SetupScreen> {
         repository: widget.repository,
         mode: mode,
       ),
+      GameKind.escalero => EscaleroController.newGame(
+        names: cleanedNames,
+        repository: widget.repository,
+        mode: mode,
+      ),
       GameKind.yahtzeeKniffel => GameController.newGame(
         ruleSet: RuleSet.kniffel,
         mode: mode,
@@ -151,6 +165,7 @@ class _SetupScreenState extends State<SetupScreen> {
         QwixxController() => controller.state,
         TenThousandController() => controller.state,
         BalutController() => controller.state,
+        EscaleroController() => controller.state,
         GameController() => controller.state,
         _ => throw StateError('Unbekannter Controller.'),
       });
@@ -207,6 +222,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   SizedBox(
                     width: cardWidth,
                     child: _ChoiceCard(
+                      key: Key('game-kind-${item.name}'),
                       label: item.label,
                       detail: item.detail,
                       selected: game == item,
@@ -270,6 +286,8 @@ class _SetupScreenState extends State<SetupScreen> {
           const Text('10.000 wird mit 2 bis 8 Personen gespielt.'),
         if (game == GameKind.balut)
           const Text('Balut wird mit 2 bis 8 Personen gespielt.'),
+        if (game == GameKind.escalero)
+          const Text('Escalero wird mit 2 bis 3 Personen gespielt.'),
         for (var index = 0; index < names.length; index++)
           Padding(
             padding: const EdgeInsets.only(top: 10),

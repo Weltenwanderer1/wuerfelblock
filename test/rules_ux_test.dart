@@ -6,6 +6,7 @@ import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/rules_content.dart';
 import 'package:wuerfelblock/screens/block_game_screen.dart';
 import 'package:wuerfelblock/screens/digital_game_screen.dart';
+import 'package:wuerfelblock/screens/escalero_rules_screen.dart';
 import 'package:wuerfelblock/screens/rules_screen.dart';
 import 'package:wuerfelblock/screens/rules_selection_screen.dart';
 import 'package:wuerfelblock/screens/ten_thousand_rules_screen.dart';
@@ -41,10 +42,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RulesSelectionScreen), findsOneWidget);
     expect(find.byKey(const Key('rules-link-ten-thousand')), findsOneWidget);
+    expect(find.byKey(const Key('rules-link-escalero')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('rules-link-ten-thousand')));
     await tester.pumpAndSettle();
     expect(find.byType(TenThousandRulesScreen), findsOneWidget);
+  });
+
+  testWidgets('rules selection opens Escalero separately', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: RulesSelectionScreen()));
+    final link = find.byKey(const Key('rules-link-escalero'));
+    await tester.scrollUntilVisible(link, 250);
+    await tester.tap(link);
+    await tester.pumpAndSettle();
+    expect(find.byType(EscaleroRulesScreen), findsOneWidget);
   });
 
   testWidgets('rules page is structured and ruleset-specific', (tester) async {

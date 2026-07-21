@@ -1,22 +1,23 @@
 # Würfelblock
 
-Eine vollständig offline nutzbare Android-App für **Yahtzee/Kniffel**, **Qwixx**, **10.000** und **Balut**. Alle vier Spiele funktionieren wahlweise als Wertungsblock für echte Würfel oder als komplettes digitales Würfelspiel.
+Eine vollständig offline nutzbare Android-App für **Yahtzee/Kniffel**, **Qwixx**, **10.000**, **Balut** und **Escalero**. Alle fünf Spiele funktionieren wahlweise als Wertungsblock für echte Würfel oder als komplettes digitales Würfelspiel.
 
 Ältere, gespeicherte Partien des ursprünglich angebotenen skandinavischen Yatzy bleiben kompatibel. Sie werden als **Yatzy (klassisch)** mit ihren ursprünglichen Kategorien, Wertungen und Regeln fortgesetzt, stehen aber nicht mehr zur Auswahl für neue Partien.
 
 ## Funktionen
 
-- Yahtzee/Kniffel für 2–8, Qwixx für 2–5, 10.000 und Balut für 2–8 Personen
+- Yahtzee/Kniffel für 2–8, Qwixx für 2–5, 10.000 und Balut für 2–8 sowie Escalero für 2–3 Personen
 - Yahtzee/Kniffel-Regelwerk mit automatischen Summen, Bonus und Zusatz-Kniffel
-- **Blockmodus:** klassische Papierblock-Matrix mit klebenden Spielernamen, validierter Eingabe sowie nachträglichem Ändern und Löschen
-- **Digitalmodus:** spielgerechte Würfel und automatische Wertungsprüfung für alle vier Spiele
+- **Blockmodus:** klassische Papierblock-Matrix mit validierter Eingabe; bei Escalero bleiben eingetragene Wertungen gemäß Regelwerk unveränderlich
+- **Digitalmodus:** spielgerechte Würfel und automatische Wertungsprüfung für alle fünf Spiele
 - **Qwixx:** sechs farbige Würfel, vier Farbreihen, Links-nach-rechts-Sperren, Schlösser, Fehlwürfe und automatische Wertung im kompakten Querformat
 - **10.000:** sechs Würfel nach Berliner Meisterschaftsregeln, Pasch-Verdopplung über mehrere Würfe, Straße, drei Paare, Macke und automatisch geführte Schlussrunde
 - **Balut:** fünf Würfel, sieben Kategorien mit je vier Wertungen, 28 Einträge pro Person, plus automatische Schwellen- und Balut-Boni
+- **Escalero:** fünf Pokerwürfel, zehn Kategorien und drei unterschiedlich gewichtete Kolonnen pro Person
 - Spielerwechsel, Sieger- und Gleichstandserkennung
 - Undo des letzten Wertungseintrags
 - Lokales Fortsetzen via `shared_preferences`
-- Anfängergerechte Regelhilfen für alle vier öffentlichen Würfelspiele und Info-Tasten für jede Yahtzee/Kniffel-Wertung
+- Anfängergerechte Regelhilfen für alle fünf öffentlichen Würfelspiele und Info-Tasten für jede Yahtzee/Kniffel-Wertung
 - Separate, auswählbare Spielregeln für die Standarddeck-Varianten **Crisps!**, **Regicide** und **Haggis**
 - Zugängliche Touchflächen und Semantics
 - Keine Netzwerkberechtigung, Werbung, Konten oder Online-Dienste

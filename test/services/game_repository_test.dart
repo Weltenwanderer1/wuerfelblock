@@ -1,8 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wuerfelblock/models/escalero_models.dart';
 import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
 void main() {
+  test('round-trips an Escalero save through its discriminator', () async {
+    final repository = MemoryGameRepository();
+    await repository.save(EscaleroGameState.newGame(['Ada', 'Bea']));
+
+    final result = await repository.load();
+
+    expect(result.state, isA<EscaleroGameState>());
+    expect(result.state!.gameLabel, 'Escalero');
+  });
+
   group('GameRepository.load', () {
     test(
       'returns the saved state and no corruption reason on success',

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'controllers/balut_controller.dart';
+import 'controllers/escalero_controller.dart';
 import 'controllers/game_controller.dart';
 import 'controllers/qwixx_controller.dart';
 import 'controllers/ten_thousand_controller.dart';
 import 'core/app_theme.dart';
 import 'models/balut_models.dart';
+import 'models/escalero_models.dart';
 import 'models/game_models.dart';
 import 'models/qwixx_models.dart';
 import 'models/saved_game_state.dart';
@@ -14,6 +16,8 @@ import 'screens/balut_game_screen.dart';
 import 'screens/balut_result_screen.dart';
 import 'screens/block_game_screen.dart';
 import 'screens/digital_game_screen.dart';
+import 'screens/escalero_game_screen.dart';
+import 'screens/escalero_result_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/qwixx_game_screen.dart';
 import 'screens/qwixx_result_screen.dart';
@@ -103,6 +107,10 @@ class _HomeHostState extends State<_HomeHost> {
         game.state.isComplete
             ? BalutResultScreen(game: game)
             : BalutGameScreen(game: game),
+      EscaleroController game =>
+        game.state.isComplete
+            ? EscaleroResultScreen(game: game)
+            : EscaleroGameScreen(game: game),
       GameController game =>
         game.state.isComplete
             ? ResultScreen(game: game)
@@ -181,6 +189,11 @@ class _HomeHostState extends State<_HomeHost> {
           _openController(
             context,
             BalutController(state: state, repository: widget.repository),
+          );
+        } else if (state is EscaleroGameState) {
+          _openController(
+            context,
+            EscaleroController(state: state, repository: widget.repository),
           );
         } else if (state is GameState) {
           _openController(

@@ -133,7 +133,7 @@ void main() {
 
     expect(find.byKey(const Key('rules-action')), findsOneWidget);
     expect(
-      find.textContaining('Yahtzee/Kniffel, Qwixx, 10.000 und Balut'),
+      find.textContaining('Yahtzee/Kniffel, Qwixx, 10.000, Balut und Escalero'),
       findsOneWidget,
     );
     await tester.tap(find.byKey(const Key('rules-action')));
@@ -178,6 +178,12 @@ void main() {
     await tester.tap(find.text('Qwixx'));
     await tester.pump();
 
+    final digitalMode = find.byKey(
+      const Key('game-mode-digital'),
+      skipOffstage: false,
+    );
+    await tester.ensureVisible(digitalMode);
+    await tester.pumpAndSettle();
     expect(find.text('Spielart'), findsOneWidget);
     expect(find.text('Digital würfeln'), findsWidgets);
     expect(find.text('Spieler (2/5)', skipOffstage: false), findsOneWidget);
@@ -187,7 +193,7 @@ void main() {
           .onPressed,
       isNotNull,
     );
-    await tester.tap(find.byKey(const Key('game-mode-digital')));
+    await tester.tap(digitalMode);
     await tester.tap(find.byKey(const Key('start-game')));
     await tester.pumpAndSettle();
     expect(started, isA<QwixxController>());

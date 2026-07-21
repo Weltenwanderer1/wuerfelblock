@@ -4,6 +4,7 @@ import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import 'balut_rules_screen.dart';
 import 'card_games_rules_screen.dart';
+import 'escalero_rules_screen.dart';
 import 'qwixx_rules_screen.dart';
 import 'rules_screen.dart';
 import 'ten_thousand_rules_screen.dart';
@@ -53,6 +54,14 @@ class RulesSelectionScreen extends StatelessWidget {
           icon: Icons.table_rows_outlined,
           accent: AppColors.rose,
           ruleScreen: BalutRulesScreen(),
+        ),
+        const _RuleLink(
+          key: Key('rules-link-escalero'),
+          title: 'Escalero',
+          subtitle: 'Pokerwürfel und drei Kolonnen',
+          icon: Icons.casino_outlined,
+          accent: AppColors.lavender,
+          ruleScreen: EscaleroRulesScreen(),
         ),
         const SizedBox(height: 12),
         Text('Kartenspiele', style: Theme.of(context).textTheme.titleLarge),

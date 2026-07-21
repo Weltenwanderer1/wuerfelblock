@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/app.dart';
+import 'package:wuerfelblock/controllers/escalero_controller.dart';
 import 'package:wuerfelblock/controllers/game_controller.dart';
 
 import 'package:wuerfelblock/models/balut_models.dart';
+import 'package:wuerfelblock/models/escalero_models.dart';
 import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/saved_game_state.dart';
 import 'package:wuerfelblock/models/ten_thousand_models.dart';
 import 'package:wuerfelblock/screens/balut_game_screen.dart';
 import 'package:wuerfelblock/screens/block_game_screen.dart';
 import 'package:wuerfelblock/screens/digital_game_screen.dart';
+import 'package:wuerfelblock/screens/escalero_game_screen.dart';
 import 'package:wuerfelblock/screens/result_screen.dart';
 import 'package:wuerfelblock/screens/setup_screen.dart';
 import 'package:wuerfelblock/screens/ten_thousand_digital_game_screen.dart';
@@ -446,39 +449,93 @@ void main() {
     ]);
   });
 
-  testWidgets('Setup offers exactly three public games and combined defaults', (
+  testWidgets(
+    'Setup offers five public games in a responsive two-column grid',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SetupScreen(
+            repository: MemoryGameRepository(),
+            onStarted: (_) {},
+          ),
+        ),
+      );
+      expect(find.text('Yahtzee/Kniffel'), findsOneWidget);
+      expect(find.text('Qwixx'), findsOneWidget);
+      expect(find.text('10.000'), findsOneWidget);
+      expect(find.text('Balut'), findsOneWidget);
+      expect(find.byKey(const Key('game-kind-escalero')), findsOneWidget);
+      expect(find.text('Escalero'), findsOneWidget);
+      expect(find.text('Pokerwürfel · 3 Kolonnen'), findsOneWidget);
+      expect(find.text('Yatzy'), findsNothing);
+      final yahtzeeX = tester.getCenter(find.text('Yahtzee/Kniffel')).dx;
+      final qwixxX = tester.getCenter(find.text('Qwixx')).dx;
+      expect((yahtzeeX - qwixxX).abs(), greaterThan(50));
+      expect(find.byType(TextFormField, skipOffstage: false), findsNWidgets(2));
+      expect(
+        find.text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),
+        findsOneWidget,
+      );
+      expect(find.text('Spielart', skipOffstage: false), findsOneWidget);
+      expect(find.text('Echte Würfel', skipOffstage: false), findsWidgets);
+      expect(find.text('Digital würfeln', skipOffstage: false), findsWidgets);
+    },
+  );
+
+  testWidgets('Escalero setup limits players to three and saves the game', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(360, 1200);
+    tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
     });
+    final repository = MemoryGameRepository();
+    Object? started;
     await tester.pumpWidget(
       MaterialApp(
         home: SetupScreen(
-          repository: MemoryGameRepository(),
-          onStarted: (_) {},
+          repository: repository,
+          onStarted: (controller) => started = controller,
         ),
       ),
     );
-    expect(find.text('Yahtzee/Kniffel'), findsOneWidget);
-    expect(find.text('Qwixx'), findsOneWidget);
-    expect(find.text('10.000'), findsOneWidget);
-    expect(find.text('Balut'), findsOneWidget);
-    expect(find.text('Yatzy'), findsNothing);
-    final yahtzeeX = tester.getCenter(find.text('Yahtzee/Kniffel')).dx;
-    final qwixxX = tester.getCenter(find.text('Qwixx')).dx;
-    expect((yahtzeeX - qwixxX).abs(), greaterThan(50));
-    expect(find.byType(TextFormField), findsNWidgets(2));
+    await tester.tap(find.byKey(const Key('game-kind-escalero')));
+    await tester.pump();
     expect(
-      find.text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),
+      find.text('Escalero wird mit 2 bis 3 Personen gespielt.'),
       findsOneWidget,
     );
-    expect(find.text('Spielart'), findsOneWidget);
-    expect(find.text('Echte Würfel'), findsWidgets);
-    expect(find.text('Digital würfeln'), findsWidgets);
+    await tester.tap(find.byKey(const Key('add-player')));
+    await tester.pump();
+    expect(find.byType(TextFormField), findsNWidgets(3));
+    expect(
+      tester.widget<IconButton>(find.byKey(const Key('add-player'))).onPressed,
+      isNull,
+    );
+    await tester.tap(find.byKey(const Key('start-game')));
+    await tester.pumpAndSettle();
+    expect(started, isA<EscaleroController>());
+    expect((await repository.load()).state, isA<EscaleroGameState>());
+  });
+
+  testWidgets('saved Escalero game resumes into its game screen', (
+    tester,
+  ) async {
+    final repository = MemoryGameRepository();
+    await repository.save(EscaleroGameState.newGame(['Ada', 'Bea']));
+    await tester.pumpWidget(WuerfelblockApp(repository: repository));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Partie fortsetzen'));
+    await tester.pumpAndSettle();
+    expect(find.byType(EscaleroGameScreen), findsOneWidget);
   });
 
   testWidgets('combined setup saves Kniffel and supports both modes', (
@@ -494,7 +551,13 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.byKey(const Key('game-mode-digital')));
+    final digitalMode = find.byKey(
+      const Key('game-mode-digital'),
+      skipOffstage: false,
+    );
+    await tester.ensureVisible(digitalMode);
+    await tester.pumpAndSettle();
+    await tester.tap(digitalMode);
     await tester.tap(find.byKey(const Key('start-game')));
     await tester.pumpAndSettle();
 
@@ -550,10 +613,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('10.000'));
     await tester.pump();
+    final digitalMode = find.byKey(
+      const Key('game-mode-digital'),
+      skipOffstage: false,
+    );
+    await tester.ensureVisible(digitalMode);
+    await tester.pumpAndSettle();
     expect(find.text('Spielart'), findsOneWidget);
     expect(find.text('Digital würfeln'), findsWidgets);
-    await tester.tap(find.byKey(const Key('game-mode-digital')));
-    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.tap(digitalMode);
     await tester.pump();
 
     expect(find.byType(TextFormField), findsNWidgets(2));

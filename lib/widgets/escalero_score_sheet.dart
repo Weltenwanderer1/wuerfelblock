@@ -1,0 +1,185 @@
+import 'package:flutter/material.dart';
+
+import '../models/escalero_models.dart';
+
+/// Responsive 10 × 3 Escalero score sheet for one selected player.
+class EscaleroScoreSheet extends StatelessWidget {
+  const EscaleroScoreSheet({
+    required this.state,
+    required this.playerIndex,
+    required this.onCellTap,
+    super.key,
+  });
+
+  final EscaleroGameState state;
+  final int playerIndex;
+  final void Function(EscaleroCategory category, int column)? onCellTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final player = state.players[playerIndex];
+    return Semantics(
+      label: 'Escalero-Wertungsblatt für ${player.name}',
+      child: Card(
+        key: const Key('escalero-sheet'),
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Container(
+              color: const Color(0xFF5B2A1D),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 4,
+                    child: Text(
+                      player.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  for (var column = 0; column < 3; column++)
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '${1 << column} P',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: EscaleroCategory.values.length,
+                itemBuilder: (context, row) {
+                  final category = EscaleroCategory.values[row];
+                  return Container(
+                    color: row.isEven
+                        ? const Color(0xFFFFFBF1)
+                        : const Color(0xFFFFF2DA),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 3,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: Text(
+                            category.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        for (var column = 0; column < 3; column++)
+                          Expanded(
+                            flex: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2,
+                              ),
+                              child: _ScoreCell(
+                                key: Key(
+                                  'escalero-${state.mode.name == 'digital' ? 'score' : 'edit'}-${category.name}-$column',
+                                ),
+                                category: category,
+                                column: column,
+                                playerName: player.name,
+                                value: player.entries[category]![column],
+                                onTap:
+                                    player.entries[category]![column] != null ||
+                                        onCellTap == null
+                                    ? null
+                                    : () => onCellTap!(category, column),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            Container(
+              color: const Color(0xFFFFE0A8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              child: Row(
+                children: [
+                  const Expanded(
+                    flex: 4,
+                    child: Text(
+                      'Summe',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  for (var column = 0; column < 3; column++)
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '${player.columnTotal(column)}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScoreCell extends StatelessWidget {
+  const _ScoreCell({
+    required this.category,
+    required this.column,
+    required this.playerName,
+    required this.value,
+    required this.onTap,
+    super.key,
+  });
+  final EscaleroCategory category;
+  final int column;
+  final String playerName;
+  final int? value;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: onTap != null,
+    enabled: onTap != null,
+    label:
+        '${category.label}, Kolonne ${column + 1}, $playerName: ${value == null ? 'frei' : '$value Punkte'}',
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(7),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: value == null ? Colors.white : const Color(0xFFFFD58A),
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(color: const Color(0xFFB88955)),
+        ),
+        child: Text(
+          value?.toString() ?? '·',
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+    ),
+  );
+}
