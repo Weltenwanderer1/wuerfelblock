@@ -7,6 +7,7 @@ import 'package:wuerfelblock/models/rules_content.dart';
 import 'package:wuerfelblock/screens/block_game_screen.dart';
 import 'package:wuerfelblock/screens/digital_game_screen.dart';
 import 'package:wuerfelblock/screens/rules_screen.dart';
+import 'package:wuerfelblock/screens/rules_selection_screen.dart';
 import 'package:wuerfelblock/screens/ten_thousand_rules_screen.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
@@ -23,25 +24,25 @@ void main() {
     expect(strike.body, isNot(contains('Der Scoreblock bleibt')));
   });
 
-  testWidgets('home offers exactly the five public rule actions', (
-    tester,
-  ) async {
+  testWidgets('home offers one Spielregeln action', (tester) async {
     await tester.pumpWidget(
       WuerfelblockApp(repository: MemoryGameRepository()),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Yahtzee/Kniffel-Regeln'), findsOneWidget);
-    expect(find.text('Qwixx-Regeln'), findsOneWidget);
-    expect(find.text('10.000-Regeln'), findsOneWidget);
-    expect(find.text('Balut-Regeln'), findsOneWidget);
     expect(find.text('Spielregeln'), findsOneWidget);
     expect(find.text('Yatzy-Regeln'), findsNothing);
     expect(find.text('Kniffel-Regeln'), findsNothing);
-    expect(find.byIcon(Icons.menu_book_outlined), findsNWidgets(5));
+    expect(find.byKey(const Key('rules-action')), findsOneWidget);
+    expect(find.byIcon(Icons.menu_book_outlined), findsOneWidget);
     expect(find.text('Regelhilfe'), findsNothing);
 
-    await tester.tap(find.text('10.000-Regeln'));
+    await tester.tap(find.byKey(const Key('rules-action')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RulesSelectionScreen), findsOneWidget);
+    expect(find.byKey(const Key('rules-link-ten-thousand')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('rules-link-ten-thousand')));
     await tester.pumpAndSettle();
     expect(find.byType(TenThousandRulesScreen), findsOneWidget);
   });

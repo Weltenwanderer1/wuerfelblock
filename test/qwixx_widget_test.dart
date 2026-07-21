@@ -8,6 +8,7 @@ import 'package:wuerfelblock/models/qwixx_models.dart';
 import 'package:wuerfelblock/screens/qwixx_game_screen.dart';
 import 'package:wuerfelblock/screens/qwixx_result_screen.dart';
 import 'package:wuerfelblock/screens/qwixx_rules_screen.dart';
+import 'package:wuerfelblock/screens/rules_selection_screen.dart';
 import 'package:wuerfelblock/screens/setup_screen.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
@@ -130,12 +131,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Qwixx-Regeln'), findsOneWidget);
+    expect(find.byKey(const Key('rules-action')), findsOneWidget);
     expect(
       find.textContaining('Yahtzee/Kniffel, Qwixx, 10.000 und Balut'),
       findsOneWidget,
     );
-    await tester.tap(find.text('Qwixx-Regeln'));
+    await tester.tap(find.byKey(const Key('rules-action')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RulesSelectionScreen), findsOneWidget);
+    await tester.tap(find.byKey(const Key('rules-link-qwixx')));
     await tester.pumpAndSettle();
     expect(find.byType(QwixxRulesScreen), findsOneWidget);
     expect(find.textContaining('78 Punkte'), findsOneWidget);

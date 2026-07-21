@@ -31,10 +31,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Würfelblock'), findsWidgets);
     expect(find.text('Neue Partie'), findsOneWidget);
-    expect(find.text('Yahtzee/Kniffel-Regeln'), findsOneWidget);
-    expect(find.text('Qwixx-Regeln'), findsOneWidget);
-    expect(find.text('10.000-Regeln'), findsOneWidget);
-    expect(find.text('Balut-Regeln'), findsOneWidget);
+    expect(find.byKey(const Key('rules-action')), findsOneWidget);
+    expect(find.text('Spielregeln'), findsOneWidget);
     expect(find.text('Yatzy-Regeln'), findsNothing);
   });
 
@@ -451,7 +449,7 @@ void main() {
   testWidgets('Setup offers exactly three public games and combined defaults', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.physicalSize = const Size(360, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -470,6 +468,9 @@ void main() {
     expect(find.text('10.000'), findsOneWidget);
     expect(find.text('Balut'), findsOneWidget);
     expect(find.text('Yatzy'), findsNothing);
+    final yahtzeeX = tester.getCenter(find.text('Yahtzee/Kniffel')).dx;
+    final qwixxX = tester.getCenter(find.text('Qwixx')).dx;
+    expect((yahtzeeX - qwixxX).abs(), greaterThan(50));
     expect(find.byType(TextFormField), findsNWidgets(2));
     expect(
       find.text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),
@@ -516,6 +517,8 @@ void main() {
 
     final help = find.byKey(const Key('game-mode-help'), skipOffstage: false);
     expect(help, findsOneWidget);
+    await tester.ensureVisible(help);
+    await tester.pumpAndSettle();
     expect(tester.widget<Text>(help).data, contains('Papierblock'));
     expect(
       find.bySemanticsLabel(RegExp(r'Papierblock')),

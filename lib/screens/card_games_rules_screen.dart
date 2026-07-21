@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
 
-class CardGamesRulesScreen extends StatelessWidget {
-  const CardGamesRulesScreen({super.key});
+enum CardGame { crisps, regicide, haggis }
+
+class CardGameRulesScreen extends StatelessWidget {
+  const CardGameRulesScreen({required this.game, super.key});
+
+  final CardGame game;
 
   static const _games = <_GameRules>[
     _GameRules(
+      kind: CardGame.crisps,
       keyName: 'crisps',
       title: 'Crisps!',
       subtitle: 'Standarddeck-Variante · 2 Personen',
@@ -44,6 +49,7 @@ class CardGamesRulesScreen extends StatelessWidget {
       ],
     ),
     _GameRules(
+      kind: CardGame.regicide,
       keyName: 'regicide',
       title: 'Regicide',
       subtitle: 'Standarddeck-Variante · kooperativ · 1–4 Personen',
@@ -101,6 +107,7 @@ class CardGamesRulesScreen extends StatelessWidget {
       ],
     ),
     _GameRules(
+      kind: CardGame.haggis,
       keyName: 'haggis',
       title: 'Haggis',
       subtitle: 'Standarddeck-Variante · 2–3 Personen',
@@ -148,59 +155,26 @@ class CardGamesRulesScreen extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Spielregeln')),
-    body: SelectionArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const _IntroCard(),
-                const SizedBox(height: 16),
-                for (final game in _games)
-                  _GameRulesCard(
-                    key: Key('card-game-rules-${game.keyName}'),
-                    game: game,
-                  ),
-              ],
+  Widget build(BuildContext context) {
+    final selectedGame = _games.firstWhere((item) => item.kind == game);
+    return Scaffold(
+      appBar: AppBar(title: Text('${selectedGame.title}-Regeln')),
+      body: SelectionArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: _GameRulesCard(
+                key: Key('card-game-rules-${selectedGame.keyName}'),
+                game: selectedGame,
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
-
-class _IntroCard extends StatelessWidget {
-  const _IntroCard();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: AppColors.lavender,
-      border: Border.all(color: AppColors.plum),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Kartenspiele mit einem normalen Deck',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Diese Regelhilfe erklärt drei eigenständige Standarddeck-Varianten für ein normales Rummy-/Canasta-Deck. Sie ist nur zum Nachschlagen gedacht und startet kein neues Spiel in der App.',
-          style: TextStyle(height: 1.4),
-        ),
-      ],
-    ),
-  );
+    );
+  }
 }
 
 class _GameRulesCard extends StatelessWidget {
@@ -294,6 +268,7 @@ class _SectionContent extends StatelessWidget {
 
 class _GameRules {
   const _GameRules({
+    required this.kind,
     required this.keyName,
     required this.title,
     required this.subtitle,
@@ -302,6 +277,7 @@ class _GameRules {
     required this.sections,
   });
 
+  final CardGame kind;
   final String keyName;
   final String title;
   final String subtitle;

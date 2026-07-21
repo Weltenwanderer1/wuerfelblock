@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
-import '../models/game_models.dart';
 import '../models/saved_game_state.dart';
-import 'balut_rules_screen.dart';
-import 'card_games_rules_screen.dart';
-import 'qwixx_rules_screen.dart';
-import 'rules_screen.dart';
-import 'ten_thousand_rules_screen.dart';
+import 'rules_selection_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -86,64 +81,16 @@ class HomeScreen extends StatelessWidget {
                   label: const Text('Neue Partie'),
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () => Navigator.push<void>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              const RulesScreen(ruleSet: RuleSet.kniffel),
-                        ),
-                      ),
-                      icon: const Icon(Icons.menu_book_outlined),
-                      label: const Text('Yahtzee/Kniffel-Regeln'),
+                FilledButton.icon(
+                  key: const Key('rules-action'),
+                  onPressed: () => Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RulesSelectionScreen(),
                     ),
-                    TextButton.icon(
-                      onPressed: () => Navigator.push<void>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const QwixxRulesScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.menu_book_outlined),
-                      label: const Text('Qwixx-Regeln'),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => Navigator.push<void>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const TenThousandRulesScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.menu_book_outlined),
-                      label: const Text('10.000-Regeln'),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => Navigator.push<void>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const BalutRulesScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.menu_book_outlined),
-                      label: const Text('Balut-Regeln'),
-                    ),
-                    TextButton.icon(
-                      key: const Key('card-games-rules-action'),
-                      onPressed: () => Navigator.push<void>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CardGamesRulesScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.menu_book_outlined),
-                      label: const Text('Spielregeln'),
-                    ),
-                  ],
+                  ),
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: const Text('Spielregeln'),
                 ),
                 const SizedBox(height: 20),
                 const Text(

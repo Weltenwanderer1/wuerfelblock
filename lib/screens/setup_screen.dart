@@ -198,19 +198,24 @@ class _SetupScreenState extends State<SetupScreen> {
       children: [
         Text('Spiel', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 10),
-        Wrap(
-          children: [
-            for (final item in publicGameKinds)
-              SizedBox(
-                width: 180,
-                child: _ChoiceCard(
-                  label: item.label,
-                  detail: item.detail,
-                  selected: game == item,
-                  onTap: () => selectGame(item),
-                ),
-              ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth = (constraints.maxWidth - 10) / 2;
+            return Wrap(
+              children: [
+                for (final item in publicGameKinds)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _ChoiceCard(
+                      label: item.label,
+                      detail: item.detail,
+                      selected: game == item,
+                      onTap: () => selectGame(item),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 22),
         Text('Spielart', style: Theme.of(context).textTheme.titleLarge),
