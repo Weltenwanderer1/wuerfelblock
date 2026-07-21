@@ -4,6 +4,7 @@ import '../controllers/game_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../models/rules_content.dart';
+import '../services/persistence_messages.dart';
 import '../services/scoring_engine.dart';
 import '../widgets/classic_score_sheet.dart';
 import '../widgets/rules_widgets.dart';
@@ -163,9 +164,9 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
 
   void _saveFailed() {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+    );
   }
 
   @override

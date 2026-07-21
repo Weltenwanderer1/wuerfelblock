@@ -4,18 +4,32 @@ import 'package:flutter/foundation.dart';
 
 import '../models/qwixx_models.dart';
 import '../models/game_models.dart';
+import 'controller_transactions.dart';
 import '../services/game_repository.dart';
+import '../services/persistence_messages.dart';
 
 class QwixxController extends ChangeNotifier {
   QwixxController({
     required this.state,
     required this.repository,
     int Function()? roller,
-  }) : _roller = roller ?? _secureRoller();
+  }) : _roller = roller ?? _secureRoller() {
+    _transactions = ControllerTransactions<QwixxGameState, QwixxGameState>(
+      capture: () => _copy(state),
+      restore: (snapshot) => state = _copy(snapshot),
+      save: () => repository.save(state),
+      clear: repository.clear,
+      notifyListeners: notifyListeners,
+    );
+  }
 
   static int Function() _secureRoller() {
     final random = Random.secure();
-    return () => random.nextInt(6) + 1;
+    return () =>
+        random.nextInt(
+          QwixxRules.maximumDieValue - QwixxRules.minimumDieValue + 1,
+        ) +
+        QwixxRules.minimumDieValue;
   }
 
   factory QwixxController.newGame({
@@ -32,14 +46,12 @@ class QwixxController extends ChangeNotifier {
   QwixxGameState state;
   final GameRepository repository;
   final int Function() _roller;
-  QwixxGameState? _undoState;
-  QwixxGameState? _pendingDigitalUndoState;
-  bool _isBusy = false;
-  bool _needsDigitalSaveRetry = false;
+  late final ControllerTransactions<QwixxGameState, QwixxGameState>
+  _transactions;
 
-  bool get canUndo => _undoState != null;
-  bool get isBusy => _isBusy;
-  bool get needsDigitalSaveRetry => _needsDigitalSaveRetry;
+  bool get canUndo => _transactions.canUndo;
+  bool get isBusy => _transactions.isBusy;
+  bool get needsDigitalSaveRetry => _transactions.needsDigitalSaveRetry;
 
   List<QwixxPlayer> get winners {
     final best = state.players
@@ -60,7 +72,9 @@ class QwixxController extends ChangeNotifier {
   Future<void> nextPlayer() => _mutate(state.nextPlayer);
 
   Future<void> rollDigital() => _mutateDigitalRoll(
-    () => state.rollDigital(List.generate(6, (_) => _roller())),
+    () => state.rollDigital(
+      List.generate(QwixxRules.diceCount, (_) => _roller()),
+    ),
   );
 
   Future<void> markDigital(
@@ -79,101 +93,25 @@ class QwixxController extends ChangeNotifier {
 
   Future<void> finishDigitalTurn() => _mutate(state.finishDigitalTurn);
 
-  Future<void> _mutate(void Function() mutation) async {
-    if (_isBusy) return;
-    if (_needsDigitalSaveRetry) {
-      throw StateError('Der letzte Wurf muss zuerst gespeichert werden.');
-    }
-    final before = _copy(state);
-    _isBusy = true;
-    notifyListeners();
-    try {
-      mutation();
-      notifyListeners();
-      await repository.save(state);
-      _undoState = before;
-    } catch (_) {
-      state = before;
-      notifyListeners();
-      rethrow;
-    } finally {
-      _isBusy = false;
-      notifyListeners();
-    }
-  }
+  Future<void> _mutate(void Function() mutation) => _transactions.mutate(
+    change: mutation,
+    undoFromSnapshot: (snapshot) => snapshot,
+    pendingSaveMessage: PersistenceMessages.pendingQwixxRollSave,
+  );
 
-  Future<void> _mutateDigitalRoll(void Function() mutation) async {
-    if (_isBusy) return;
-    if (_needsDigitalSaveRetry) {
-      throw StateError('Der letzte Wurf muss zuerst gespeichert werden.');
-    }
-    final before = _copy(state);
-    _isBusy = true;
-    notifyListeners();
-    try {
-      mutation();
-      notifyListeners();
-      await repository.save(state);
-      _undoState = before;
-    } catch (_) {
-      _pendingDigitalUndoState = before;
-      _needsDigitalSaveRetry = true;
-      notifyListeners();
-      rethrow;
-    } finally {
-      _isBusy = false;
-      notifyListeners();
-    }
-  }
+  Future<void> _mutateDigitalRoll(void Function() mutation) =>
+      _transactions.mutateTransient(
+        change: mutation,
+        undoFromSnapshot: (snapshot) => snapshot,
+        pendingSaveMessage: PersistenceMessages.pendingQwixxRollSave,
+      );
 
-  Future<void> retryDigitalSave() async {
-    if (_isBusy || !_needsDigitalSaveRetry) return;
-    _isBusy = true;
-    notifyListeners();
-    try {
-      await repository.save(state);
-      _undoState = _pendingDigitalUndoState;
-      _pendingDigitalUndoState = null;
-      _needsDigitalSaveRetry = false;
-    } finally {
-      _isBusy = false;
-      notifyListeners();
-    }
-  }
+  Future<void> retryDigitalSave() => _transactions.retryDigitalSave();
 
-  Future<void> undo() async {
-    if (_isBusy) return;
-    final previous = _undoState;
-    if (previous == null) return;
-    final current = _copy(state);
-    _isBusy = true;
-    notifyListeners();
-    try {
-      state = _copy(previous);
-      notifyListeners();
-      await repository.save(state);
-      _undoState = null;
-    } catch (_) {
-      state = current;
-      notifyListeners();
-      rethrow;
-    } finally {
-      _isBusy = false;
-      notifyListeners();
-    }
-  }
+  Future<void> undo() =>
+      _transactions.undo(restoreUndo: (previous) => state = _copy(previous));
 
-  Future<void> abandon() async {
-    if (_isBusy) return;
-    _isBusy = true;
-    notifyListeners();
-    try {
-      await repository.clear();
-    } finally {
-      _isBusy = false;
-      notifyListeners();
-    }
-  }
+  Future<void> abandon() => _transactions.abandon();
 
   QwixxGameState _copy(QwixxGameState value) =>
       QwixxGameState.fromJson(value.toJson());

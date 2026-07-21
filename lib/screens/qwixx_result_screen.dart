@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/qwixx_controller.dart';
 import '../models/qwixx_models.dart';
+import '../services/persistence_messages.dart';
 import '../services/qwixx_orientation.dart';
 import 'qwixx_game_screen.dart';
 
@@ -40,7 +41,7 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speichern fehlgeschlagen')),
+          const SnackBar(content: Text(PersistenceMessages.saveFailed)),
         );
       }
     }
@@ -53,7 +54,7 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speichern fehlgeschlagen')),
+          const SnackBar(content: Text(PersistenceMessages.saveFailed)),
         );
       }
     }

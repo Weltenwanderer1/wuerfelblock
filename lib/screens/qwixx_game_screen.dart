@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../controllers/qwixx_controller.dart';
 import '../models/game_models.dart';
 import '../models/qwixx_models.dart';
+import '../services/persistence_messages.dart';
 import '../services/qwixx_orientation.dart';
 import 'qwixx_result_screen.dart';
 import 'qwixx_rules_screen.dart';
@@ -51,7 +52,7 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speichern fehlgeschlagen')),
+          const SnackBar(content: Text(PersistenceMessages.saveFailed)),
         );
       }
     }
@@ -182,7 +183,7 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Speichern fehlgeschlagen')),
+            const SnackBar(content: Text(PersistenceMessages.saveFailed)),
           );
         }
         return;
@@ -229,9 +230,7 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
         ],
       ),
       body: SafeArea(
-        child: MediaQuery.withClampedTextScaling(
-          minScaleFactor: 1,
-          maxScaleFactor: 1.15,
+        child: _QwixxTextScaleLayout(
           child: Padding(
             padding: const EdgeInsets.all(6),
             child: Row(
@@ -311,6 +310,30 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
       ),
     );
   }
+}
+
+class _QwixxTextScaleLayout extends StatelessWidget {
+  const _QwixxTextScaleLayout({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      const referenceFontSize = 16.0;
+      final scaledFontSize = MediaQuery.textScalerOf(
+        context,
+      ).scale(referenceFontSize);
+      if (scaledFontSize <= referenceFontSize) return child;
+      return SingleChildScrollView(
+        key: const Key('qwixx-game-scroll'),
+        child: SizedBox(
+          height: constraints.maxHeight * scaledFontSize / referenceFontSize,
+          child: child,
+        ),
+      );
+    },
+  );
 }
 
 class _ControlPanel extends StatelessWidget {
@@ -629,6 +652,7 @@ class _NumberCell extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     button: enabled,
     enabled: enabled,
+    excludeSemantics: true,
     label:
         '${color.label} $value: ${crossed
             ? "angekreuzt"

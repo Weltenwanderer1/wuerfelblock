@@ -1,0 +1,24 @@
+{
+  "type": "tenThousand",
+  "schemaVersion": 1,
+  "mode": "block",
+  "digitalTurn": null,
+  "players": [
+    {
+      "name": "Ada"
+    },
+    {
+      "name": "Bea"
+    },
+    {
+      "name": "Cleo"
+    }
+  ],
+  "turns": [
+    {
+      "ordinal": 0,
+      "points": 10000,
+      "isDeleted": false
+    }
+  ]
+}

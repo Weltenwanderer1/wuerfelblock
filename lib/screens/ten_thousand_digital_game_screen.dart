@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/ten_thousand_controller.dart';
+import '../models/ten_thousand_rules.dart';
+import '../services/persistence_messages.dart';
 import '../widgets/die_widget.dart';
 import '../widgets/ten_thousand_score_sheet.dart';
 import 'ten_thousand_result_screen.dart';
@@ -37,9 +39,9 @@ class _TenThousandDigitalGameScreenState
   }
 
   void _error() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+    );
   }
 
   Future<void> _run(Future<void> Function() operation) async {
@@ -171,182 +173,221 @@ class _TenThousandDigitalGameScreenState
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
-        children: [
-          if (game.needsDigitalSaveRetry) ...[
-            Card(
-              color: const Color(0xFFFFD6A5),
-              child: ListTile(
-                leading: const Icon(Icons.save_outlined),
-                title: const Text('Würfelstand noch nicht gespeichert'),
-                subtitle: const Text(
-                  'Der Wurf bleibt stehen. Erst speichern, dann weiterspielen.',
-                ),
-                trailing: FilledButton(
-                  key: const Key('tenk-retry-save'),
-                  onPressed: game.isBusy
-                      ? null
-                      : () => _run(game.retryDigitalSave),
-                  child: const Text('Erneut'),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  active == null
-                      ? 'Partie beendet'
-                      : '${active.name} ist am Zug',
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900,
+      body: CustomScrollView(
+        key: const Key('ten-thousand-digital-game-scroll'),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
+            sliver: SliverMainAxisGroup(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (game.needsDigitalSaveRetry) ...[
+                        Card(
+                          color: const Color(0xFFFFD6A5),
+                          child: ListTile(
+                            leading: const Icon(Icons.save_outlined),
+                            title: const Text(
+                              'Würfelstand noch nicht gespeichert',
+                            ),
+                            subtitle: const Text(
+                              'Der Wurf bleibt stehen. Erst speichern, dann weiterspielen.',
+                            ),
+                            trailing: FilledButton(
+                              key: const Key('tenk-retry-save'),
+                              onPressed: game.isBusy
+                                  ? null
+                                  : () => _run(game.retryDigitalSave),
+                              child: const Text('Erneut'),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              active == null
+                                  ? 'Partie beendet'
+                                  : '${active.name} ist am Zug',
+                              style: const TextStyle(
+                                fontSize: 21,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: tenThousandAccent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${turn.roundPoints} Punkte',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (state.isInFinalRound) ...[
+                        const SizedBox(height: 8),
+                        Card(
+                          color: const Color(0xFFFFE1B8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Text(
+                              'Letzte Runde · Noch dran: ${state.finalRoundRemainingPlayerIndices.map((index) => state.players[index].name).join(', ')}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (turn.mustRoll)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text(
+                            'Alle 6 Würfel gewertet – der Bestätigungswurf ist Pflicht.',
+                            style: TextStyle(
+                              color: tenThousandAccent,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      if (turn.hasRolled)
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (
+                              var index = 0;
+                              index < turn.dice.length;
+                              index++
+                            )
+                              DieWidget(
+                                key: Key('tenk-die-$index'),
+                                value: turn.dice[index],
+                                held: turn.selected[index],
+                                selectedSemantic: 'zur Wertung ausgewählt',
+                                unselectedSemantic:
+                                    'nicht zur Wertung ausgewählt',
+                                index: 100 + index,
+                                onTap: !blocked
+                                    ? () => _run(
+                                        () => game.toggleDigitalDie(index),
+                                      )
+                                    : null,
+                              ),
+                          ],
+                        )
+                      else
+                        Text(
+                          '${turn.activeDiceCount} Würfel bereit',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      const SizedBox(height: 10),
+                      if (!turn.hasRolled)
+                        FilledButton.icon(
+                          key: const Key('tenk-roll'),
+                          onPressed: blocked
+                              ? null
+                              : () => _run(game.rollDigital),
+                          icon: const Icon(Icons.casino),
+                          label: Text(
+                            turn.activeDiceCount == 6
+                                ? 'Mit 6 Würfeln würfeln'
+                                : 'Mit ${turn.activeDiceCount} Würfeln weiterwürfeln',
+                          ),
+                        )
+                      else if (turn.isMacke)
+                        FilledButton.icon(
+                          key: const Key('tenk-confirm-macke'),
+                          onPressed: blocked
+                              ? null
+                              : () => _run(game.confirmDigitalMacke),
+                          icon: const Icon(Icons.block),
+                          label: const Text('Macke bestätigen · Runde 0'),
+                        )
+                      else ...[
+                        Text(
+                          turn.selectedValues.isEmpty
+                              ? 'Tippe alle Würfel an, die du werten möchtest.'
+                              : turn.selectedScore == null
+                              ? 'Diese Auswahl ist keine gültige Kombination.'
+                              : 'Auswahl: ${turn.selectedScore} Punkte',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color:
+                                turn.selectedValues.isNotEmpty &&
+                                    turn.selectedScore == null
+                                ? Colors.redAccent
+                                : tenThousandInk,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        FilledButton.tonalIcon(
+                          key: const Key('tenk-bank'),
+                          onPressed: turn.canBank && !blocked
+                              ? () => _run(game.bankDigitalSelection)
+                              : null,
+                          icon: const Icon(Icons.add_circle_outline),
+                          label: const Text('Auswahl werten'),
+                        ),
+                      ],
+                      if (turn.canSecure) ...[
+                        const SizedBox(height: 8),
+                        FilledButton.icon(
+                          key: const Key('tenk-secure'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: tenThousandAccent,
+                          ),
+                          onPressed: blocked
+                              ? null
+                              : () => _run(game.secureDigitalTurn),
+                          icon: const Icon(Icons.savings_outlined),
+                          label: Text('${turn.roundPoints} Punkte sichern'),
+                        ),
+                      ],
+                      if (!turn.isFresh &&
+                          turn.roundPoints <
+                              TenThousandRules.minimumBankScore &&
+                          !turn.isMacke) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          key: const Key('tenk-forfeit'),
+                          onPressed: blocked
+                              ? null
+                              : () => _run(game.forfeitDigitalTurn),
+                          icon: const Icon(Icons.skip_next),
+                          label: const Text('Durchgang beenden · 0 Punkte'),
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                    ],
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
+                TenThousandScoreSheet(
+                  state: state,
+                  onEdit: historyBlocked ? null : _editTurn,
+                  onDelete: historyBlocked ? null : _deleteTurn,
                 ),
-                decoration: BoxDecoration(
-                  color: tenThousandAccent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${turn.roundPoints} Punkte',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (state.isInFinalRound) ...[
-            const SizedBox(height: 8),
-            Card(
-              color: const Color(0xFFFFE1B8),
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Text(
-                  'Letzte Runde · Noch dran: ${state.finalRoundRemainingPlayerIndices.map((index) => state.players[index].name).join(', ')}',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-            ),
-          ],
-          if (turn.mustRoll)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text(
-                'Alle 6 Würfel gewertet – der Bestätigungswurf ist Pflicht.',
-                style: TextStyle(
-                  color: tenThousandAccent,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          const SizedBox(height: 12),
-          if (turn.hasRolled)
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (var index = 0; index < turn.dice.length; index++)
-                  DieWidget(
-                    key: Key('tenk-die-$index'),
-                    value: turn.dice[index],
-                    held: turn.selected[index],
-                    selectedSemantic: 'zur Wertung ausgewählt',
-                    unselectedSemantic: 'nicht zur Wertung ausgewählt',
-                    index: 100 + index,
-                    onTap: !blocked
-                        ? () => _run(() => game.toggleDigitalDie(index))
-                        : null,
-                  ),
               ],
-            )
-          else
-            Text(
-              '${turn.activeDiceCount} Würfel bereit',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-          const SizedBox(height: 10),
-          if (!turn.hasRolled)
-            FilledButton.icon(
-              key: const Key('tenk-roll'),
-              onPressed: blocked ? null : () => _run(game.rollDigital),
-              icon: const Icon(Icons.casino),
-              label: Text(
-                turn.activeDiceCount == 6
-                    ? 'Mit 6 Würfeln würfeln'
-                    : 'Mit ${turn.activeDiceCount} Würfeln weiterwürfeln',
-              ),
-            )
-          else if (turn.isMacke)
-            FilledButton.icon(
-              key: const Key('tenk-confirm-macke'),
-              onPressed: blocked ? null : () => _run(game.confirmDigitalMacke),
-              icon: const Icon(Icons.block),
-              label: const Text('Macke bestätigen · Runde 0'),
-            )
-          else ...[
-            Text(
-              turn.selectedValues.isEmpty
-                  ? 'Tippe alle Würfel an, die du werten möchtest.'
-                  : turn.selectedScore == null
-                  ? 'Diese Auswahl ist keine gültige Kombination.'
-                  : 'Auswahl: ${turn.selectedScore} Punkte',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color:
-                    turn.selectedValues.isNotEmpty && turn.selectedScore == null
-                    ? Colors.redAccent
-                    : tenThousandInk,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 6),
-            FilledButton.tonalIcon(
-              key: const Key('tenk-bank'),
-              onPressed: turn.canBank && !blocked
-                  ? () => _run(game.bankDigitalSelection)
-                  : null,
-              icon: const Icon(Icons.add_circle_outline),
-              label: const Text('Auswahl werten'),
-            ),
-          ],
-          if (turn.canSecure) ...[
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              key: const Key('tenk-secure'),
-              style: FilledButton.styleFrom(backgroundColor: tenThousandAccent),
-              onPressed: blocked ? null : () => _run(game.secureDigitalTurn),
-              icon: const Icon(Icons.savings_outlined),
-              label: Text('${turn.roundPoints} Punkte sichern'),
-            ),
-          ],
-          if (!turn.isFresh && turn.roundPoints < 350 && !turn.isMacke) ...[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              key: const Key('tenk-forfeit'),
-              onPressed: blocked ? null : () => _run(game.forfeitDigitalTurn),
-              icon: const Icon(Icons.skip_next),
-              label: const Text('Durchgang beenden · 0 Punkte'),
-            ),
-          ],
-          const SizedBox(height: 14),
-          TenThousandScoreSheet(
-            state: state,
-            onEdit: historyBlocked ? null : _editTurn,
-            onDelete: historyBlocked ? null : _deleteTurn,
           ),
         ],
       ),

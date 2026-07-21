@@ -1,0 +1,29 @@
+{
+  "ruleSet": "kniffel",
+  "mode": "block",
+  "players": [
+    {
+      "name": "Ada",
+      "scores": {
+        "ones": 3
+      }
+    }
+  ],
+  "currentPlayerIndex": 0,
+  "isComplete": false,
+  "dice": [
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "held": [
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
+  "rollCount": 0
+}

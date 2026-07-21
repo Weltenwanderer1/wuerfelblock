@@ -16,7 +16,8 @@ Eine vollständig offline nutzbare Android-App für **Yahtzee/Kniffel**, **Qwixx
 - Spielerwechsel, Sieger- und Gleichstandserkennung
 - Undo des letzten Wertungseintrags
 - Lokales Fortsetzen via `shared_preferences`
-- Anfängergerechte Regelhilfen für alle vier öffentlichen Spiele und Info-Tasten für jede Yahtzee/Kniffel-Wertung
+- Anfängergerechte Regelhilfen für alle vier öffentlichen Würfelspiele und Info-Tasten für jede Yahtzee/Kniffel-Wertung
+- Separate, auswählbare Spielregeln für die Standarddeck-Varianten **Crisps!**, **Regicide** und **Haggis**
 - Zugängliche Touchflächen und Semantics
 - Keine Netzwerkberechtigung, Werbung, Konten oder Online-Dienste
 

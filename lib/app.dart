@@ -23,6 +23,7 @@ import 'screens/ten_thousand_game_screen.dart';
 import 'screens/ten_thousand_digital_game_screen.dart';
 import 'screens/ten_thousand_result_screen.dart';
 import 'services/game_repository.dart';
+import 'services/load_generation.dart';
 
 class WuerfelblockApp extends StatelessWidget {
   const WuerfelblockApp({required this.repository, super.key});
@@ -48,6 +49,7 @@ class _HomeHost extends StatefulWidget {
 class _HomeHostState extends State<_HomeHost> {
   SavedGameState? saved;
   bool loading = true;
+  final _loadGeneration = LoadGeneration();
 
   @override
   void initState() {
@@ -56,6 +58,7 @@ class _HomeHostState extends State<_HomeHost> {
   }
 
   Future<void> _reload({bool showCorruptionMessage = false}) async {
+    final generation = _loadGeneration.begin();
     SavedGameState? loaded;
     String? corruptionReason;
     try {
@@ -65,19 +68,18 @@ class _HomeHostState extends State<_HomeHost> {
     } catch (_) {
       loaded = null;
     }
-    if (mounted) {
-      setState(() {
-        saved = loaded;
-        loading = false;
-      });
-      if (showCorruptionMessage && corruptionReason != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(corruptionReason),
-            duration: const Duration(seconds: 6),
-          ),
-        );
-      }
+    if (!mounted || !_loadGeneration.isCurrent(generation)) return;
+    setState(() {
+      saved = loaded;
+      loading = false;
+    });
+    if (showCorruptionMessage && corruptionReason != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(corruptionReason),
+          duration: const Duration(seconds: 6),
+        ),
+      );
     }
   }
 

@@ -48,6 +48,7 @@ void main() {
     expect(find.text('Partie starten'), findsOneWidget);
     final addPlayer = find.byKey(const Key('add-player'), skipOffstage: false);
     await tester.ensureVisible(addPlayer);
+    await tester.pumpAndSettle();
     await tester.tap(addPlayer);
     await tester.pump();
     final fields = find.byType(TextFormField);

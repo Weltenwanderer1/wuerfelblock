@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/app.dart';
 import 'package:wuerfelblock/controllers/qwixx_controller.dart';
+import 'package:wuerfelblock/core/app_theme.dart';
 import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/qwixx_models.dart';
 import 'package:wuerfelblock/screens/qwixx_game_screen.dart';
@@ -63,31 +64,65 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('digital Qwixx with five players fits landscape', (tester) async {
-    tester.view.physicalSize = const Size(800, 360);
-    tester.view.devicePixelRatio = 1;
-    tester.platformDispatcher.textScaleFactorTestValue = 2;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-      tester.platformDispatcher.clearTextScaleFactorTestValue();
-    });
-    final controller = QwixxController.newGame(
-      names: ['Ada', 'Bea', 'Cem', 'Dora', 'Eli'],
-      mode: GameMode.digital,
-      repository: MemoryGameRepository(),
-      roller: () => 3,
-    );
+  testWidgets(
+    'five-player Qwixx honors 200% text and keeps controls reachable',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 360);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final semantics = tester.ensureSemantics();
+      final controller = QwixxController.newGame(
+        names: ['Ada', 'Bea', 'Cem', 'Dora', 'Eli'],
+        mode: GameMode.digital,
+        repository: MemoryGameRepository(),
+        roller: () => 3,
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(home: QwixxGameScreen(game: controller)),
-    );
-    await tester.tap(find.byKey(const Key('qwixx-roll')));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+          child: MaterialApp(
+            theme: buildTheme(),
+            home: QwixxGameScreen(game: controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(Scrollable), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+      final rollButton = find.byKey(const Key('qwixx-roll'));
+      expect(MediaQuery.textScalerOf(tester.element(rollButton)).scale(16), 32);
+      expect(find.bySemanticsLabel('Würfeln'), findsOneWidget);
+      expect(find.byKey(const Key('qwixx-game-scroll')), findsOneWidget);
+      final gameScroll = find.descendant(
+        of: find.byKey(const Key('qwixx-game-scroll')),
+        matching: find.byType(Scrollable),
+      );
+      final scrollable = tester.state<ScrollableState>(gameScroll);
+      expect(scrollable.position.maxScrollExtent, greaterThan(0));
+      await tester.ensureVisible(rollButton);
+      expect(rollButton.hitTestable(), findsOneWidget);
+      await tester.tap(rollButton);
+      await tester.pumpAndSettle();
+
+      final redSix = find.byKey(const Key('qwixx-red-6'));
+      await tester.ensureVisible(redSix);
+      await tester.pumpAndSettle();
+      expect(tester.getSemantics(redSix).label, 'Rot 6: verfügbar');
+      final finishTurn = find.byKey(const Key('qwixx-finish-turn'));
+      await tester.scrollUntilVisible(finishTurn, 100, scrollable: gameScroll);
+      expect(finishTurn.hitTestable(), findsOneWidget);
+      await tester.tap(finishTurn);
+      await tester.pumpAndSettle();
+
+      expect(controller.state.activePlayerIndex, 1);
+      expect(find.byKey(const Key('qwixx-roll')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    },
+  );
 
   testWidgets('home offers Qwixx rules and beginner sections', (tester) async {
     await tester.pumpWidget(

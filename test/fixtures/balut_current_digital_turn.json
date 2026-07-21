@@ -1,0 +1,117 @@
+{
+  "type": "balut",
+  "schemaVersion": 1,
+  "mode": "digital",
+  "players": [
+    {
+      "name": "Ada",
+      "entries": {
+        "fours": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "fives": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "sixes": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "straights": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "fullHouse": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "choice": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "balut": [
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "name": "Bea",
+      "entries": {
+        "fours": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "fives": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "sixes": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "straights": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "fullHouse": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "choice": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "balut": [
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    }
+  ],
+  "activePlayerIndex": 0,
+  "dice": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "held": [
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
+  "rollCount": 1
+}

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../controllers/game_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
+import '../services/persistence_messages.dart';
 import '../widgets/totals_card.dart';
 import 'block_game_screen.dart';
 import 'digital_game_screen.dart';
@@ -45,9 +46,9 @@ class _ResultScreenState extends State<ResultScreen> {
 
   void _saveFailed() {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+    );
   }
 
   void _correctBlockScores() {

@@ -23,7 +23,7 @@ void main() {
     expect(strike.body, isNot(contains('Der Scoreblock bleibt')));
   });
 
-  testWidgets('home offers exactly the three public rule actions', (
+  testWidgets('home offers exactly the five public rule actions', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -35,9 +35,10 @@ void main() {
     expect(find.text('Qwixx-Regeln'), findsOneWidget);
     expect(find.text('10.000-Regeln'), findsOneWidget);
     expect(find.text('Balut-Regeln'), findsOneWidget);
+    expect(find.text('Spielregeln'), findsOneWidget);
     expect(find.text('Yatzy-Regeln'), findsNothing);
     expect(find.text('Kniffel-Regeln'), findsNothing);
-    expect(find.byIcon(Icons.menu_book_outlined), findsNWidgets(4));
+    expect(find.byIcon(Icons.menu_book_outlined), findsNWidgets(5));
     expect(find.text('Regelhilfe'), findsNothing);
 
     await tester.tap(find.text('10.000-Regeln'));

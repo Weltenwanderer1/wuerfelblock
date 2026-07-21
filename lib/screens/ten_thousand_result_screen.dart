@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/ten_thousand_controller.dart';
 import '../models/game_models.dart';
+import '../services/persistence_messages.dart';
 import '../widgets/ten_thousand_score_sheet.dart';
 import 'ten_thousand_digital_game_screen.dart';
 import 'ten_thousand_game_screen.dart';
@@ -36,9 +37,9 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
   }
 
   void _showSaveError() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+    );
   }
 
   Future<void> _routeIfReopened() async {
@@ -146,83 +147,109 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
           automaticallyImplyLeading: false,
           title: const Text('10.000-Ergebnis'),
         ),
-        body: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 18, 12, 28),
-          children: [
-            Semantics(
-              header: true,
-              child: const Icon(
-                Icons.emoji_events,
-                size: 70,
-                color: tenThousandAccent,
-              ),
-            ),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: tenThousandInk,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Endstand',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: tenThousandAccent,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.1,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              decoration: BoxDecoration(
-                color: tenThousandPaper,
-                border: Border.all(color: tenThousandInk, width: 2),
-              ),
-              child: Column(
-                children: [
-                  for (var rank = 0; rank < ranking.length; rank++)
-                    _RankRow(
-                      key: Key('result-rank-$rank'),
-                      rank: rank + 1,
-                      name: state.players[ranking[rank]].name,
-                      total: state.totals[ranking[rank]],
-                      winner: state.winnerIndices.contains(ranking[rank]),
-                      last: rank == ranking.length - 1,
+        body: CustomScrollView(
+          key: const Key('ten-thousand-result-scroll'),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(12, 18, 12, 28),
+              sliver: SliverMainAxisGroup(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Semantics(
+                          header: true,
+                          child: const Icon(
+                            Icons.emoji_events,
+                            size: 70,
+                            color: tenThousandAccent,
+                          ),
+                        ),
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                color: tenThousandInk,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Endstand',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: tenThousandAccent,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: tenThousandPaper,
+                            border: Border.all(color: tenThousandInk, width: 2),
+                          ),
+                          child: Column(
+                            children: [
+                              for (var rank = 0; rank < ranking.length; rank++)
+                                _RankRow(
+                                  key: Key('result-rank-$rank'),
+                                  rank: rank + 1,
+                                  name: state.players[ranking[rank]].name,
+                                  total: state.totals[ranking[rank]],
+                                  winner: state.winnerIndices.contains(
+                                    ranking[rank],
+                                  ),
+                                  last: rank == ranking.length - 1,
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                      ],
                     ),
+                  ),
+                  TenThousandScoreSheet(
+                    state: state,
+                    showSummary: false,
+                    onEdit: game.isBusy ? (_) {} : _editTurn,
+                    onDelete: game.isBusy ? (_) {} : _deleteTurn,
+                  ),
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          key: const Key('undo-result'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                            foregroundColor: tenThousandAccent,
+                          ),
+                          onPressed: game.canUndo && !game.isBusy
+                              ? _undo
+                              : null,
+                          icon: const Icon(Icons.undo),
+                          label: const Text('Letzte Änderung rückgängig'),
+                        ),
+                        const SizedBox(height: 8),
+                        FilledButton.icon(
+                          key: const Key('finish-result'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(54),
+                            backgroundColor: tenThousandAccent,
+                          ),
+                          onPressed: game.isBusy ? null : _finish,
+                          icon: const Icon(Icons.home_outlined),
+                          label: const Text('Zur Startseite'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 18),
-            TenThousandScoreSheet(
-              state: state,
-              showSummary: false,
-              onEdit: game.isBusy ? (_) {} : _editTurn,
-              onDelete: game.isBusy ? (_) {} : _deleteTurn,
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              key: const Key('undo-result'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                foregroundColor: tenThousandAccent,
-              ),
-              onPressed: game.canUndo && !game.isBusy ? _undo : null,
-              icon: const Icon(Icons.undo),
-              label: const Text('Letzte Änderung rückgängig'),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              key: const Key('finish-result'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(54),
-                backgroundColor: tenThousandAccent,
-              ),
-              onPressed: game.isBusy ? null : _finish,
-              icon: const Icon(Icons.home_outlined),
-              label: const Text('Zur Startseite'),
             ),
           ],
         ),

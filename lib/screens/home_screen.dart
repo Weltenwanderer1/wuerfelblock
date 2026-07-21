@@ -4,6 +4,7 @@ import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../models/saved_game_state.dart';
 import 'balut_rules_screen.dart';
+import 'card_games_rules_screen.dart';
 import 'qwixx_rules_screen.dart';
 import 'rules_screen.dart';
 import 'ten_thousand_rules_screen.dart';
@@ -130,6 +131,17 @@ class HomeScreen extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.menu_book_outlined),
                       label: const Text('Balut-Regeln'),
+                    ),
+                    TextButton.icon(
+                      key: const Key('card-games-rules-action'),
+                      onPressed: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CardGamesRulesScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.menu_book_outlined),
+                      label: const Text('Spielregeln'),
                     ),
                   ],
                 ),

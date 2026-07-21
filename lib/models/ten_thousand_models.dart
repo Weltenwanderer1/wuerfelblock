@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'game_models.dart';
 import 'saved_game_state.dart';
 import 'ten_thousand_dice.dart';
+import 'ten_thousand_rules.dart';
 
 class TenThousandPlayer {
   TenThousandPlayer(String name) : name = name.trim() {
@@ -108,7 +109,8 @@ class TenThousandGameState implements SavedGameState {
     GameMode mode = GameMode.block,
   }) {
     final cleaned = names.map((name) => name.trim()).toList(growable: false);
-    if (cleaned.length < 2 || cleaned.length > 8) {
+    if (cleaned.length < TenThousandRules.minimumPlayers ||
+        cleaned.length > TenThousandRules.maximumPlayers) {
       throw ArgumentError('Bei 10.000 sind 2 bis 8 Spieler erlaubt.');
     }
     if (cleaned.any((name) => name.isEmpty) ||
@@ -122,7 +124,7 @@ class TenThousandGameState implements SavedGameState {
   }
 
   static const int schemaVersion = 1;
-  static const int winningScore = 10000;
+  static const int winningScore = TenThousandRules.targetScore;
 
   final List<TenThousandPlayer> _players;
   final List<TenThousandTurn> _turns;
@@ -360,7 +362,8 @@ class TenThousandGameState implements SavedGameState {
   }
 
   static void _validatePlayers(List<TenThousandPlayer> players) {
-    if (players.length < 2 || players.length > 8) {
+    if (players.length < TenThousandRules.minimumPlayers ||
+        players.length > TenThousandRules.maximumPlayers) {
       throw ArgumentError('Bei 10.000 sind 2 bis 8 Spieler erlaubt.');
     }
     final names = players.map((player) => player.name).toList();
@@ -430,7 +433,7 @@ class _Replay {
 }
 
 void _validatePoints(int points, {bool formatException = false}) {
-  if (points < 0 || points % 50 != 0) {
+  if (points < 0 || points % TenThousandRules.scoreIncrement != 0) {
     if (formatException) {
       throw const FormatException('Ungültige Punktzahl.');
     }
@@ -444,7 +447,7 @@ void _validatePoints(int points, {bool formatException = false}) {
 
 void _validateBankablePoints(int points) {
   _validatePoints(points);
-  if (points > 0 && points < 350) {
+  if (points > 0 && points < TenThousandRules.minimumBankScore) {
     throw ArgumentError.value(
       points,
       'points',

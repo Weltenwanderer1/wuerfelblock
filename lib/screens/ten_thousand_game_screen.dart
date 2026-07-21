@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/ten_thousand_controller.dart';
+import '../services/persistence_messages.dart';
 import '../widgets/ten_thousand_score_sheet.dart';
 import 'ten_thousand_result_screen.dart';
 import 'ten_thousand_rules_screen.dart';
@@ -34,9 +35,9 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
   }
 
   void _showSaveError() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+    );
   }
 
   Future<void> _afterOperation() async {
@@ -209,103 +210,122 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-        children: [
-          if (active != null)
-            Semantics(
-              label: 'Aktive Person: ${active.name}',
-              container: true,
-              excludeSemantics: true,
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: tenThousandAccent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.campaign, color: Colors.white, size: 28),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'JETZT AM ZUG',
-                            style: TextStyle(
-                              color: tenThousandAccentSoft,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.2,
+      body: CustomScrollView(
+        key: const Key('ten-thousand-game-scroll'),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+            sliver: SliverMainAxisGroup(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (active != null)
+                        Semantics(
+                          label: 'Aktive Person: ${active.name}',
+                          container: true,
+                          excludeSemantics: true,
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: tenThousandAccent,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.campaign,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'JETZT AM ZUG',
+                                        style: TextStyle(
+                                          color: tenThousandAccentSoft,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                      Text(
+                                        active.name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Text(
-                            active.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
+                        ),
+                      const SizedBox(height: 10),
+                      _RoundBanner(game: game),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Semantics(
+                              button: true,
+                              label: 'Punkte für aktive Person eintragen',
+                              child: FilledButton.icon(
+                                key: const Key('enter-points'),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 52),
+                                  backgroundColor: tenThousandAccent,
+                                ),
+                                onPressed: game.isBusy ? null : _enterPoints,
+                                icon: const Icon(Icons.edit_outlined),
+                                label: const Text('Punkte'),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Semantics(
+                              button: true,
+                              label: 'Fehlwurf mit 0 Punkten eintragen',
+                              child: OutlinedButton.icon(
+                                key: const Key('bust-turn'),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(0, 52),
+                                  foregroundColor: tenThousandAccent,
+                                  side: const BorderSide(
+                                    color: tenThousandAccent,
+                                    width: 2,
+                                  ),
+                                ),
+                                onPressed: game.isBusy ? null : _enterBust,
+                                icon: const Icon(Icons.block),
+                                label: const Text('Fehlwurf (0)'),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 14),
+                    ],
+                  ),
                 ),
-              ),
+                TenThousandScoreSheet(
+                  state: state,
+                  onEdit: game.isBusy ? (_) {} : _editTurn,
+                  onDelete: game.isBusy ? (_) {} : _deleteTurn,
+                ),
+              ],
             ),
-          const SizedBox(height: 10),
-          _RoundBanner(game: game),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Semantics(
-                  button: true,
-                  label: 'Punkte für aktive Person eintragen',
-                  child: FilledButton.icon(
-                    key: const Key('enter-points'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      backgroundColor: tenThousandAccent,
-                    ),
-                    onPressed: game.isBusy ? null : _enterPoints,
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Punkte'),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Semantics(
-                  button: true,
-                  label: 'Fehlwurf mit 0 Punkten eintragen',
-                  child: OutlinedButton.icon(
-                    key: const Key('bust-turn'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      foregroundColor: tenThousandAccent,
-                      side: const BorderSide(
-                        color: tenThousandAccent,
-                        width: 2,
-                      ),
-                    ),
-                    onPressed: game.isBusy ? null : _enterBust,
-                    icon: const Icon(Icons.block),
-                    label: const Text('Fehlwurf (0)'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          TenThousandScoreSheet(
-            state: state,
-            onEdit: game.isBusy ? (_) {} : _editTurn,
-            onDelete: game.isBusy ? (_) {} : _deleteTurn,
           ),
         ],
       ),

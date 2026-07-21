@@ -1,0 +1,32 @@
+{
+  "type": "qwixx",
+  "players": [
+    {
+      "name": "Ada",
+      "crossed": {
+        "red": [
+          2
+        ],
+        "yellow": [],
+        "green": [],
+        "blue": []
+      },
+      "lockedColors": [],
+      "misses": 0
+    },
+    {
+      "name": "Bea",
+      "crossed": {
+        "red": [],
+        "yellow": [],
+        "green": [],
+        "blue": []
+      },
+      "lockedColors": [],
+      "misses": 0
+    }
+  ],
+  "closedColors": [],
+  "activePlayerIndex": 0,
+  "isComplete": false
+}

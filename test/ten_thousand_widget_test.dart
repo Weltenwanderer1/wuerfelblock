@@ -249,6 +249,73 @@ void main() {
       expect(game.state.totals, [450, 400]);
     });
 
+    testWidgets(
+      'long history stays lazy and supports visible edit, delete and undo',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        final game = TenThousandController(
+          state: _state(List<int>.filled(50, 350)),
+          repository: MemoryGameRepository(),
+        );
+        await _pumpGame(tester, game);
+
+        expect(find.bySemanticsLabel('Aktive Person: Ada'), findsOneWidget);
+        expect(find.byKey(const Key('enter-points')), findsOneWidget);
+        expect(
+          find.byKey(const Key('turn-49'), skipOffstage: false),
+          findsNothing,
+        );
+
+        await tester.scrollUntilVisible(
+          find.byKey(const Key('turn-49'), skipOffstage: false),
+          500,
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('turn-49')), findsOneWidget);
+        expect(
+          find.byKey(const Key('turn-0'), skipOffstage: false),
+          findsNothing,
+        );
+
+        await tester.tap(find.byKey(const Key('turn-49')));
+        await tester.pumpAndSettle();
+        expect(find.text('Eintrag bearbeiten'), findsOneWidget);
+        expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('points-field')))
+              .controller!
+              .text,
+          '350',
+        );
+        await tester.enterText(find.byKey(const Key('points-field')), '450');
+        await tester.tap(find.byKey(const Key('save-points')));
+        await tester.pumpAndSettle();
+        expect(game.state.turns[49].points, 450);
+        expect(find.byKey(const Key('turn-49')), findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('delete-turn-49')));
+        await tester.pumpAndSettle();
+        expect(find.text('Eintrag löschen?'), findsOneWidget);
+        await tester.tap(find.byKey(const Key('confirm-delete')));
+        await tester.pumpAndSettle();
+        expect(game.state.turns[49].isDeleted, isTrue);
+        expect(find.text('450 · gelöscht'), findsOneWidget);
+
+        final undo = find.widgetWithIcon(IconButton, Icons.undo);
+        expect(tester.widget<IconButton>(undo).onPressed, isNotNull);
+        await tester.tap(undo);
+        await tester.pumpAndSettle();
+        expect(game.state.turns[49].isDeleted, isFalse);
+        expect(game.state.turns[49].points, 450);
+        expect(find.byKey(const Key('turn-49')), findsOneWidget);
+      },
+    );
+
     testWidgets('correction impact names and confirms truncated entries', (
       tester,
     ) async {
@@ -484,6 +551,7 @@ void main() {
         find.byKey(const Key('finish-result')),
         300,
       );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('finish-result')));
       await tester.pumpAndSettle();
       expect(find.text('Speichern fehlgeschlagen'), findsOneWidget);

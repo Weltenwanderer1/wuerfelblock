@@ -1,0 +1,19 @@
+{
+  "type": "tenThousand",
+  "schemaVersion": 1,
+  "players": [
+    {
+      "name": "Ada"
+    },
+    {
+      "name": "Bea"
+    }
+  ],
+  "turns": [
+    {
+      "ordinal": 0,
+      "points": 350,
+      "isDeleted": false
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../models/game_models.dart';
 import '../models/ten_thousand_models.dart';
+import '../models/ten_thousand_rules.dart';
 
 const tenThousandPaper = Color(0xFFFFF3D6);
 const tenThousandInk = Color(0xFF2D2923);
@@ -110,11 +111,13 @@ class _PointsDialogState extends State<_PointsDialog> {
 
   void _save() {
     final points = int.tryParse(controller.text.trim());
-    if (points == null || points < 0 || points % 50 != 0) {
+    if (points == null ||
+        points < 0 ||
+        points % TenThousandRules.scoreIncrement != 0) {
       setState(() => error = 'Nur 0 oder positive Vielfache von 50.');
       return;
     }
-    if (points > 0 && points < 350) {
+    if (points > 0 && points < TenThousandRules.minimumBankScore) {
       setState(() => error = 'Mindestens 350 Punkte oder Macke (0).');
       return;
     }
@@ -182,7 +185,8 @@ class TenThousandScoreSheet extends StatelessWidget {
   final bool showSummary;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => DecoratedSliver(
+    key: const Key('ten-thousand-score-sheet'),
     decoration: BoxDecoration(
       color: tenThousandPaper,
       border: Border.all(color: tenThousandInk, width: 2),
@@ -194,42 +198,54 @@ class TenThousandScoreSheet extends StatelessWidget {
         ),
       ],
     ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (showSummary) ...[
-          _ScoreHeader(state: state),
-          const _GridRule(),
-          _Standings(state: state),
-          const _GridRule(),
-        ],
-        const Padding(
-          padding: EdgeInsets.fromLTRB(12, 10, 12, 8),
-          child: Text(
-            'ZUGPROTOKOLL',
-            style: TextStyle(
-              color: tenThousandAccent,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-            ),
+    sliver: SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (showSummary) ...[
+                _ScoreHeader(state: state),
+                const _GridRule(),
+                _Standings(state: state),
+                const _GridRule(),
+              ],
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 10, 12, 8),
+                child: Text(
+                  'ZUGPROTOKOLL',
+                  style: TextStyle(
+                    color: tenThousandAccent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              if (state.turns.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 0, 12, 14),
+                  child: Text('Noch keine Einträge.'),
+                ),
+            ],
           ),
         ),
-        if (state.turns.isEmpty)
-          const Padding(
-            padding: EdgeInsets.fromLTRB(12, 0, 12, 14),
-            child: Text('Noch keine Einträge.'),
-          )
-        else
-          for (final turn in state.turns)
-            _TurnRow(
-              state: state,
-              turn: turn,
-              onEdit: onEdit == null ? null : () => onEdit!(turn.ordinal),
-              onDelete: turn.isDeleted || onDelete == null
-                  ? null
-                  : () => onDelete!(turn.ordinal),
-            ),
+        if (state.turns.isNotEmpty)
+          SliverList.builder(
+            itemCount: state.turns.length,
+            itemBuilder: (context, index) {
+              final turn = state.turns[index];
+              return _TurnRow(
+                key: Key('turn-${turn.ordinal}'),
+                state: state,
+                turn: turn,
+                onEdit: onEdit == null ? null : () => onEdit!(turn.ordinal),
+                onDelete: turn.isDeleted || onDelete == null
+                    ? null
+                    : () => onDelete!(turn.ordinal),
+              );
+            },
+          ),
       ],
     ),
   );
@@ -368,6 +384,7 @@ class _TurnRow extends StatelessWidget {
     required this.turn,
     required this.onEdit,
     required this.onDelete,
+    super.key,
   });
 
   final TenThousandGameState state;
@@ -388,7 +405,6 @@ class _TurnRow extends StatelessWidget {
       label:
           'Zug ${turn.ordinal + 1}, $owner, $value. ${turn.isDeleted ? "Zum Wiederherstellen antippen" : "Zum Bearbeiten antippen"}',
       child: Material(
-        key: Key('turn-${turn.ordinal}'),
         color: turn.isDeleted
             ? tenThousandInk.withValues(alpha: 0.08)
             : Colors.transparent,

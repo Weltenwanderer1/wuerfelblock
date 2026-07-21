@@ -1,3 +1,5 @@
+import 'ten_thousand_rules.dart';
+
 class TenThousandDiceTurn {
   TenThousandDiceTurn({
     required List<int> dice,
@@ -13,8 +15,8 @@ class TenThousandDiceTurn {
   }
 
   factory TenThousandDiceTurn.fresh() => TenThousandDiceTurn(
-    dice: const [1, 1, 1, 1, 1, 1],
-    selected: const [false, false, false, false, false, false],
+    dice: TenThousandRules.initialDice,
+    selected: TenThousandRules.initialSelection,
     hasRolled: false,
     roundPoints: 0,
     paschCounts: const {},
@@ -34,7 +36,7 @@ class TenThousandDiceTurn {
       roundPoints == 0 &&
       paschCounts.isEmpty &&
       !mustRoll &&
-      dice.length == 6;
+      dice.length == TenThousandRules.diceCount;
   List<int> get selectedValues => [
     for (var index = 0; index < dice.length; index++)
       if (selected[index]) dice[index],
@@ -53,7 +55,7 @@ class TenThousandDiceTurn {
     if (dice.any(paschCounts.containsKey)) {
       return false;
     }
-    if (dice.length == 6 && _isThreePairs(counts)) {
+    if (dice.length == TenThousandRules.diceCount && _isThreePairs(counts)) {
       return false;
     }
     return true;
@@ -61,14 +63,21 @@ class TenThousandDiceTurn {
 
   bool get canBank =>
       hasRolled && selectedValues.isNotEmpty && selectedScore != null;
-  bool get canSecure => roundPoints >= 350 && !hasRolled && !mustRoll;
+  bool get canSecure =>
+      roundPoints >= TenThousandRules.minimumBankScore &&
+      !hasRolled &&
+      !mustRoll;
 
   TenThousandDiceTurn rolled(List<int> values) {
     if (hasRolled) {
       throw StateError('Die aktuellen Würfel müssen zuerst gewertet werden.');
     }
     if (values.length != activeDiceCount ||
-        values.any((value) => value < 1 || value > 6)) {
+        values.any(
+          (value) =>
+              value < TenThousandRules.minimumDieValue ||
+              value > TenThousandRules.maximumDieValue,
+        )) {
       throw ArgumentError.value(values, 'values', 'Ungültiger Wurf.');
     }
     return TenThousandDiceTurn(
@@ -101,9 +110,9 @@ class TenThousandDiceTurn {
     final result = _scoreWithPasches(selectedValues, paschCounts)!;
     final remaining = dice.length - selectedValues.length;
     final hotDice = remaining == 0;
-    final nextCount = hotDice ? 6 : remaining;
+    final nextCount = hotDice ? TenThousandRules.diceCount : remaining;
     return TenThousandDiceTurn(
-      dice: List<int>.filled(nextCount, 1),
+      dice: List<int>.filled(nextCount, TenThousandRules.minimumDieValue),
       selected: List<bool>.filled(nextCount, false),
       hasRolled: false,
       roundPoints: roundPoints + result.score,
@@ -119,14 +128,19 @@ class TenThousandDiceTurn {
     List<int> values,
     Map<int, int> existingPasches,
   ) {
-    if (values.isEmpty || values.any((value) => value < 1 || value > 6)) {
+    if (values.isEmpty ||
+        values.any(
+          (value) =>
+              value < TenThousandRules.minimumDieValue ||
+              value > TenThousandRules.maximumDieValue,
+        )) {
       return null;
     }
     final counts = _counts(values);
-    if (values.length == 6 && _isStraight(counts)) {
+    if (values.length == TenThousandRules.diceCount && _isStraight(counts)) {
       return (score: 1000, paschCounts: Map<int, int>.of(existingPasches));
     }
-    if (values.length == 6 && _isThreePairs(counts)) {
+    if (values.length == TenThousandRules.diceCount && _isThreePairs(counts)) {
       return (score: 500, paschCounts: Map<int, int>.of(existingPasches));
     }
 
@@ -206,13 +220,20 @@ class TenThousandDiceTurn {
 
   void _validate() {
     if (dice.isEmpty ||
-        dice.length > 6 ||
-        dice.any((value) => value < 1 || value > 6) ||
+        dice.length > TenThousandRules.diceCount ||
+        dice.any(
+          (value) =>
+              value < TenThousandRules.minimumDieValue ||
+              value > TenThousandRules.maximumDieValue,
+        ) ||
         selected.length != dice.length ||
         roundPoints < 0 ||
-        roundPoints % 50 != 0 ||
+        roundPoints % TenThousandRules.scoreIncrement != 0 ||
         paschCounts.entries.any(
-          (entry) => entry.key < 1 || entry.key > 6 || entry.value < 3,
+          (entry) =>
+              entry.key < TenThousandRules.minimumDieValue ||
+              entry.key > TenThousandRules.maximumDieValue ||
+              entry.value < 3,
         ) ||
         (!hasRolled && selected.any((value) => value)) ||
         (hasRolled && mustRoll)) {
