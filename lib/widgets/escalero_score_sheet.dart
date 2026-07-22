@@ -8,12 +8,16 @@ class EscaleroScoreSheet extends StatelessWidget {
     required this.state,
     required this.playerIndex,
     required this.onCellTap,
+    required this.canTapEmptyCells,
+    required this.onCategoryTap,
     super.key,
   });
 
   final EscaleroGameState state;
   final int playerIndex;
   final void Function(EscaleroCategory category, int column)? onCellTap;
+  final bool canTapEmptyCells;
+  final ValueChanged<EscaleroCategory> onCategoryTap;
 
   @override
   Widget build(BuildContext context) {
@@ -76,11 +80,28 @@ class EscaleroScoreSheet extends StatelessWidget {
                       children: [
                         Expanded(
                           flex: 4,
-                          child: Text(
-                            category.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          child: InkWell(
+                            key: Key('escalero-info-${category.name}'),
+                            onTap: () => onCategoryTap(category),
+                            borderRadius: BorderRadius.circular(7),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(minHeight: 48),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      category.label,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(Icons.info_outline, size: 17),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                         for (var column = 0; column < 3; column++)
@@ -99,10 +120,12 @@ class EscaleroScoreSheet extends StatelessWidget {
                                 playerName: player.name,
                                 value: player.entries[category]![column],
                                 onTap:
-                                    player.entries[category]![column] != null ||
-                                        onCellTap == null
-                                    ? null
-                                    : () => onCellTap!(category, column),
+                                    onCellTap != null &&
+                                        (player.entries[category]![column] !=
+                                                null ||
+                                            canTapEmptyCells)
+                                    ? () => onCellTap!(category, column)
+                                    : null,
                               ),
                             ),
                           ),

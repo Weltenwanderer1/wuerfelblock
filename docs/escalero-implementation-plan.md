@@ -76,8 +76,12 @@ Der Controller verwendet `ControllerTransactions` für Busy-Guard, Rollback, Und
 - Moduswahl: „Echte Würfel“ oder „Digitale Pokerwürfel“.
 - Blockmodus zeigt ein responsives Tabellenblatt mit Spielerwahl, Kolonnen und zehn Wertungsreihen.
 - Digitalmodus zeigt große Pokerwürfel mit klarer Halten-Markierung, Wurfzähler, Vorschau aller noch freien Kategorien und expliziter Bestätigung.
+- Jede Kategoriebezeichnung öffnet direkt eine Infofläche mit Bildung, Grundwert, Servierungswert und Sonderfällen.
+- Freie Score-Zellen bleiben ausschließlich für die aktive Person wertbar; bereits belegte Zellen können auf jedem angezeigten Blatt bewusst korrigiert oder gelöscht werden.
+- Korrekturen verändern weder aktive Person noch digitalen Würfelzug und laufen über denselben transaktionalen Persistence-, Rollback- und Undo-Pfad.
+- Der Ergebnis-Screen erlaubt weiterhin Korrekturen; das Löschen des letzten Eintrags öffnet die Partie wieder.
 - Jede Score-Zelle und jeder Würfel erhält einen stabilen Key und ein vollständiges Semantik-Label.
-- Ergebnis-Screen zeigt Kolonnensummen, Paarabrechnung, Netto-Spielpunkte und Sieger.
+- Ergebnis-Screen zeigt Kolonnensummen, globale Kolonnensiegerabrechnung, Netto-Spielpunkte und Sieger.
 - Regelseite ist über die zentrale Spielregeln-Auswahl sowie Spiel- und Ergebnis-Screen erreichbar.
 
 ## TDD-Phasen

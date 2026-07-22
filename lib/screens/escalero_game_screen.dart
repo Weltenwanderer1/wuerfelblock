@@ -9,14 +9,20 @@ import 'escalero_result_screen.dart';
 import 'escalero_rules_screen.dart';
 
 class EscaleroGameScreen extends StatefulWidget {
-  const EscaleroGameScreen({required this.game, super.key});
+  const EscaleroGameScreen({
+    required this.game,
+    this.correctionMode = false,
+    super.key,
+  });
   final EscaleroController game;
+  final bool correctionMode;
   @override
   State<EscaleroGameScreen> createState() => _EscaleroGameScreenState();
 }
 
 class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
-  int _playerIndex = 0;
+  late int _playerIndex;
+  bool _correctionModeFinished = false;
   EscaleroController get game => widget.game;
 
   @override
@@ -28,6 +34,9 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
 
   void _changed() {
     if (!mounted) return;
+    if (widget.correctionMode && !game.state.isComplete) {
+      _correctionModeFinished = true;
+    }
     _playerIndex = game.state.activePlayerIndex;
     setState(() {});
   }
@@ -54,22 +63,38 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
 
   Future<void> _cell(EscaleroCategory category, int column) async {
     final state = game.state;
-    if (_playerIndex != state.activePlayerIndex) return;
-    if (state.players[_playerIndex].entries[category]![column] != null) return;
-    if (state.mode == GameMode.block) {
-      final value = await showDialog<int>(
+    final current = state.players[_playerIndex].entries[category]![column];
+    if (current != null) {
+      final editedPlayerIndex = _playerIndex;
+      final result = await showDialog<_ScoreDialogResult>(
         context: context,
-        builder: (_) => _ScoreInputDialog(category: category, column: column),
+        builder: (_) => _ScoreInputDialog(
+          category: category,
+          column: column,
+          initialValue: current,
+        ),
       );
-      if (value != null) {
-        await _run(() => game.scoreBlock(category, column, value));
+      if (result != null) {
+        await _run(
+          () =>
+              game.editScore(editedPlayerIndex, category, column, result.value),
+        );
+        if (mounted) setState(() => _playerIndex = editedPlayerIndex);
       }
       return;
     }
-    if (_playerIndex != state.activePlayerIndex ||
-        state.digitalTurn.rollCount == 0) {
+    if (_playerIndex != state.activePlayerIndex) return;
+    if (state.mode == GameMode.block) {
+      final result = await showDialog<_ScoreDialogResult>(
+        context: context,
+        builder: (_) => _ScoreInputDialog(category: category, column: column),
+      );
+      if (result != null) {
+        await _run(() => game.scoreBlock(category, column, result.value!));
+      }
       return;
     }
+    if (state.digitalTurn.rollCount == 0) return;
     final score = EscaleroScoring.score(
       category,
       state.digitalTurn.dice,
@@ -97,6 +122,37 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
     );
     if (yes == true) await _run(() => game.scoreDigital(category, column));
   }
+
+  Future<void> _showCategoryInfo(EscaleroCategory category) => showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(category.label),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Bildung',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 6),
+            Text(category.formation),
+            const SizedBox(height: 14),
+            Text('Grundwert: ${category.baseValue}'),
+            const SizedBox(height: 6),
+            Text('Servierungswert: ${category.servedValue}'),
+          ],
+        ),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Schließen'),
+        ),
+      ],
+    ),
+  );
 
   Future<void> _abandon() async {
     final yes = await showDialog<bool>(
@@ -135,15 +191,19 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
   @override
   Widget build(BuildContext context) {
     final state = game.state;
-    if (state.isComplete) {
+    final correctionMode = widget.correctionMode && !_correctionModeFinished;
+    if (state.isComplete && !correctionMode) {
       return EscaleroResultScreen(game: game);
     }
+    final correctingComplete = correctionMode && state.isComplete;
     final digital = state.mode == GameMode.digital;
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
       appBar: AppBar(
         title: Text(
-          'Escalero · ${state.activePlayer.name}',
+          correctingComplete
+              ? 'Escalero · Wertungen korrigieren'
+              : 'Escalero · ${state.activePlayer.name}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -165,11 +225,12 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
                 : null,
             icon: const Icon(Icons.undo),
           ),
-          IconButton(
-            tooltip: 'Partie beenden',
-            onPressed: game.isBusy ? null : _abandon,
-            icon: const Icon(Icons.close),
-          ),
+          if (!correctionMode)
+            IconButton(
+              tooltip: 'Partie beenden',
+              onPressed: game.isBusy ? null : _abandon,
+              icon: const Icon(Icons.close),
+            ),
         ],
       ),
       body: SafeArea(
@@ -177,7 +238,9 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
           padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
           child: Column(
             children: [
-              if (digital)
+              if (correctingComplete)
+                const _CorrectionHint()
+              else if (digital)
                 _DigitalPanel(game: game, onRun: _run)
               else
                 const _BlockHint(),
@@ -210,9 +273,10 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
                 ],
               ),
               const SizedBox(height: 5),
-              if (_playerIndex != state.activePlayerIndex) ...[
+              if (!correctingComplete &&
+                  _playerIndex != state.activePlayerIndex) ...[
                 Text(
-                  'Nur ${state.activePlayer.name} ist am Zug – dieses Blatt ist schreibgeschützt.',
+                  'Nur ${state.activePlayer.name} ist am Zug. Leere Felder sind schreibgeschützt; belegte Wertungen können korrigiert werden.',
                   key: const Key('escalero-readonly-sheet'),
                   style: const TextStyle(
                     color: Color(0xFF7C2D12),
@@ -226,14 +290,14 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
                 child: EscaleroScoreSheet(
                   state: state,
                   playerIndex: _playerIndex,
-                  onCellTap:
-                      _playerIndex == state.activePlayerIndex &&
-                          !game.isBusy &&
-                          (!digital ||
-                              (state.digitalTurn.rollCount > 0 &&
-                                  !game.needsDigitalSaveRetry))
+                  onCellTap: !game.isBusy && !game.needsDigitalSaveRetry
                       ? _cell
                       : null,
+                  canTapEmptyCells:
+                      !correctingComplete &&
+                      _playerIndex == state.activePlayerIndex &&
+                      (!digital || state.digitalTurn.rollCount > 0),
+                  onCategoryTap: _showCategoryInfo,
                 ),
               ),
             ],
@@ -262,6 +326,23 @@ class _BlockHint extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    ),
+  );
+}
+
+class _CorrectionHint extends StatelessWidget {
+  const _CorrectionHint();
+
+  @override
+  Widget build(BuildContext context) => const Card(
+    margin: EdgeInsets.zero,
+    child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Text(
+        'Belegte Wertung antippen, korrigieren oder löschen.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontWeight: FontWeight.w700),
       ),
     ),
   );
@@ -373,17 +454,34 @@ class _DigitalPanel extends StatelessWidget {
   }
 }
 
+class _ScoreDialogResult {
+  const _ScoreDialogResult(this.value);
+  final int? value;
+}
+
 class _ScoreInputDialog extends StatefulWidget {
-  const _ScoreInputDialog({required this.category, required this.column});
+  const _ScoreInputDialog({
+    required this.category,
+    required this.column,
+    this.initialValue,
+  });
   final EscaleroCategory category;
   final int column;
+  final int? initialValue;
   @override
   State<_ScoreInputDialog> createState() => _ScoreInputDialogState();
 }
 
 class _ScoreInputDialogState extends State<_ScoreInputDialog> {
-  final controller = TextEditingController();
+  late final TextEditingController controller;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = TextEditingController(text: widget.initialValue?.toString());
+  }
+
   @override
   void dispose() {
     controller.dispose();
@@ -397,7 +495,7 @@ class _ScoreInputDialogState extends State<_ScoreInputDialog> {
       setState(() => error = 'Für diese Kategorie ungültiger Wert.');
       return;
     }
-    Navigator.pop(context, value);
+    Navigator.pop(context, _ScoreDialogResult(value));
   }
 
   List<int> get validScores {
@@ -417,43 +515,54 @@ class _ScoreInputDialogState extends State<_ScoreInputDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text('${widget.category.label} · Kolonne ${widget.column + 1}'),
-    content: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          key: const Key('escalero-points-field'),
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: 'Punkte', errorText: error),
-          onSubmitted: (_) => submit(),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'Schnellwahl',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 7,
-          runSpacing: 7,
-          children: [
-            for (final score in validScores)
-              ActionChip(
-                key: Key('escalero-quick-score-$score'),
-                label: Text('$score'),
-                onPressed: () => Navigator.pop(context, score),
-              ),
-          ],
-        ),
-      ],
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            key: const Key('escalero-points-field'),
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: 'Punkte', errorText: error),
+            onSubmitted: (_) => submit(),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Schnellwahl',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              for (final score in validScores)
+                ActionChip(
+                  key: Key('escalero-quick-score-$score'),
+                  label: Text('$score'),
+                  onPressed: () =>
+                      Navigator.pop(context, _ScoreDialogResult(score)),
+                ),
+            ],
+          ),
+        ],
+      ),
     ),
     actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context, 0),
-        child: const Text('0 (streichen)'),
-      ),
+      if (widget.initialValue != null)
+        TextButton(
+          key: const Key('escalero-delete-points'),
+          onPressed: () =>
+              Navigator.pop(context, const _ScoreDialogResult(null)),
+          child: const Text('Löschen'),
+        )
+      else
+        TextButton(
+          onPressed: () => Navigator.pop(context, const _ScoreDialogResult(0)),
+          child: const Text('0 (streichen)'),
+        ),
       TextButton(
         onPressed: () => Navigator.pop(context),
         child: const Text('Abbrechen'),
@@ -461,7 +570,7 @@ class _ScoreInputDialogState extends State<_ScoreInputDialog> {
       FilledButton(
         key: const Key('escalero-save-points'),
         onPressed: submit,
-        child: const Text('Eintragen'),
+        child: Text(widget.initialValue == null ? 'Eintragen' : 'Speichern'),
       ),
     ],
   );

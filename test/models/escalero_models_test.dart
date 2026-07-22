@@ -3,6 +3,29 @@ import 'package:wuerfelblock/models/escalero_models.dart';
 import 'package:wuerfelblock/models/game_models.dart';
 
 void main() {
+  test('category info centrally describes formation and both score values', () {
+    expect(EscaleroCategory.ace.formation, 'Passende Würfelwerte addieren.');
+    expect(EscaleroCategory.ace.baseValue, 'Anzahl × 6');
+    expect(EscaleroCategory.ace.servedValue, 'Kein Servierungsbonus');
+    expect(
+      EscaleroCategory.straight.formation,
+      contains('fünf aufeinanderfolgende'),
+    );
+    expect(EscaleroCategory.straight.baseValue, '20 Punkte');
+    expect(EscaleroCategory.straight.servedValue, '25 Punkte');
+    expect(EscaleroCategory.fullHouse.formation, contains('fünf gleiche'));
+    expect(EscaleroCategory.fullHouse.baseValue, '30 Punkte');
+    expect(EscaleroCategory.fullHouse.servedValue, '35 Punkte');
+    expect(
+      EscaleroCategory.poker.formation,
+      contains('vier oder fünf gleiche'),
+    );
+    expect(EscaleroCategory.poker.baseValue, '40 Punkte');
+    expect(EscaleroCategory.poker.servedValue, '45 Punkte');
+    expect(EscaleroCategory.grande.baseValue, '50 Punkte');
+    expect(EscaleroCategory.grande.servedValue, '80 Punkte');
+  });
+
   group('EscaleroScoring', () {
     test('scores picture categories as count times value', () {
       expect(EscaleroScoring.score(EscaleroCategory.nine, [1, 1, 2, 3, 6]), 2);
@@ -89,6 +112,53 @@ void main() {
       () => changed.withEntry(EscaleroCategory.nine, 2, 1),
       throwsStateError,
     );
+  });
+
+  test(
+    'an occupied entry can be corrected or deleted without changing turn',
+    () {
+      var state = EscaleroGameState.newGame([
+        'Ada',
+        'Bob',
+      ], mode: GameMode.digital);
+      state = state.withDigitalRoll([1, 2, 3, 4, 5]);
+      state = state.withDigitalScore(EscaleroCategory.straight, 0);
+      state = state.withDigitalRoll([6, 6, 6, 6, 6]);
+      final activeBefore = state.activePlayerIndex;
+      final turnBefore = state.digitalTurn.toJson();
+
+      state = state.withEditedScore(0, EscaleroCategory.straight, 0, 20);
+      expect(state.players[0].entries[EscaleroCategory.straight]![0], 20);
+      expect(state.activePlayerIndex, activeBefore);
+      expect(state.digitalTurn.toJson(), turnBefore);
+
+      state = state.withEditedScore(0, EscaleroCategory.straight, 0, null);
+      expect(state.players[0].entries[EscaleroCategory.straight]![0], isNull);
+      expect(state.activePlayerIndex, activeBefore);
+      expect(state.digitalTurn.toJson(), turnBefore);
+    },
+  );
+
+  test('a completed game can reopen by deleting the wrong last entry', () {
+    EscaleroPlayer complete(String name) {
+      var player = EscaleroPlayer(name);
+      for (final category in EscaleroCategory.values) {
+        for (var column = 0; column < 3; column++) {
+          player = player.withEntry(category, column, 0);
+        }
+      }
+      return player;
+    }
+
+    final state = EscaleroGameState(
+      players: [complete('Ada'), complete('Bea')],
+      activePlayerIndex: 0,
+    );
+    final reopened = state.withEditedScore(1, EscaleroCategory.grande, 2, null);
+
+    expect(reopened.isComplete, isFalse);
+    expect(reopened.activePlayerIndex, 1);
+    expect(reopened.players[1].entries[EscaleroCategory.grande]![2], isNull);
   });
 
   test('three-player settlement follows the original booklet example', () {

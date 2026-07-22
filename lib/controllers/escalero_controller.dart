@@ -65,6 +65,21 @@ class EscaleroController extends ChangeNotifier {
     );
   }
 
+  Future<void> editScore(
+    int playerIndex,
+    EscaleroCategory category,
+    int column,
+    int? score,
+  ) async {
+    _ensureDigitalSaveReady();
+    if (_transactions.isBusy) return;
+    await _transactions.mutate(
+      change: () =>
+          _state = state.withEditedScore(playerIndex, category, column, score),
+      undoFromSnapshot: (snapshot) => snapshot,
+    );
+  }
+
   Future<void> rollDigital() async {
     _ensureDigitalSaveReady();
     if (_transactions.isBusy) return;

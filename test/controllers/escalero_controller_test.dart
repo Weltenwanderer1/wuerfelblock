@@ -69,6 +69,66 @@ void main() {
     expect(controller.state.filledEntryCount, 0);
   });
 
+  test(
+    'editing and deleting occupied scores persists without rotating',
+    () async {
+      final repository = TestRepository();
+      final controller = EscaleroController.newGame(
+        names: ['Ada', 'Bob'],
+        repository: repository,
+      );
+      await controller.scoreBlock(EscaleroCategory.nine, 0, 2);
+      expect(controller.state.activePlayerIndex, 1);
+
+      await controller.editScore(0, EscaleroCategory.nine, 0, 4);
+      expect(controller.state.players[0].entries[EscaleroCategory.nine]![0], 4);
+      expect(controller.state.activePlayerIndex, 1);
+      expect(
+        (repository.saved! as EscaleroGameState)
+            .players[0]
+            .entries[EscaleroCategory.nine]![0],
+        4,
+      );
+
+      await controller.editScore(0, EscaleroCategory.nine, 0, null);
+      expect(
+        controller.state.players[0].entries[EscaleroCategory.nine]![0],
+        isNull,
+      );
+      expect(controller.state.activePlayerIndex, 1);
+      await controller.undo();
+      expect(controller.state.players[0].entries[EscaleroCategory.nine]![0], 4);
+      expect(controller.state.activePlayerIndex, 1);
+    },
+  );
+
+  test('failed correction rolls back value, player and digital roll', () async {
+    final repository = TestRepository();
+    var state = EscaleroGameState.newGame([
+      'Ada',
+      'Bob',
+    ], mode: GameMode.digital);
+    state = state.withDigitalRoll([1, 2, 3, 4, 5]);
+    state = state.withDigitalScore(EscaleroCategory.straight, 0);
+    state = state.withDigitalRoll([6, 6, 6, 6, 6]);
+    final controller = EscaleroController(
+      state: state,
+      repository: repository..failNextSave = true,
+    );
+    final turnBefore = controller.digitalTurn.toJson();
+
+    await expectLater(
+      controller.editScore(0, EscaleroCategory.straight, 0, 20),
+      throwsStateError,
+    );
+    expect(
+      controller.state.players[0].entries[EscaleroCategory.straight]![0],
+      25,
+    );
+    expect(controller.state.activePlayerIndex, 1);
+    expect(controller.digitalTurn.toJson(), turnBefore);
+  });
+
   test('digital roll, hold, reroll and score rotate player', () async {
     final values = <int>[1, 2, 3, 4, 5, 6, 6, 6, 6];
     final controller = EscaleroController.newGame(

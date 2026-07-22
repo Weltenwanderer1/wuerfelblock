@@ -21,7 +21,7 @@ class EscaleroRulesScreen extends StatelessWidget {
     ),
     (
       'Kombinationen',
-      'Straße (9-10-B-D-K oder 10-B-D-K-A): 20 Punkte. Full House (drei gleiche plus zwei gleiche): 30. Poker (mindestens vier gleiche): 40. Grande (fünf gleiche): 50 Punkte. Ist das Grande-Feld schon belegt, dürfen fünf gleiche auch als Poker oder Full House gewertet werden.',
+      'Straße (9-10-B-D-K oder 10-B-D-K-A): 20 Punkte. Full House (drei gleiche plus zwei gleiche): 30. Poker (mindestens vier gleiche): 40. Grande (fünf gleiche): 50 Punkte. Fünf gleiche dürfen auch als Poker oder Full House gewertet werden.',
       Icons.auto_awesome_outlined,
     ),
     (

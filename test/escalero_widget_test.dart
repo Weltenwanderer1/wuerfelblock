@@ -68,6 +68,104 @@ void main() {
     expect(game.state.activePlayerIndex, 1);
   });
 
+  testWidgets('Kategoriename öffnet zentrale Info bei 200 % Text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final game = EscaleroController.newGame(
+      names: const ['Ada', 'Bea'],
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+        child: MaterialApp(home: EscaleroGameScreen(game: game)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final info = find.byKey(const Key('escalero-info-fullHouse'));
+    await tester.scrollUntilVisible(
+      info,
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(info);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Full House'), findsWidgets);
+    expect(find.text('Bildung'), findsOneWidget);
+    expect(find.textContaining('fünf gleiche'), findsOneWidget);
+    expect(find.text('Grundwert: 30 Punkte'), findsOneWidget);
+    expect(find.text('Servierungswert: 35 Punkte'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'belegte Wertung auf fremdem Blatt kann korrigiert und gelöscht werden',
+    (tester) async {
+      final game = EscaleroController(
+        state: EscaleroGameState(
+          players: [
+            EscaleroPlayer('Ada'),
+            EscaleroPlayer('Bea').withEntry(EscaleroCategory.nine, 0, 2),
+          ],
+        ),
+        repository: MemoryGameRepository(),
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: EscaleroGameScreen(game: game)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('escalero-player-picker')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bea').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Leere Felder sind schreibgeschützt'),
+        findsOneWidget,
+      );
+      final occupied = find.byKey(const Key('escalero-edit-nine-0'));
+      await tester.tap(occupied);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('escalero-points-field')))
+            .controller!
+            .text,
+        '2',
+      );
+      await tester.enterText(
+        find.byKey(const Key('escalero-points-field')),
+        '6',
+      );
+      await tester.tap(find.byKey(const Key('escalero-save-points')));
+      await tester.pumpAndSettle();
+      expect(find.text('Für diese Kategorie ungültiger Wert.'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const Key('escalero-points-field')),
+        '4',
+      );
+      await tester.tap(find.byKey(const Key('escalero-save-points')));
+      await tester.pumpAndSettle();
+      expect(game.state.players[1].entries[EscaleroCategory.nine]![0], 4);
+      expect(game.state.activePlayerIndex, 0);
+
+      await tester.tap(occupied);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('escalero-delete-points')));
+      await tester.pumpAndSettle();
+      expect(game.state.players[1].entries[EscaleroCategory.nine]![0], isNull);
+      expect(game.state.activePlayerIndex, 0);
+    },
+  );
+
   testWidgets('Fremdes Blatt ist im Blockmodus schreibgeschützt', (
     tester,
   ) async {
@@ -123,6 +221,46 @@ void main() {
     await tester.tap(find.byKey(const Key('escalero-confirm-score')));
     await tester.pumpAndSettle();
     expect(game.state.activePlayerIndex, 1);
+  });
+
+  testWidgets('digitale Korrektur erhält aktiven Spieler und Würfelzug', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final turn = EscaleroDigitalTurn(
+      dice: const [1, 2, 3, 4, 5],
+      held: const [true, false, true, false, true],
+      rollCount: 2,
+      lastRollWasAllFive: false,
+    );
+    final game = EscaleroController(
+      state: EscaleroGameState(
+        players: [
+          EscaleroPlayer('Ada').withEntry(EscaleroCategory.nine, 0, 1),
+          EscaleroPlayer('Bea'),
+        ],
+        mode: GameMode.digital,
+        digitalTurn: turn,
+      ),
+      repository: MemoryGameRepository(),
+    );
+    final turnBefore = game.state.digitalTurn.toJson();
+    await tester.pumpWidget(MaterialApp(home: EscaleroGameScreen(game: game)));
+
+    await tester.tap(find.byKey(const Key('escalero-score-nine-0')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('escalero-points-field')), '2');
+    await tester.tap(find.byKey(const Key('escalero-save-points')));
+    await tester.pumpAndSettle();
+
+    expect(game.state.players[0].entries[EscaleroCategory.nine]![0], 2);
+    expect(game.state.activePlayerIndex, 0);
+    expect(game.state.digitalTurn.toJson(), turnBefore);
   });
 
   testWidgets('fehlgeschlagener Abbruch lässt die Partie geöffnet', (
@@ -209,6 +347,60 @@ void main() {
     expect(find.textContaining('von jedem der beiden Gegner'), findsOneWidget);
     expect(find.textContaining('Paarvergleich'), findsNothing);
   });
+
+  testWidgets('Ergebnis öffnet Wertungen zum Korrigieren und Löschen', (
+    tester,
+  ) async {
+    EscaleroPlayer complete(String name) {
+      var player = EscaleroPlayer(name);
+      for (final category in EscaleroCategory.values) {
+        for (var column = 0; column < 3; column++) {
+          player = player.withEntry(category, column, 0);
+        }
+      }
+      return player;
+    }
+
+    final game = EscaleroController(
+      state: EscaleroGameState(players: [complete('Ada'), complete('Bea')]),
+      repository: MemoryGameRepository(),
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: EscaleroResultScreen(game: game)),
+    );
+
+    await tester.tap(find.byKey(const Key('escalero-correct-scores')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('escalero-sheet')), findsOneWidget);
+
+    final grande = find.byKey(const Key('escalero-edit-grande-2'));
+    await tester.scrollUntilVisible(grande, 200);
+    await tester.tap(grande);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('escalero-delete-points')));
+    await tester.pumpAndSettle();
+
+    expect(game.state.isComplete, isFalse);
+    expect(find.byKey(const Key('escalero-sheet')), findsOneWidget);
+  });
+
+  testWidgets(
+    'Regeltext erlaubt fünf gleiche direkt als Poker oder Full House',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: EscaleroRulesScreen()));
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('escalero-rule-3')),
+        250,
+      );
+      expect(
+        find.textContaining(
+          'Fünf gleiche dürfen auch als Poker oder Full House',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Grande-Feld schon belegt'), findsNothing);
+    },
+  );
 
   testWidgets('Regeln bleiben bei 200 % Text zugänglich', (tester) async {
     tester.view.physicalSize = const Size(360, 800);

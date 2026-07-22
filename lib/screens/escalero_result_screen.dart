@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/escalero_controller.dart';
+import 'escalero_game_screen.dart';
 import 'escalero_rules_screen.dart';
 
 class EscaleroResultScreen extends StatefulWidget {
@@ -13,6 +14,18 @@ class EscaleroResultScreen extends StatefulWidget {
 class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
   bool busy = false;
   String? error;
+
+  Future<void> _correctScores() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            EscaleroGameScreen(game: widget.game, correctionMode: true),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
   Future<void> _finish() async {
     setState(() => busy = true);
     try {
@@ -31,6 +44,7 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
   @override
   Widget build(BuildContext context) {
     final state = widget.game.state;
+    if (!state.isComplete) return EscaleroGameScreen(game: widget.game);
     final ranking = state.ranking;
     return PopScope(
       canPop: false,
@@ -112,6 +126,13 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),
+              OutlinedButton.icon(
+                key: const Key('escalero-correct-scores'),
+                onPressed: busy || widget.game.isBusy ? null : _correctScores,
+                icon: const Icon(Icons.edit_note),
+                label: const Text('Wertungen korrigieren'),
+              ),
+              const SizedBox(height: 8),
               FilledButton.icon(
                 key: const Key('escalero-finish'),
                 onPressed: busy ? null : _finish,

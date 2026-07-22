@@ -31,6 +31,39 @@ extension EscaleroCategoryInfo on EscaleroCategory {
   };
 
   int? get pictureValue => index < 6 ? index + 1 : null;
+
+  String get formation {
+    if (pictureValue != null) return 'Passende Würfelwerte addieren.';
+    return switch (this) {
+      EscaleroCategory.straight =>
+        'fünf aufeinanderfolgende Bilder (9–K oder 10–A).',
+      EscaleroCategory.fullHouse =>
+        'drei gleiche und zwei gleiche Bilder; fünf gleiche sind ebenfalls erlaubt.',
+      EscaleroCategory.poker => 'vier oder fünf gleiche Bilder.',
+      EscaleroCategory.grande => 'fünf gleiche Bilder.',
+      _ => throw StateError('Unbekannte Kategorie.'),
+    };
+  }
+
+  String get baseValue {
+    final picture = pictureValue;
+    if (picture != null) return 'Anzahl × $picture';
+    return switch (this) {
+      EscaleroCategory.straight => '20 Punkte',
+      EscaleroCategory.fullHouse => '30 Punkte',
+      EscaleroCategory.poker => '40 Punkte',
+      EscaleroCategory.grande => '50 Punkte',
+      _ => throw StateError('Unbekannte Kategorie.'),
+    };
+  }
+
+  String get servedValue => switch (this) {
+    EscaleroCategory.straight => '25 Punkte',
+    EscaleroCategory.fullHouse => '35 Punkte',
+    EscaleroCategory.poker => '45 Punkte',
+    EscaleroCategory.grande => '80 Punkte',
+    _ => 'Kein Servierungsbonus',
+  };
 }
 
 abstract final class EscaleroScoring {
@@ -168,6 +201,24 @@ class EscaleroPlayer {
       throw StateError('Dieses Feld wurde bereits gewertet.');
     }
     if (!EscaleroScoring.isValidEntry(category, score)) {
+      throw ArgumentError.value(score, 'score', 'Ungültige Escalero-Wertung.');
+    }
+    final changed = List<int?>.of(_entries[category]!)..[column] = score;
+    return EscaleroPlayer(name, entries: {..._entries, category: changed});
+  }
+
+  EscaleroPlayer withEditedEntry(
+    EscaleroCategory category,
+    int column,
+    int? score,
+  ) {
+    if (column < 0 || column >= columnCount) {
+      throw RangeError.index(column, _entries[category]!, 'column');
+    }
+    if (_entries[category]![column] == null) {
+      throw StateError('Nur eine belegte Wertung kann bearbeitet werden.');
+    }
+    if (score != null && !EscaleroScoring.isValidEntry(category, score)) {
       throw ArgumentError.value(score, 'score', 'Ungültige Escalero-Wertung.');
     }
     final changed = List<int?>.of(_entries[category]!)..[column] = score;
@@ -481,6 +532,32 @@ class EscaleroGameState implements SavedGameState {
         served: digitalTurn.lastRollWasAllFive,
       ),
       resetTurn: true,
+    );
+  }
+
+  EscaleroGameState withEditedScore(
+    int playerIndex,
+    EscaleroCategory category,
+    int column,
+    int? score,
+  ) {
+    if (playerIndex < 0 || playerIndex >= _players.length) {
+      throw RangeError.index(playerIndex, _players, 'playerIndex');
+    }
+    final wasComplete = isComplete;
+    final changed = List<EscaleroPlayer>.of(_players);
+    changed[playerIndex] = changed[playerIndex].withEditedEntry(
+      category,
+      column,
+      score,
+    );
+    return EscaleroGameState(
+      players: changed,
+      mode: mode,
+      activePlayerIndex: wasComplete && !changed[playerIndex].isComplete
+          ? playerIndex
+          : activePlayerIndex,
+      digitalTurn: digitalTurn,
     );
   }
 

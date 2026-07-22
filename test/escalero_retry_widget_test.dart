@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/controllers/escalero_controller.dart';
+import 'package:wuerfelblock/models/escalero_models.dart';
 import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/saved_game_state.dart';
 import 'package:wuerfelblock/screens/escalero_game_screen.dart';
@@ -29,9 +30,14 @@ void main() {
     final repository = _FailingRepository();
     var calls = 0;
     final values = <int>[1, 2, 3, 4, 5];
-    final game = EscaleroController.newGame(
-      names: const ['Ada', 'Bea'],
-      mode: GameMode.digital,
+    final game = EscaleroController(
+      state: EscaleroGameState(
+        players: [
+          EscaleroPlayer('Ada').withEntry(EscaleroCategory.nine, 0, 1),
+          EscaleroPlayer('Bea'),
+        ],
+        mode: GameMode.digital,
+      ),
       repository: repository,
       roller: () {
         calls++;
@@ -55,6 +61,10 @@ void main() {
       matching: find.byType(InkWell),
     );
     expect(tester.widget<InkWell>(scoreInk).onTap, isNull);
+    expect(
+      tester.getSemantics(scoreCell).flagsCollection.isButton.toString(),
+      'false',
+    );
     final retry = find.byKey(const Key('escalero-retry-save'));
     expect(retry, findsOneWidget);
     expect(tester.widget<FilledButton>(retry).onPressed, isNotNull);
