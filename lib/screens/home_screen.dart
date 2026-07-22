@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../core/app_theme.dart';
 import '../models/saved_game_state.dart';
+import '../services/locale_controller.dart';
+import 'about_privacy_screen.dart';
 import 'rules_selection_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -9,11 +13,13 @@ class HomeScreen extends StatelessWidget {
     required this.savedGame,
     required this.onNewGame,
     required this.onContinue,
+    required this.localeController,
     super.key,
   });
   final SavedGameState? savedGame;
   final VoidCallback onNewGame;
   final VoidCallback onContinue;
+  final LocaleController localeController;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -26,7 +32,7 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               children: [
                 Semantics(
-                  label: 'Würfelblock Logo mit Würfeln',
+                  label: localizeText(context, 'Würfelblock Logo mit Würfeln'),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -41,12 +47,12 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text(
+                LocalizedText(
                   'Würfelblock',
                   style: Theme.of(context).textTheme.headlineLarge,
                 ),
                 const SizedBox(height: 8),
-                Text(
+                LocalizedText(
                   'Der schöne Wertungsblock für Yahtzee/Kniffel, Qwixx, 10.000, Balut und Escalero',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
@@ -62,11 +68,11 @@ class HomeScreen extends StatelessWidget {
                         size: 40,
                         color: AppColors.plum,
                       ),
-                      title: const Text(
+                      title: const LocalizedText(
                         'Partie fortsetzen',
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
-                      subtitle: Text(
+                      subtitle: LocalizedText(
                         '${savedGame!.gameLabel} · ${savedGame!.modeLabel}\n${savedGame!.progressLabel}',
                       ),
                       trailing: const Icon(Icons.chevron_right),
@@ -78,7 +84,7 @@ class HomeScreen extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onNewGame,
                   icon: const Icon(Icons.add),
-                  label: const Text('Neue Partie'),
+                  label: const LocalizedText('Neue Partie'),
                 ),
                 const SizedBox(height: 12),
                 FilledButton.icon(
@@ -90,10 +96,24 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.menu_book_outlined),
-                  label: const Text('Spielregeln'),
+                  label: const LocalizedText('Spielregeln'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  key: const Key('settings-about-action'),
+                  onPressed: () => Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AboutPrivacyScreen(
+                        localeController: localeController,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.settings_outlined),
+                  label: const LocalizedText('Einstellungen & Info'),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                const LocalizedText(
                   '100 % offline · werbefrei · ohne Konto',
                   style: TextStyle(
                     color: AppColors.plum,
@@ -136,7 +156,7 @@ class _LogoDie extends StatelessWidget {
           ),
         ],
       ),
-      child: Text(
+      child: LocalizedText(
         value,
         style: const TextStyle(fontSize: 54, color: AppColors.plum, height: 1),
       ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../core/app_theme.dart';
 
 const _balutInk = Color(0xFF2D2923);
@@ -43,14 +45,14 @@ class BalutRulesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFFFF8E8),
-    appBar: AppBar(title: const Text('Balut-Regeln')),
+    appBar: AppBar(title: const LocalizedText('Balut-Regeln')),
     body: SelectionArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            LocalizedText(
               'Balut schnell erklärt',
               style: TextStyle(
                 color: _balutInk,
@@ -59,7 +61,7 @@ class BalutRulesScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            const LocalizedText(
               'Nach den offiziellen Regeln von Balut.org – als klassischer Block oder mit digitalen Würfeln.',
               style: TextStyle(fontSize: 16, height: 1.35),
             ),
@@ -121,16 +123,19 @@ class _RuleSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: _balutInk,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
+              Semantics(
+                header: true,
+                child: LocalizedText(
+                  title,
+                  style: TextStyle(
+                    color: _balutInk,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
+              LocalizedText(
                 text,
                 style: TextStyle(
                   color: _balutInk,

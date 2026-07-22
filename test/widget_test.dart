@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/app.dart';
 import 'package:wuerfelblock/controllers/escalero_controller.dart';
 import 'package:wuerfelblock/controllers/game_controller.dart';
+import 'package:wuerfelblock/l10n/localized_text.dart';
 
 import 'package:wuerfelblock/models/balut_models.dart';
 import 'package:wuerfelblock/models/escalero_models.dart';
@@ -582,7 +583,7 @@ void main() {
     expect(help, findsOneWidget);
     await tester.ensureVisible(help);
     await tester.pumpAndSettle();
-    expect(tester.widget<Text>(help).data, contains('Papierblock'));
+    expect(tester.widget<LocalizedText>(help).data, contains('Papierblock'));
     expect(
       find.bySemanticsLabel(RegExp(r'Papierblock')),
       findsAtLeastNWidgets(1),
@@ -591,7 +592,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<Text>(
+          .widget<LocalizedText>(
             find.byKey(const Key('game-mode-help'), skipOffstage: false),
           )
           .data,

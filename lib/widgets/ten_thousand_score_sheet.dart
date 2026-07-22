@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../l10n/localized_text.dart';
 import 'package:flutter/services.dart';
 
 import '../models/game_models.dart';
@@ -31,19 +33,19 @@ Future<bool> confirmTenThousandDeletion(
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eintrag löschen?'),
-        content: Text(
+        title: const LocalizedText('Eintrag löschen?'),
+        content: LocalizedText(
           'Zug $turnNumber bleibt im Protokoll sichtbar, zählt aber danach 0 Punkte.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             key: const Key('confirm-delete'),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Löschen'),
+            child: const LocalizedText('Löschen'),
           ),
         ],
       ),
@@ -57,19 +59,19 @@ Future<bool> confirmTenThousandTruncation(
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Partie endet früher'),
-        content: Text(
+        title: const LocalizedText('Partie endet früher'),
+        content: LocalizedText(
           'Diese Korrektur beendet die Partie früher und entfernt $count spätere Einträge.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             key: const Key('confirm-truncation'),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Korrektur bestätigen'),
+            child: const LocalizedText('Korrektur bestätigen'),
           ),
         ],
       ),
@@ -126,7 +128,7 @@ class _PointsDialogState extends State<_PointsDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(
+    title: LocalizedText(
       widget.restoring
           ? 'Eintrag wiederherstellen'
           : widget.initialPoints == null
@@ -137,7 +139,7 @@ class _PointsDialogState extends State<_PointsDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Punkte für ${widget.playerName}'),
+        LocalizedText('Punkte für ${widget.playerName}'),
         const SizedBox(height: 10),
         TextField(
           key: const Key('points-field'),
@@ -148,10 +150,13 @@ class _PointsDialogState extends State<_PointsDialog> {
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _save(),
           decoration: InputDecoration(
-            labelText: 'Punkte',
-            hintText: 'z. B. 350',
-            errorText: error,
-            helperText: 'Macke: 0 · sonst mindestens 350',
+            labelText: localizeText(context, 'Punkte'),
+            hintText: localizeText(context, 'z. B. 350'),
+            errorText: error == null ? null : localizeText(context, error!),
+            helperText: localizeText(
+              context,
+              'Macke: 0 · sonst mindestens 350',
+            ),
           ),
         ),
       ],
@@ -159,12 +164,14 @@ class _PointsDialogState extends State<_PointsDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('Abbrechen'),
+        child: const LocalizedText('Abbrechen'),
       ),
       FilledButton(
         key: const Key('save-points'),
         onPressed: _save,
-        child: Text(widget.restoring ? 'Wiederherstellen' : 'Speichern'),
+        child: LocalizedText(
+          widget.restoring ? 'Wiederherstellen' : 'Speichern',
+        ),
       ),
     ],
   );
@@ -212,7 +219,7 @@ class TenThousandScoreSheet extends StatelessWidget {
               ],
               const Padding(
                 padding: EdgeInsets.fromLTRB(12, 10, 12, 8),
-                child: Text(
+                child: LocalizedText(
                   'ZUGPROTOKOLL',
                   style: TextStyle(
                     color: tenThousandAccent,
@@ -225,7 +232,7 @@ class TenThousandScoreSheet extends StatelessWidget {
               if (state.turns.isEmpty)
                 const Padding(
                   padding: EdgeInsets.fromLTRB(12, 0, 12, 14),
-                  child: Text('Noch keine Einträge.'),
+                  child: LocalizedText('Noch keine Einträge.'),
                 ),
             ],
           ),
@@ -275,7 +282,7 @@ class _ScoreHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              const LocalizedText(
                 '10.000',
                 style: TextStyle(
                   color: tenThousandInk,
@@ -284,7 +291,7 @@ class _ScoreHeader extends StatelessWidget {
                   letterSpacing: 1.5,
                 ),
               ),
-              Text(
+              LocalizedText(
                 state.mode == GameMode.digital
                     ? 'PUNKTEBLOCK · DIGITAL'
                     : 'PUNKTEBLOCK · ECHTE WÜRFEL',
@@ -293,7 +300,7 @@ class _ScoreHeader extends StatelessWidget {
             ],
           ),
         ),
-        Text(
+        LocalizedText(
           '${state.turns.length} Züge',
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
@@ -342,13 +349,13 @@ class _Standings extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    LocalizedText(
                       state.players[index].name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
-                    Text(
+                    LocalizedText(
                       _status(index),
                       style: TextStyle(
                         color: state.activePlayerIndex == index
@@ -362,7 +369,7 @@ class _Standings extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
+              LocalizedText(
                 '${state.totals[index]}',
                 style: const TextStyle(
                   color: tenThousandInk,
@@ -395,15 +402,22 @@ class _TurnRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final owner = state.players[state.playerIndexForTurn(turn.ordinal)].name;
+    final miss = '${localizeText(context, 'Fehlwurf')} · 0';
+    final points = turn.points == 0 ? miss : '${turn.points}';
     final value = turn.isDeleted
-        ? '${turn.points == 0 ? "Fehlwurf · 0" : turn.points} · gelöscht'
-        : turn.points == 0
-        ? 'Fehlwurf · 0'
-        : '${turn.points}';
+        ? '$points · ${localizeText(context, 'gelöscht')}'
+        : points;
+    final action = localizeText(
+      context,
+      turn.isDeleted
+          ? 'Zum Wiederherstellen antippen'
+          : 'Zum Bearbeiten antippen',
+    );
     return Semantics(
       button: true,
       label:
-          'Zug ${turn.ordinal + 1}, $owner, $value. ${turn.isDeleted ? "Zum Wiederherstellen antippen" : "Zum Bearbeiten antippen"}',
+          '${localizeText(context, 'Zug')} ${turn.ordinal + 1}, '
+          '$owner, $value. $action',
       child: Material(
         color: turn.isDeleted
             ? tenThousandInk.withValues(alpha: 0.08)
@@ -420,7 +434,7 @@ class _TurnRow extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 30,
-                  child: Text(
+                  child: LocalizedText(
                     '${turn.ordinal + 1}',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
@@ -434,7 +448,7 @@ class _TurnRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Flexible(
-                  child: Text(
+                  child: LocalizedText(
                     value,
                     maxLines: 2,
                     textAlign: TextAlign.end,
@@ -449,9 +463,10 @@ class _TurnRow extends StatelessWidget {
                 ),
                 IconButton(
                   key: Key('delete-turn-${turn.ordinal}'),
-                  tooltip: turn.isDeleted
-                      ? 'Eintrag ist gelöscht'
-                      : 'Eintrag löschen',
+                  tooltip: localizeText(
+                    context,
+                    turn.isDeleted ? 'Eintrag ist gelöscht' : 'Eintrag löschen',
+                  ),
                   constraints: const BoxConstraints(
                     minWidth: 48,
                     minHeight: 48,

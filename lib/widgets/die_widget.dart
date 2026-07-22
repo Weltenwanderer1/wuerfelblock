@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../l10n/localized_text.dart';
 
 class DieWidget extends StatelessWidget {
   const DieWidget({
@@ -49,7 +50,9 @@ class DieWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     button: onTap != null,
-    label: 'Würfel $value, ${held ? selectedSemantic : unselectedSemantic}',
+    label:
+        '${localizeText(context, 'Würfel')} $value, '
+        '${localizeText(context, held ? selectedSemantic : unselectedSemantic)}',
     child: InkWell(
       key: Key('die-$index'),
       onTap: onTap,

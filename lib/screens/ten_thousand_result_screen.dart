@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/ten_thousand_controller.dart';
 import '../models/game_models.dart';
 import '../services/persistence_messages.dart';
@@ -38,7 +40,7 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
 
   void _showSaveError() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+      const SnackBar(content: LocalizedText(PersistenceMessages.saveFailed)),
     );
   }
 
@@ -145,7 +147,7 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
         backgroundColor: const Color(0xFFFFF8E8),
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: const Text('10.000-Ergebnis'),
+          title: const LocalizedText('10.000-Ergebnis'),
         ),
         body: CustomScrollView(
           key: const Key('ten-thousand-result-scroll'),
@@ -166,7 +168,7 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
                             color: tenThousandAccent,
                           ),
                         ),
-                        Text(
+                        LocalizedText(
                           title,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.headlineMedium
@@ -176,7 +178,7 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
                               ),
                         ),
                         const SizedBox(height: 6),
-                        const Text(
+                        const LocalizedText(
                           'Endstand',
                           textAlign: TextAlign.center,
                           style: TextStyle(
@@ -214,8 +216,8 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
                   TenThousandScoreSheet(
                     state: state,
                     showSummary: false,
-                    onEdit: game.isBusy ? (_) {} : _editTurn,
-                    onDelete: game.isBusy ? (_) {} : _deleteTurn,
+                    onEdit: game.isBusy ? null : _editTurn,
+                    onDelete: game.isBusy ? null : _deleteTurn,
                   ),
                   SliverToBoxAdapter(
                     child: Column(
@@ -232,7 +234,9 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
                               ? _undo
                               : null,
                           icon: const Icon(Icons.undo),
-                          label: const Text('Letzte Änderung rückgängig'),
+                          label: const LocalizedText(
+                            'Letzte Änderung rückgängig',
+                          ),
                         ),
                         const SizedBox(height: 8),
                         FilledButton.icon(
@@ -243,7 +247,7 @@ class _TenThousandResultScreenState extends State<TenThousandResultScreen> {
                           ),
                           onPressed: game.isBusy ? null : _finish,
                           icon: const Icon(Icons.home_outlined),
-                          label: const Text('Zur Startseite'),
+                          label: const LocalizedText('Zur Startseite'),
                         ),
                       ],
                     ),
@@ -288,13 +292,13 @@ class _RankRow extends StatelessWidget {
       children: [
         SizedBox(
           width: 32,
-          child: Text(
+          child: LocalizedText(
             '$rank.',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
         ),
         Expanded(
-          child: Text(
+          child: LocalizedText(
             name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -305,7 +309,7 @@ class _RankRow extends StatelessWidget {
           const Icon(Icons.emoji_events, size: 19, color: tenThousandAccent),
           const SizedBox(width: 6),
         ],
-        Text(
+        LocalizedText(
           '$total',
           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
         ),

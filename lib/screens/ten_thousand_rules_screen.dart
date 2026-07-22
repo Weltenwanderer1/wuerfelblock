@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../widgets/ten_thousand_score_sheet.dart';
 
 class TenThousandRulesScreen extends StatelessWidget {
@@ -51,14 +53,14 @@ class TenThousandRulesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFFFF8E8),
-    appBar: AppBar(title: const Text('10.000-Regeln')),
+    appBar: AppBar(title: const LocalizedText('10.000-Regeln')),
     body: SelectionArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            const LocalizedText(
               '10.000 schnell erklärt',
               style: TextStyle(
                 color: tenThousandInk,
@@ -67,7 +69,7 @@ class TenThousandRulesScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            const LocalizedText(
               'Nach den Regeln der Berliner Würfelmeisterschaft – als klassischer Block oder mit digitalen Würfeln.',
               style: TextStyle(fontSize: 16, height: 1.35),
             ),
@@ -114,16 +116,19 @@ class _RuleSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: tenThousandInk,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
+              Semantics(
+                header: true,
+                child: LocalizedText(
+                  title,
+                  style: TextStyle(
+                    color: tenThousandInk,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               const SizedBox(height: 5),
-              Text(text, style: const TextStyle(height: 1.4)),
+              LocalizedText(text, style: const TextStyle(height: 1.4)),
             ],
           ),
         ),

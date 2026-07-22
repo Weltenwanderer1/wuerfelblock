@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 class EscaleroRulesScreen extends StatelessWidget {
   const EscaleroRulesScreen({super.key});
 
@@ -39,7 +41,7 @@ class EscaleroRulesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFFFF8E8),
-    appBar: AppBar(title: const Text('Escalero-Regeln')),
+    appBar: AppBar(title: const LocalizedText('Escalero-Regeln')),
     body: SelectionArea(
       child: ListView(
         key: const Key('escalero-rules-scroll'),
@@ -47,7 +49,7 @@ class EscaleroRulesScreen extends StatelessWidget {
         children: [
           Semantics(
             header: true,
-            child: Text(
+            child: LocalizedText(
               'Würfelpoker mit drei Kolonnen',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w900,
@@ -69,7 +71,7 @@ class EscaleroRulesScreen extends StatelessWidget {
             color: const Color(0xFFFFE8BD),
             child: const Padding(
               padding: EdgeInsets.all(14),
-              child: Text(
+              child: LocalizedText(
                 'Maßgeblich ist die originale deutschsprachige Escalero-Spielanleitung. Die Piatnik-Regelbeschreibung auf Wikipedia bestätigt dieselbe Wertung.',
                 style: TextStyle(height: 1.4),
               ),
@@ -109,7 +111,7 @@ class _RuleCard extends StatelessWidget {
               children: [
                 Semantics(
                   header: true,
-                  child: Text(
+                  child: LocalizedText(
                     title,
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
@@ -118,7 +120,7 @@ class _RuleCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 5),
-                Text(text, style: const TextStyle(height: 1.4)),
+                LocalizedText(text, style: const TextStyle(height: 1.4)),
               ],
             ),
           ),

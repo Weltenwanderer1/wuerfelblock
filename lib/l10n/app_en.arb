@@ -1,0 +1,20 @@
+{
+  "@@locale": "en",
+  "appTitle": "Würfelblock",
+  "newGame": "New game",
+  "aboutTitle": "About Würfelblock",
+  "privacySummary": "No accounts, advertising, analytics, tracking, or network access.",
+  "language": "Language",
+  "german": "German",
+  "english": "English",
+  "settingsAndInfo": "Settings & info",
+  "manufacturer": "Developer",
+  "manufacturerName": "Günther Schuch",
+  "versionInformation": "Würfelblock is distributed as a signed Android app.",
+  "privacyTitle": "Privacy & offline use",
+  "privacySummaryLong": "Würfelblock works completely offline. There are no accounts, advertising, analytics, tracking, or network access.",
+  "localData": "Game states, entered names, and the language choice stay only on this device. Android cloud backup and device transfer are disabled.",
+  "deleteData": "You can remove this local data by deleting an active game or uninstalling the app.",
+  "developerNoAccess": "The developer cannot access names, game states, or any other local app data. No data is transmitted to third parties.",
+  "languageSaveFailed": "The language choice could not be saved."
+}

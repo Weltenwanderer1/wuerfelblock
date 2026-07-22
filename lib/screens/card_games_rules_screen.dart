@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../core/app_theme.dart';
 
 enum CardGame { crisps, regicide, haggis }
@@ -158,7 +160,7 @@ class CardGameRulesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedGame = _games.firstWhere((item) => item.kind == game);
     return Scaffold(
-      appBar: AppBar(title: Text('${selectedGame.title}-Regeln')),
+      appBar: AppBar(title: LocalizedText('${selectedGame.title}-Regeln')),
       body: SelectionArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -184,6 +186,7 @@ class _GameRulesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
+    semanticContainer: false,
     margin: const EdgeInsets.only(bottom: 20),
     shape: RoundedRectangleBorder(
       side: const BorderSide(color: AppColors.plum, width: 1.2),
@@ -213,13 +216,13 @@ class _GameRulesCard extends StatelessWidget {
                   children: [
                     Semantics(
                       header: true,
-                      child: Text(
+                      child: LocalizedText(
                         game.title,
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                     ),
                     const SizedBox(height: 3),
-                    Text(
+                    LocalizedText(
                       game.subtitle,
                       style: const TextStyle(
                         color: AppColors.plum,
@@ -253,7 +256,7 @@ class _SectionContent extends StatelessWidget {
     children: [
       Semantics(
         header: true,
-        child: Text(
+        child: LocalizedText(
           section.title,
           style: Theme.of(
             context,
@@ -261,7 +264,7 @@ class _SectionContent extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 6),
-      Text(section.body, style: const TextStyle(height: 1.45)),
+      LocalizedText(section.body, style: const TextStyle(height: 1.45)),
     ],
   );
 }

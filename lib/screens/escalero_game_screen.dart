@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/escalero_controller.dart';
 import '../models/escalero_models.dart';
 import '../models/game_models.dart';
@@ -54,7 +56,7 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Aktion konnte nicht gespeichert werden.'),
+            content: LocalizedText('Aktion konnte nicht gespeichert werden.'),
           ),
         );
       }
@@ -103,19 +105,19 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
     final yes = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${category.label}: $score Punkte'),
-        content: Text(
+        title: LocalizedText('${category.label}: $score Punkte'),
+        content: LocalizedText(
           'In Kolonne ${column + 1} für ${state.activePlayer.name} eintragen?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             key: const Key('escalero-confirm-score'),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Werten'),
+            child: const LocalizedText('Werten'),
           ),
         ],
       ),
@@ -126,29 +128,29 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
   Future<void> _showCategoryInfo(EscaleroCategory category) => showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(category.label),
+      title: LocalizedText(category.label),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            const LocalizedText(
               'Bildung',
               style: TextStyle(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
-            Text(category.formation),
+            LocalizedText(category.formation),
             const SizedBox(height: 14),
-            Text('Grundwert: ${category.baseValue}'),
+            LocalizedText('Grundwert: ${category.baseValue}'),
             const SizedBox(height: 6),
-            Text('Servierungswert: ${category.servedValue}'),
+            LocalizedText('Servierungswert: ${category.servedValue}'),
           ],
         ),
       ),
       actions: [
         FilledButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Schließen'),
+          child: const LocalizedText('Schließen'),
         ),
       ],
     ),
@@ -158,16 +160,16 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
     final yes = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Partie beenden?'),
-        content: const Text('Der aktuelle Spielstand wird gelöscht.'),
+        title: const LocalizedText('Partie beenden?'),
+        content: const LocalizedText('Der aktuelle Spielstand wird gelöscht.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Beenden'),
+            child: const LocalizedText('Beenden'),
           ),
         ],
       ),
@@ -180,7 +182,9 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Die Partie konnte nicht gelöscht werden.'),
+              content: LocalizedText(
+                'Die Partie konnte nicht gelöscht werden.',
+              ),
             ),
           );
         }
@@ -200,7 +204,7 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
       appBar: AppBar(
-        title: Text(
+        title: LocalizedText(
           correctingComplete
               ? 'Escalero · Wertungen korrigieren'
               : 'Escalero · ${state.activePlayer.name}',
@@ -210,7 +214,7 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
         actions: [
           IconButton(
             key: const Key('escalero-game-rules'),
-            tooltip: 'Regeln',
+            tooltip: localizeText(context, 'Regeln'),
             onPressed: () => Navigator.push<void>(
               context,
               MaterialPageRoute(builder: (_) => const EscaleroRulesScreen()),
@@ -219,7 +223,7 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
           ),
           IconButton(
             key: const Key('escalero-undo'),
-            tooltip: 'Rückgängig',
+            tooltip: localizeText(context, 'Rückgängig'),
             onPressed: game.canUndo && !game.isBusy
                 ? () => _run(game.undo)
                 : null,
@@ -227,7 +231,7 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
           ),
           if (!correctionMode)
             IconButton(
-              tooltip: 'Partie beenden',
+              tooltip: localizeText(context, 'Partie beenden'),
               onPressed: game.isBusy ? null : _abandon,
               icon: const Icon(Icons.close),
             ),
@@ -247,7 +251,7 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
               const SizedBox(height: 7),
               Row(
                 children: [
-                  const Text(
+                  const LocalizedText(
                     'Blatt: ',
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
@@ -275,7 +279,7 @@ class _EscaleroGameScreenState extends State<EscaleroGameScreen> {
               const SizedBox(height: 5),
               if (!correctingComplete &&
                   _playerIndex != state.activePlayerIndex) ...[
-                Text(
+                LocalizedText(
                   'Nur ${state.activePlayer.name} ist am Zug. Leere Felder sind schreibgeschützt; belegte Wertungen können korrigiert werden.',
                   key: const Key('escalero-readonly-sheet'),
                   style: const TextStyle(
@@ -320,7 +324,7 @@ class _BlockHint extends StatelessWidget {
           Icon(Icons.edit_note, size: 20),
           SizedBox(width: 8),
           Expanded(
-            child: Text(
+            child: LocalizedText(
               'Echte Pokerwürfel: freie Zelle antippen und Wert eintragen.',
               maxLines: 2,
             ),
@@ -339,7 +343,7 @@ class _CorrectionHint extends StatelessWidget {
     margin: EdgeInsets.zero,
     child: Padding(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Text(
+      child: LocalizedText(
         'Belegte Wertung antippen, korrigieren oder löschen.',
         textAlign: TextAlign.center,
         style: TextStyle(fontWeight: FontWeight.w700),
@@ -365,12 +369,12 @@ class _DigitalPanel extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                LocalizedText(
                   'Wurf ${turn.rollCount}/3',
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 Flexible(
-                  child: Text(
+                  child: LocalizedText(
                     turn.rollCount == 0
                         ? 'Zum Start würfeln'
                         : 'Würfel antippen = halten',
@@ -408,7 +412,7 @@ class _DigitalPanel extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
+                      const LocalizedText(
                         'Wurf ist sichtbar, aber noch nicht gespeichert.',
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
@@ -420,7 +424,7 @@ class _DigitalPanel extends StatelessWidget {
                           onPressed: game.isBusy
                               ? null
                               : () => onRun(game.retryDigitalSave),
-                          child: const Text('Erneut speichern'),
+                          child: const LocalizedText('Erneut speichern'),
                         ),
                       ),
                     ],
@@ -440,7 +444,7 @@ class _DigitalPanel extends StatelessWidget {
                       ? () => onRun(game.rollDigital)
                       : null,
                   icon: const Icon(Icons.casino, size: 19),
-                  label: Text(
+                  label: LocalizedText(
                     turn.rollCount == 0
                         ? 'Pokerwürfel werfen'
                         : 'Weiterwürfeln',
@@ -514,7 +518,9 @@ class _ScoreInputDialogState extends State<_ScoreInputDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text('${widget.category.label} · Kolonne ${widget.column + 1}'),
+    title: LocalizedText(
+      '${widget.category.label} · Kolonne ${widget.column + 1}',
+    ),
     content: SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -525,11 +531,14 @@ class _ScoreInputDialogState extends State<_ScoreInputDialog> {
             controller: controller,
             autofocus: true,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: 'Punkte', errorText: error),
+            decoration: InputDecoration(
+              labelText: localizeText(context, 'Punkte'),
+              errorText: error == null ? null : localizeText(context, error!),
+            ),
             onSubmitted: (_) => submit(),
           ),
           const SizedBox(height: 12),
-          const Text(
+          const LocalizedText(
             'Schnellwahl',
             style: TextStyle(fontWeight: FontWeight.w800),
           ),
@@ -541,7 +550,7 @@ class _ScoreInputDialogState extends State<_ScoreInputDialog> {
               for (final score in validScores)
                 ActionChip(
                   key: Key('escalero-quick-score-$score'),
-                  label: Text('$score'),
+                  label: LocalizedText('$score'),
                   onPressed: () =>
                       Navigator.pop(context, _ScoreDialogResult(score)),
                 ),
@@ -556,21 +565,23 @@ class _ScoreInputDialogState extends State<_ScoreInputDialog> {
           key: const Key('escalero-delete-points'),
           onPressed: () =>
               Navigator.pop(context, const _ScoreDialogResult(null)),
-          child: const Text('Löschen'),
+          child: const LocalizedText('Löschen'),
         )
       else
         TextButton(
           onPressed: () => Navigator.pop(context, const _ScoreDialogResult(0)),
-          child: const Text('0 (streichen)'),
+          child: const LocalizedText('0 (streichen)'),
         ),
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('Abbrechen'),
+        child: const LocalizedText('Abbrechen'),
       ),
       FilledButton(
         key: const Key('escalero-save-points'),
         onPressed: submit,
-        child: Text(widget.initialValue == null ? 'Eintragen' : 'Speichern'),
+        child: LocalizedText(
+          widget.initialValue == null ? 'Eintragen' : 'Speichern',
+        ),
       ),
     ],
   );

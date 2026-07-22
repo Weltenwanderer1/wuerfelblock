@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/dice_controller.dart';
 import '../controllers/game_controller.dart';
 import '../core/app_theme.dart';
@@ -57,16 +59,18 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Partie verwerfen?'),
-        content: const Text('Der gespeicherte Spielstand wird gelöscht.'),
+        title: const LocalizedText('Partie verwerfen?'),
+        content: const LocalizedText(
+          'Der gespeicherte Spielstand wird gelöscht.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Verwerfen'),
+            child: const LocalizedText('Verwerfen'),
           ),
         ],
       ),
@@ -92,14 +96,14 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Zusatz-Kniffel!'),
-        content: const Text(
+        title: const LocalizedText('Zusatz-Kniffel!'),
+        content: const LocalizedText(
           '+50 Punkte. Wähle ein freies Feld für die Höchstpunktzahl.',
         ),
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Feld wählen'),
+            child: const LocalizedText('Feld wählen'),
           ),
         ],
       ),
@@ -125,7 +129,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
   void _saveFailed() {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+      const SnackBar(content: LocalizedText(PersistenceMessages.saveFailed)),
     );
   }
 
@@ -135,19 +139,19 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
     final player = state.currentPlayer;
     return Scaffold(
       appBar: AppBar(
-        title: Text(state.ruleSet.label),
+        title: LocalizedText(state.ruleSet.label),
         actions: [
           ActiveRulesButton(ruleSet: state.ruleSet),
           IconButton(
             onPressed: widget.game.canUndo && !widget.game.isBusy
                 ? _undo
                 : null,
-            tooltip: 'Letzten Eintrag rückgängig',
+            tooltip: localizeText(context, 'Letzten Eintrag rückgängig'),
             icon: const Icon(Icons.undo),
           ),
           IconButton(
             onPressed: widget.game.isBusy ? null : _discard,
-            tooltip: 'Partie verwerfen',
+            tooltip: localizeText(context, 'Partie verwerfen'),
             icon: const Icon(Icons.delete_outline),
           ),
         ],
@@ -174,15 +178,18 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Am Zug', style: TextStyle(fontSize: 13)),
-                        Text(
+                        const LocalizedText(
+                          'Am Zug',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        LocalizedText(
                           player.name,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                       ],
                     ),
                   ),
-                  Text(
+                  LocalizedText(
                     '${state.totalFor(player)} P.',
                     style: const TextStyle(
                       fontSize: 20,
@@ -194,7 +201,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
               ),
             ),
             const SizedBox(height: 18),
-            Text(
+            LocalizedText(
               dice.hasRolled
                   ? 'Wurf ${dice.rollCount} von 3'
                   : 'Bereit zum Würfeln',
@@ -220,16 +227,20 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
             FilledButton.icon(
               onPressed: dice.canRoll && !widget.game.isBusy ? _roll : null,
               icon: const Icon(Icons.casino),
-              label: Text(dice.hasRolled ? 'Noch einmal würfeln' : 'Würfeln'),
+              label: LocalizedText(
+                dice.hasRolled ? 'Noch einmal würfeln' : 'Würfeln',
+              ),
             ),
             if (dice.hasRolled) ...[
               const SizedBox(height: 24),
-              Text(
+              LocalizedText(
                 'Wertung wählen',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              const Text('Auch 0 Punkte können zum Streichen gewählt werden.'),
+              const LocalizedText(
+                'Auch 0 Punkte können zum Streichen gewählt werden.',
+              ),
               const SizedBox(height: 10),
               for (final category in state.ruleSet.categories.where(
                 (category) => !player.scores.containsKey(category),
@@ -241,7 +252,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
                     title: Row(
                       children: [
                         Expanded(
-                          child: Text(
+                          child: LocalizedText(
                             category.displayLabel(state.ruleSet),
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
@@ -254,7 +265,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
                     ),
                     trailing: CircleAvatar(
                       backgroundColor: Colors.white,
-                      child: Text(
+                      child: LocalizedText(
                         '${dice.suggestion(category)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
@@ -268,7 +279,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
             ],
             if (player.scores.isNotEmpty) ...[
               const SizedBox(height: 18),
-              Text(
+              LocalizedText(
                 'Bereits gewertet',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
@@ -283,7 +294,7 @@ class _DigitalGameScreenState extends State<DigitalGameScreen> {
                         label: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
+                            LocalizedText(
                               '${category.displayLabel(state.ruleSet)}: $score',
                             ),
                             CategoryInfoButton(

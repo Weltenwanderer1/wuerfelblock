@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/game_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
@@ -105,16 +107,18 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Partie verwerfen?'),
-        content: const Text('Der gespeicherte Spielstand wird gelöscht.'),
+        title: const LocalizedText('Partie verwerfen?'),
+        content: const LocalizedText(
+          'Der gespeicherte Spielstand wird gelöscht.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Verwerfen'),
+            child: const LocalizedText('Verwerfen'),
           ),
         ],
       ),
@@ -165,7 +169,7 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
   void _saveFailed() {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+      const SnackBar(content: LocalizedText(PersistenceMessages.saveFailed)),
     );
   }
 
@@ -174,19 +178,19 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
     final state = widget.game.state;
     return Scaffold(
       appBar: AppBar(
-        title: Text('${state.ruleSet.label} · Scoreblock'),
+        title: LocalizedText('${state.ruleSet.label} · Scoreblock'),
         actions: [
           ActiveRulesButton(ruleSet: state.ruleSet),
           IconButton(
             onPressed: widget.game.canUndo && !widget.game.isBusy
                 ? _undo
                 : null,
-            tooltip: 'Letzten Eintrag rückgängig',
+            tooltip: localizeText(context, 'Letzten Eintrag rückgängig'),
             icon: const Icon(Icons.undo),
           ),
           IconButton(
             onPressed: widget.game.isBusy ? null : _discard,
-            tooltip: 'Partie verwerfen',
+            tooltip: localizeText(context, 'Partie verwerfen'),
             icon: const Icon(Icons.delete_outline),
           ),
         ],
@@ -201,7 +205,7 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Text(
+            child: LocalizedText(
               '${state.completedEntries} von ${state.totalEntries} Wertungen',
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
@@ -211,12 +215,15 @@ class _BlockGameScreenState extends State<BlockGameScreen> {
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               child: Semantics(
                 button: true,
-                label: 'Zusatz-Kniffel im Scoreblock eintragen',
+                label: localizeText(
+                  context,
+                  'Zusatz-Kniffel im Scoreblock eintragen',
+                ),
                 child: OutlinedButton.icon(
                   key: const Key('block-extra-kniffel'),
                   onPressed: widget.game.isBusy ? null : _enterExtraKniffel,
                   icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('Zusatz-Kniffel'),
+                  label: const LocalizedText('Zusatz-Kniffel'),
                 ),
               ),
             ),
@@ -286,23 +293,25 @@ class _ExtraKniffelDialogState extends State<_ExtraKniffelDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     scrollable: true,
-    title: const Text('Zusatz-Kniffel bestätigen'),
+    title: const LocalizedText('Zusatz-Kniffel bestätigen'),
     content: eligiblePlayers.isEmpty
-        ? const Text(
+        ? const LocalizedText(
             'Kein Spieler hat bereits 50 Punkte im Kniffel-Feld und ein freies Feld.',
           )
         : Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              const LocalizedText(
                 'Nach ausdrücklicher Bestätigung gibt es +50 Zusatzpunkte und die Höchstpunktzahl im gewählten freien Feld.',
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
                 key: const Key('extra-kniffel-player'),
                 initialValue: playerIndex,
-                decoration: const InputDecoration(labelText: 'Spieler'),
+                decoration: InputDecoration(
+                  labelText: localizeText(context, 'Spieler'),
+                ),
                 items: [
                   for (final index in eligiblePlayers)
                     DropdownMenuItem(
@@ -319,12 +328,14 @@ class _ExtraKniffelDialogState extends State<_ExtraKniffelDialog> {
               DropdownButtonFormField<ScoreCategory>(
                 key: const Key('extra-kniffel-category'),
                 initialValue: category,
-                decoration: const InputDecoration(labelText: 'Freies Feld'),
+                decoration: InputDecoration(
+                  labelText: localizeText(context, 'Freies Feld'),
+                ),
                 items: [
                   for (final item in freeCategories)
                     DropdownMenuItem(
                       value: item,
-                      child: Text(
+                      child: LocalizedText(
                         '${item.displayLabel(widget.state.ruleSet)} (${item.maxScore(widget.state.ruleSet)})',
                       ),
                     ),
@@ -336,7 +347,7 @@ class _ExtraKniffelDialogState extends State<_ExtraKniffelDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('Abbrechen'),
+        child: const LocalizedText('Abbrechen'),
       ),
       FilledButton(
         onPressed: playerIndex != null && category != null
@@ -345,7 +356,7 @@ class _ExtraKniffelDialogState extends State<_ExtraKniffelDialog> {
                 _ExtraKniffelSelection(playerIndex!, category!),
               )
             : null,
-        child: const Text('Eintragen'),
+        child: const LocalizedText('Eintragen'),
       ),
     ],
   );
@@ -406,17 +417,17 @@ class _ScoreEntryDialogState extends State<_ScoreEntryDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     scrollable: true,
-    title: Text(_isEditing ? 'Punkte ändern' : 'Punkte eintragen'),
+    title: LocalizedText(_isEditing ? 'Punkte ändern' : 'Punkte eintragen'),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        LocalizedText(
           '${widget.category.displayLabel(widget.ruleSet)} · ${widget.playerName}',
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
-        Text(
+        LocalizedText(
           'Erlaubte Werte: ${(widget.allowedScores.toList()..sort()).join(', ')}',
         ),
         const SizedBox(height: 14),
@@ -427,8 +438,8 @@ class _ScoreEntryDialogState extends State<_ScoreEntryDialog> {
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.done,
           decoration: InputDecoration(
-            labelText: 'Punkte',
-            errorText: _error,
+            labelText: localizeText(context, 'Punkte'),
+            errorText: _error == null ? null : localizeText(context, _error!),
             border: const OutlineInputBorder(),
           ),
           onSubmitted: (_) => _save(),
@@ -438,21 +449,21 @@ class _ScoreEntryDialogState extends State<_ScoreEntryDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('Abbrechen'),
+        child: const LocalizedText('Abbrechen'),
       ),
       if (_isEditing)
         TextButton.icon(
           onPressed: () =>
               Navigator.pop(context, const _ScoreEntryResult(null)),
           icon: const Icon(Icons.delete_outline),
-          label: const Text('Eintrag löschen'),
+          label: const LocalizedText('Eintrag löschen'),
         )
       else
         TextButton(
           onPressed: () => Navigator.pop(context, const _ScoreEntryResult(0)),
-          child: const Text('Streichen (0)'),
+          child: const LocalizedText('Streichen (0)'),
         ),
-      FilledButton(onPressed: _save, child: const Text('Speichern')),
+      FilledButton(onPressed: _save, child: const LocalizedText('Speichern')),
     ],
   );
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/qwixx_controller.dart';
 import '../models/game_models.dart';
 import '../models/qwixx_models.dart';
@@ -52,7 +54,9 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+          const SnackBar(
+            content: LocalizedText(PersistenceMessages.saveFailed),
+          ),
         );
       }
     }
@@ -74,24 +78,24 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
           : await showDialog<QwixxDigitalAction>(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Welche Würfelaktion?'),
-                content: Text(
+                title: const LocalizedText('Welche Würfelaktion?'),
+                content: LocalizedText(
                   '$value passt sowohl zur weißen Summe als auch zu Weiß + ${color.label}.',
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Abbrechen'),
+                    child: const LocalizedText('Abbrechen'),
                   ),
                   FilledButton.tonal(
                     onPressed: () =>
                         Navigator.pop(context, QwixxDigitalAction.white),
-                    child: const Text('Weiße Summe'),
+                    child: const LocalizedText('Weiße Summe'),
                   ),
                   FilledButton(
                     onPressed: () =>
                         Navigator.pop(context, QwixxDigitalAction.color),
-                    child: const Text('Weiß + Farbe'),
+                    child: const LocalizedText('Weiß + Farbe'),
                   ),
                 ],
               ),
@@ -112,18 +116,18 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Feld ankreuzen?'),
-        content: Text(
+        title: const LocalizedText('Feld ankreuzen?'),
+        content: LocalizedText(
           '${color.label} $value für ${state.players[displayedPlayerIndex].name}. Übersprungene Zahlen bleiben danach gesperrt.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Ankreuzen'),
+            child: const LocalizedText('Ankreuzen'),
           ),
         ],
       ),
@@ -140,18 +144,19 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Fehlwurf eintragen?'),
+        title: const LocalizedText('Fehlwurf eintragen?'),
         content: Text(
-          'Der Fehlwurf zählt für die aktive Person $active (−5 Punkte).',
+          '${localizeText(context, 'Der Fehlwurf zählt für die aktive Person')} '
+          '$active ${localizeText(context, '(−5 Punkte).')}',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Fehlwurf eintragen'),
+            child: const LocalizedText('Fehlwurf eintragen'),
           ),
         ],
       ),
@@ -163,16 +168,18 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Partie beenden?'),
-        content: const Text('Der gespeicherte Spielstand wird gelöscht.'),
+        title: const LocalizedText('Partie beenden?'),
+        content: const LocalizedText(
+          'Der gespeicherte Spielstand wird gelöscht.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Partie beenden'),
+            child: const LocalizedText('Partie beenden'),
           ),
         ],
       ),
@@ -183,7 +190,9 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+            const SnackBar(
+              content: LocalizedText(PersistenceMessages.saveFailed),
+            ),
           );
         }
         return;
@@ -203,10 +212,10 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
       backgroundColor: const Color(0xFFFFF9EC),
       appBar: AppBar(
         toolbarHeight: 48,
-        title: Text('Qwixx · Aktiv: ${state.activePlayer.name}'),
+        title: LocalizedText('Qwixx · Aktiv: ${state.activePlayer.name}'),
         actions: [
           IconButton(
-            tooltip: 'Qwixx-Regeln',
+            tooltip: localizeText(context, 'Qwixx-Regeln'),
             onPressed: () => Navigator.push<void>(
               context,
               MaterialPageRoute(builder: (_) => const QwixxRulesScreen()),
@@ -214,7 +223,7 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
             icon: const Icon(Icons.menu_book_outlined),
           ),
           IconButton(
-            tooltip: 'Letzte Änderung rückgängig',
+            tooltip: localizeText(context, 'Letzte Änderung rückgängig'),
             onPressed:
                 game.canUndo && !game.isBusy && !game.needsDigitalSaveRetry
                 ? () => _run(game.undo)
@@ -224,7 +233,10 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
           PopupMenuButton<String>(
             onSelected: (_) => _abandon(),
             itemBuilder: (_) => const [
-              PopupMenuItem(value: 'abandon', child: Text('Partie beenden')),
+              PopupMenuItem(
+                value: 'abandon',
+                child: LocalizedText('Partie beenden'),
+              ),
             ],
           ),
         ],
@@ -256,7 +268,7 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: Text(
+                              child: LocalizedText(
                                 'Block von ${player.name}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -268,7 +280,7 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
                             ),
                             _CompactMisses(player: player),
                             const SizedBox(width: 8),
-                            Text(
+                            LocalizedText(
                               'Gesamt ${player.total}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w900,
@@ -361,7 +373,7 @@ class _ControlPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            LocalizedText(
               'Aktiv: ${state.activePlayer.name}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -371,10 +383,10 @@ class _ControlPanel extends StatelessWidget {
               key: const Key('display-player-picker'),
               initialValue: displayedPlayerIndex,
               isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Block anzeigen',
+              decoration: InputDecoration(
+                labelText: localizeText(context, 'Block anzeigen'),
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(
+                contentPadding: const EdgeInsets.symmetric(
                   horizontal: 8,
                   vertical: 8,
                 ),
@@ -405,14 +417,14 @@ class _ControlPanel extends StatelessWidget {
                 key: const Key('next-player'),
                 onPressed: game.isBusy ? null : () => onRun(game.nextPlayer),
                 icon: const Icon(Icons.skip_next, size: 18),
-                label: const Text('Nächste Person'),
+                label: const LocalizedText('Nächste Person'),
               ),
               const SizedBox(height: 4),
               OutlinedButton.icon(
                 key: const Key('mark-miss'),
                 onPressed: game.isBusy ? null : onMiss,
                 icon: const Icon(Icons.close, size: 18),
-                label: const Text('Fehlwurf'),
+                label: const LocalizedText('Fehlwurf'),
               ),
             ],
           ],
@@ -435,7 +447,7 @@ class _DigitalDicePanel extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          const LocalizedText(
             'Wurf noch nicht gespeichert',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
@@ -445,7 +457,7 @@ class _DigitalDicePanel extends StatelessWidget {
             key: const Key('qwixx-retry-save'),
             onPressed: game.isBusy ? null : () => onRun(game.retryDigitalSave),
             icon: const Icon(Icons.save_outlined, size: 18),
-            label: const Text('Speichern'),
+            label: const LocalizedText('Speichern'),
           ),
         ],
       );
@@ -455,7 +467,7 @@ class _DigitalDicePanel extends StatelessWidget {
         key: const Key('qwixx-roll'),
         onPressed: game.isBusy ? null : () => onRun(game.rollDigital),
         icon: const Icon(Icons.casino, size: 18),
-        label: const Text('Würfeln'),
+        label: const LocalizedText('Würfeln'),
       );
     }
     return Column(
@@ -475,7 +487,7 @@ class _DigitalDicePanel extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        Text(
+        LocalizedText(
           'Weiß: ${state.whiteSum}',
           textAlign: TextAlign.center,
           style: const TextStyle(fontWeight: FontWeight.w900),
@@ -485,7 +497,7 @@ class _DigitalDicePanel extends StatelessWidget {
           key: const Key('qwixx-finish-turn'),
           onPressed: game.isBusy ? null : () => onRun(game.finishDigitalTurn),
           icon: const Icon(Icons.skip_next, size: 18),
-          label: const Text('Zug beenden'),
+          label: const LocalizedText('Zug beenden'),
         ),
       ],
     );
@@ -507,29 +519,33 @@ class _QwixxDie extends StatelessWidget {
   };
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: '${color?.label ?? "Weiß"}er Würfel: $value',
-    child: Container(
-      width: 46,
-      height: 38,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: background,
-        border: Border.all(color: Colors.black54),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        '$value',
-        style: TextStyle(
-          color: color == null || color == QwixxColor.yellow
-              ? Colors.black
-              : Colors.white,
-          fontSize: 19,
-          fontWeight: FontWeight.w900,
+  Widget build(BuildContext context) {
+    final colorName = localizeText(context, color?.label ?? 'Weiß');
+    return Semantics(
+      label:
+          '$colorName ${localizeText(context, 'Würfel').toLowerCase()}: $value',
+      child: Container(
+        width: 46,
+        height: 38,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: background,
+          border: Border.all(color: Colors.black54),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          '$value',
+          style: TextStyle(
+            color: color == null || color == QwixxColor.yellow
+                ? Colors.black
+                : Colors.white,
+            fontSize: 19,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _QwixxRow extends StatelessWidget {
@@ -582,7 +598,7 @@ class _QwixxRow extends StatelessWidget {
           width: 34,
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(
+            child: LocalizedText(
               color.label,
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -604,7 +620,7 @@ class _QwixxRow extends StatelessWidget {
             ),
           ),
         Semantics(
-          label: '${color.label} Schloss: $lockStatus',
+          label: localizeText(context, '${color.label} Schloss: $lockStatus'),
           excludeSemantics: true,
           child: SizedBox(
             width: 38,
@@ -614,7 +630,7 @@ class _QwixxRow extends StatelessWidget {
                 Icon(lockIcon, color: Colors.white, size: 17),
                 if (globallyClosed || pendingSharedClosure)
                   FittedBox(
-                    child: Text(
+                    child: LocalizedText(
                       globallyClosed ? 'geschlossen' : 'ausstehend',
                       style: const TextStyle(
                         color: Colors.white,
@@ -649,42 +665,48 @@ class _NumberCell extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: enabled,
-    enabled: enabled,
-    excludeSemantics: true,
-    label:
-        '${color.label} $value: ${crossed
-            ? "angekreuzt"
-            : enabled
-            ? "verfügbar"
-            : "nicht verfügbar"}',
-    child: Padding(
-      padding: const EdgeInsets.only(right: 2),
-      child: Material(
-        color: crossed
-            ? const Color(0xFFE7E7E7)
-            : enabled
-            ? Colors.white
-            : const Color(0xFFCBCBCB),
-        borderRadius: BorderRadius.circular(6),
-        child: InkWell(
-          onTap: enabled ? onTap : null,
+  Widget build(BuildContext context) {
+    final colorName = localizeText(context, color.label);
+    final status = localizeText(
+      context,
+      crossed
+          ? 'angekreuzt'
+          : enabled
+          ? 'verfügbar'
+          : 'nicht verfügbar',
+    );
+    return Semantics(
+      button: enabled,
+      enabled: enabled,
+      excludeSemantics: true,
+      label: '$colorName $value: $status',
+      child: Padding(
+        padding: const EdgeInsets.only(right: 2),
+        child: Material(
+          color: crossed
+              ? const Color(0xFFE7E7E7)
+              : enabled
+              ? Colors.white
+              : const Color(0xFFCBCBCB),
           borderRadius: BorderRadius.circular(6),
-          child: Center(
-            child: Text(
-              crossed ? '×' : '$value',
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
+          child: InkWell(
+            onTap: enabled ? onTap : null,
+            borderRadius: BorderRadius.circular(6),
+            child: Center(
+              child: LocalizedText(
+                crossed ? '×' : '$value',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _CompactMisses extends StatelessWidget {
@@ -694,11 +716,15 @@ class _CompactMisses extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      const Text('Fehl: ', style: TextStyle(fontWeight: FontWeight.w700)),
+      const LocalizedText(
+        'Fehl: ',
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
       for (var index = 0; index < 4; index++)
         Semantics(
           label:
-              'Fehlwurf ${index + 1}: ${index < player.misses ? "markiert" : "frei"}',
+              '${localizeText(context, 'Fehlwurf')} ${index + 1}: '
+              '${localizeText(context, index < player.misses ? 'markiert' : 'frei')}',
           child: Container(
             width: 22,
             height: 22,
@@ -708,7 +734,7 @@ class _CompactMisses extends StatelessWidget {
               color: const Color(0xFFD5D5D5),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: Text(
+            child: LocalizedText(
               index < player.misses ? '×' : '',
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
@@ -729,19 +755,19 @@ class _ScoreSummary extends StatelessWidget {
         Expanded(
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text('${color.label}: ${player.rowScore(color)}'),
+            child: LocalizedText('${color.label}: ${player.rowScore(color)}'),
           ),
         ),
       Expanded(
         child: FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text('Fehl: ${player.missPenalty}'),
+          child: LocalizedText('Fehl: ${player.missPenalty}'),
         ),
       ),
       Expanded(
         child: FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(
+          child: LocalizedText(
             'Gesamt: ${player.total}',
             style: const TextStyle(fontWeight: FontWeight.w900),
           ),

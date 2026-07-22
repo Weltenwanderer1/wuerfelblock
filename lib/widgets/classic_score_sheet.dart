@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../models/game_models.dart';
 import '../models/rules_content.dart';
 import 'rules_widgets.dart';
@@ -61,7 +63,7 @@ class ClassicScoreSheet extends StatelessWidget {
               child: Column(
                 children: [
                   _sectionRow('OBERER BLOCK', _blue),
-                  for (final category in upper) _categoryRow(category),
+                  for (final category in upper) _categoryRow(context, category),
                   _summaryRow('Obere Summe', [
                     for (final player in state.players) player.upperTotal,
                   ]),
@@ -69,7 +71,7 @@ class ClassicScoreSheet extends StatelessWidget {
                     for (final player in state.players) state.bonusFor(player),
                   ], accent: _red),
                   _sectionRow('UNTERER BLOCK', _red),
-                  for (final category in lower) _categoryRow(category),
+                  for (final category in lower) _categoryRow(context, category),
                   if (state.ruleSet == RuleSet.kniffel)
                     _summaryRow('Zusatz-Kniffel', [
                       for (final player in state.players)
@@ -102,7 +104,7 @@ class ClassicScoreSheet extends StatelessWidget {
       topBorder: true,
       label: const Padding(
         padding: EdgeInsets.symmetric(horizontal: 10),
-        child: Text(
+        child: LocalizedText(
           'KATEGORIE',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.8),
         ),
@@ -111,7 +113,7 @@ class ClassicScoreSheet extends StatelessWidget {
         for (final player in state.players)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Text(
+            child: LocalizedText(
               player.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -136,7 +138,7 @@ class ClassicScoreSheet extends StatelessWidget {
         bottom: BorderSide(color: _ink, width: 1.5),
       ),
     ),
-    child: Text(
+    child: LocalizedText(
       label,
       style: TextStyle(
         color: accent,
@@ -147,7 +149,7 @@ class ClassicScoreSheet extends StatelessWidget {
     ),
   );
 
-  Widget _categoryRow(ScoreCategory category) {
+  Widget _categoryRow(BuildContext context, ScoreCategory category) {
     final face = category.isUpper
         ? String.fromCharCode(0x2680 + category.index)
         : null;
@@ -158,7 +160,7 @@ class ClassicScoreSheet extends StatelessWidget {
           if (face != null) ...[
             SizedBox(
               width: 34,
-              child: Text(
+              child: LocalizedText(
                 face,
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 25, height: 1),
@@ -168,7 +170,7 @@ class ClassicScoreSheet extends StatelessWidget {
           ] else
             const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: LocalizedText(
               category.displayLabel(state.ruleSet),
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
@@ -182,26 +184,32 @@ class ClassicScoreSheet extends StatelessWidget {
           playerIndex < state.players.length;
           playerIndex++
         )
-          _scoreCell(category, playerIndex),
+          _scoreCell(context, category, playerIndex),
       ],
     );
   }
 
-  Widget _scoreCell(ScoreCategory category, int playerIndex) {
+  Widget _scoreCell(
+    BuildContext context,
+    ScoreCategory category,
+    int playerIndex,
+  ) {
     final player = state.players[playerIndex];
     final score = player.scores[category];
     final key = Key('score-${category.name}-$playerIndex');
     if (score != null) {
       return Semantics(
         button: true,
-        label:
-            '${category.displayLabel(state.ruleSet)} für ${player.name}: $score Punkte',
-        hint: 'Punkte ändern oder Eintrag löschen',
+        label: localizeText(
+          context,
+          '${category.displayLabel(state.ruleSet)} für ${player.name}: $score Punkte',
+        ),
+        hint: localizeText(context, 'Punkte ändern oder Eintrag löschen'),
         child: InkWell(
           key: key,
           onTap: busy ? null : () => onEditScore(category, playerIndex),
           child: Center(
-            child: Text(
+            child: LocalizedText(
               '$score',
               style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
             ),
@@ -211,8 +219,10 @@ class ClassicScoreSheet extends StatelessWidget {
     }
     return Semantics(
       button: true,
-      label:
-          '${category.displayLabel(state.ruleSet)} für ${player.name} eintragen',
+      label: localizeText(
+        context,
+        '${category.displayLabel(state.ruleSet)} für ${player.name} eintragen',
+      ),
       child: InkWell(
         key: key,
         onTap: busy ? null : () => onEnterScore(category, playerIndex),
@@ -232,12 +242,15 @@ class ClassicScoreSheet extends StatelessWidget {
     foreground: inverted ? Colors.white : _ink,
     label: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+      child: LocalizedText(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w900),
+      ),
     ),
     cells: [
       for (final value in values)
         Center(
-          child: Text(
+          child: LocalizedText(
             '$value',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),

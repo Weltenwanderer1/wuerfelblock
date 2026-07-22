@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 /// A tactile, accessible poker die displaying 9, 10, B, D, K or A.
 class PokerDieWidget extends StatelessWidget {
   const PokerDieWidget({
@@ -30,11 +32,15 @@ class PokerDieWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final face = _faces[value - 1];
     final enabled = onTap != null;
+    final faceName = localizeText(context, _names[value - 1]);
+    final status = localizeText(
+      context,
+      held ? 'festgehalten' : 'nicht gehalten',
+    );
     return Semantics(
       button: enabled,
       selected: held,
-      label:
-          '${_names[value - 1]}, ${held ? 'festgehalten' : 'nicht gehalten'}',
+      label: '$faceName, $status',
       onTap: onTap,
       excludeSemantics: true,
       child: Material(
@@ -67,7 +73,7 @@ class PokerDieWidget extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Text(
+                LocalizedText(
                   face,
                   style: TextStyle(
                     color: _colors[value - 1],

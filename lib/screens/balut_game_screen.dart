@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/balut_controller.dart';
 import '../models/balut_models.dart';
 import '../models/game_models.dart';
@@ -50,9 +52,9 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
       await action();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Aktion fehlgeschlagen.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: LocalizedText('Aktion fehlgeschlagen.')),
+      );
     }
   }
 
@@ -60,18 +62,18 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Partie beenden?'),
-        content: const Text(
+        title: const LocalizedText('Partie beenden?'),
+        content: const LocalizedText(
           'Die aktuelle Balut-Partie wird verworfen und das Spiel zurückgesetzt.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Beenden'),
+            child: const LocalizedText('Beenden'),
           ),
         ],
       ),
@@ -82,9 +84,9 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
       if (mounted) Navigator.pop(context);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Beenden fehlgeschlagen.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: LocalizedText('Beenden fehlgeschlagen.')),
+      );
     }
   }
 
@@ -119,20 +121,20 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${category.label}: $score Punkte?'),
-        content: Text(
+        title: LocalizedText('${category.label}: $score Punkte?'),
+        content: LocalizedText(
           'Wertung wird in den nächsten freien Eintrag von '
           '${_state.activePlayer.name} übernommen.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             key: const Key('confirm-score'),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Werten'),
+            child: const LocalizedText('Werten'),
           ),
         ],
       ),
@@ -156,14 +158,14 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
       appBar: AppBar(
-        title: Text(
+        title: LocalizedText(
           state.isComplete
               ? 'Balut · Ergebnis'
               : 'Balut · ${active.name} ist dran',
         ),
         actions: [
           IconButton(
-            tooltip: 'Balut-Regeln',
+            tooltip: localizeText(context, 'Balut-Regeln'),
             onPressed: () => Navigator.push<void>(
               context,
               MaterialPageRoute(builder: (_) => const BalutRulesScreen()),
@@ -171,14 +173,14 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
             icon: const Icon(Icons.menu_book_outlined),
           ),
           IconButton(
-            tooltip: 'Letzte Wertung zurück',
+            tooltip: localizeText(context, 'Letzte Wertung zurück'),
             onPressed: _game.canUndo && !_game.isBusy
                 ? () => _run(_game.undo)
                 : null,
             icon: const Icon(Icons.undo),
           ),
           IconButton(
-            tooltip: 'Partie beenden',
+            tooltip: localizeText(context, 'Partie beenden'),
             onPressed: _game.isBusy ? null : _abandon,
             icon: const Icon(Icons.close),
           ),
@@ -199,6 +201,10 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
                     );
                     final sheet = _BalutSheet(
                       state: state,
+                      canScoreDigital:
+                          !_game.isBusy &&
+                          !_game.needsDigitalSaveRetry &&
+                          state.rollCount > 0,
                       displayedPlayerIndex: _displayedPlayerIndex,
                       onSelectPlayer: (index) =>
                           setState(() => _displayedPlayerIndex = index),
@@ -247,11 +253,11 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
             color: const Color(0xFFE7F6E7),
             child: ListTile(
               leading: const Icon(Icons.emoji_events, color: _balutAccent),
-              title: const Text(
+              title: const LocalizedText(
                 'Alle 28 Wertungen sind voll.',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
-              subtitle: Text(
+              subtitle: LocalizedText(
                 'Sieger: ${state.winners.map((player) => player.name).join(', ')}',
               ),
             ),
@@ -261,7 +267,7 @@ class _BalutGameScreenState extends State<BalutGameScreen> {
             key: const Key('balut-open-result'),
             onPressed: _game.isBusy ? null : _openResult,
             icon: const Icon(Icons.bar_chart),
-            label: const Text('Ergebnis anzeigen'),
+            label: const LocalizedText('Ergebnis anzeigen'),
           ),
         ],
       ),
@@ -291,7 +297,7 @@ class _DicePanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (isDigital) ...[
-              Text(
+              LocalizedText(
                 'Wurf ${state.rollCount}/3',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
@@ -327,7 +333,7 @@ class _DicePanel extends StatelessWidget {
             ] else
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
+                child: LocalizedText(
                   'Blockmodus: Mit echten Würfeln spielen und Werte unten eintragen.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -345,7 +351,7 @@ class _DicePanel extends StatelessWidget {
                     ? null
                     : () => onRun(game.retryDigitalSave),
                 icon: const Icon(Icons.save_outlined, size: 18),
-                label: const Text('Erneut speichern'),
+                label: const LocalizedText('Erneut speichern'),
               )
             else if (isDigital)
               FilledButton.icon(
@@ -354,7 +360,7 @@ class _DicePanel extends StatelessWidget {
                     ? () => onRun(game.rollDigital)
                     : null,
                 icon: const Icon(Icons.casino, size: 18),
-                label: Text(
+                label: LocalizedText(
                   state.rollCount == 0
                       ? 'Würfeln'
                       : 'Mit ${state.held.where((value) => !value).length} Würfeln weiter',
@@ -370,6 +376,7 @@ class _DicePanel extends StatelessWidget {
 class _BalutSheet extends StatelessWidget {
   const _BalutSheet({
     required this.state,
+    required this.canScoreDigital,
     required this.displayedPlayerIndex,
     required this.onSelectPlayer,
     required this.onEditBlock,
@@ -377,6 +384,7 @@ class _BalutSheet extends StatelessWidget {
   });
 
   final BalutGameState state;
+  final bool canScoreDigital;
   final int displayedPlayerIndex;
   final ValueChanged<int> onSelectPlayer;
   final void Function(BalutCategory category, int index) onEditBlock;
@@ -407,6 +415,7 @@ class _BalutSheet extends StatelessWidget {
                       category: category,
                       player: player,
                       state: state,
+                      canScoreDigital: canScoreDigital,
                       onEditBlock: (cat, idx) => onEditBlock(cat, idx),
                       onScoreDigital: (cat) => onScoreDigital(cat),
                     ),
@@ -438,10 +447,10 @@ class _PlayerPicker extends StatelessWidget {
       key: const Key('balut-player-picker'),
       initialValue: displayedPlayerIndex,
       isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'Block anzeigen',
+      decoration: InputDecoration(
+        labelText: localizeText(context, 'Block anzeigen'),
         isDense: true,
-        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       ),
       items: [
         for (var index = 0; index < state.players.length; index++)
@@ -466,12 +475,14 @@ class _CategoryRow extends StatelessWidget {
     required this.category,
     required this.player,
     required this.state,
+    required this.canScoreDigital,
     required this.onEditBlock,
     required this.onScoreDigital,
   });
   final BalutCategory category;
   final BalutPlayer player;
   final BalutGameState state;
+  final bool canScoreDigital;
   final void Function(BalutCategory category, int index) onEditBlock;
   final ValueChanged<BalutCategory> onScoreDigital;
 
@@ -488,7 +499,7 @@ class _CategoryRow extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
+                child: LocalizedText(
                   category.label,
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
@@ -496,7 +507,7 @@ class _CategoryRow extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
+              LocalizedText(
                 'Σ $categoryTotal',
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
@@ -525,7 +536,9 @@ class _CategoryRow extends StatelessWidget {
                       category: category,
                       index: index,
                       value: entries[index],
-                      canTap: isDigital ? entries[index] == null : true,
+                      canTap: isDigital
+                          ? canScoreDigital && entries[index] == null
+                          : true,
                       onTap: () {
                         if (isDigital) {
                           if (entries[index] == null) {
@@ -578,14 +591,14 @@ class _SlotCell extends StatelessWidget {
       onTap: canTap ? onTap : null,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        height: 36,
+        constraints: const BoxConstraints(minHeight: 48),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: filled ? const Color(0xFFFFE6BD) : const Color(0xFFFFFBEC),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFB59A6A)),
         ),
-        child: Text(
+        child: LocalizedText(
           filled ? '$value' : '·',
           style: TextStyle(
             color: filled ? _balutInk : const Color(0xFF8A7A55),
@@ -615,7 +628,7 @@ class _PlayerTotals extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         runSpacing: 2,
         children: [
-          Text(
+          LocalizedText(
             'Roh ${player.rawTotal}',
             style: const TextStyle(
               fontWeight: FontWeight.w900,
@@ -623,7 +636,7 @@ class _PlayerTotals extends StatelessWidget {
               fontSize: 13,
             ),
           ),
-          Text(
+          LocalizedText(
             'Bonus ${player.incentivePoints}',
             style: const TextStyle(
               fontWeight: FontWeight.w900,
@@ -631,7 +644,7 @@ class _PlayerTotals extends StatelessWidget {
               fontSize: 13,
             ),
           ),
-          Text(
+          LocalizedText(
             'Σ ${player.rawTotal + player.incentivePoints}',
             style: const TextStyle(
               fontWeight: FontWeight.w900,
@@ -690,12 +703,12 @@ class _BalutScoreDialogState extends State<_BalutScoreDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('${widget.category.label} für ${widget.playerName}'),
+      title: LocalizedText('${widget.category.label} für ${widget.playerName}'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
+          LocalizedText(
             'Vorschlag aus aktuellem Wurf: ${widget.suggested}',
             style: const TextStyle(fontSize: 13),
           ),
@@ -705,9 +718,12 @@ class _BalutScoreDialogState extends State<_BalutScoreDialog> {
             controller: _controller,
             keyboardType: const TextInputType.numberWithOptions(),
             decoration: InputDecoration(
-              labelText: 'Wert (${widget.index + 1}. Eintrag)',
+              labelText: localizeText(
+                context,
+                'Wert (${widget.index + 1}. Eintrag)',
+              ),
               border: const OutlineInputBorder(),
-              errorText: _error,
+              errorText: _error == null ? null : localizeText(context, _error!),
             ),
             onSubmitted: (_) => _submit(),
           ),
@@ -716,16 +732,16 @@ class _BalutScoreDialogState extends State<_BalutScoreDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, 0),
-          child: const Text('0 (streichen)'),
+          child: const LocalizedText('0 (streichen)'),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Abbrechen'),
+          child: const LocalizedText('Abbrechen'),
         ),
         FilledButton(
           key: const Key('balut-save-points'),
           onPressed: _submit,
-          child: const Text('Eintragen'),
+          child: const LocalizedText('Eintragen'),
         ),
       ],
     );

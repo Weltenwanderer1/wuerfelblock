@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../models/escalero_models.dart';
 
 /// Responsive 10 × 3 Escalero score sheet for one selected player.
@@ -23,7 +25,7 @@ class EscaleroScoreSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final player = state.players[playerIndex];
     return Semantics(
-      label: 'Escalero-Wertungsblatt für ${player.name}',
+      label: localizeText(context, 'Escalero-Wertungsblatt für ${player.name}'),
       child: Card(
         key: const Key('escalero-sheet'),
         margin: EdgeInsets.zero,
@@ -50,7 +52,7 @@ class EscaleroScoreSheet extends StatelessWidget {
                   for (var column = 0; column < 3; column++)
                     Expanded(
                       flex: 2,
-                      child: Text(
+                      child: LocalizedText(
                         '${1 << column} P',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
@@ -89,7 +91,7 @@ class EscaleroScoreSheet extends StatelessWidget {
                               child: Row(
                                 children: [
                                   Expanded(
-                                    child: Text(
+                                    child: LocalizedText(
                                       category.label,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
@@ -142,7 +144,7 @@ class EscaleroScoreSheet extends StatelessWidget {
                 children: [
                   const Expanded(
                     flex: 4,
-                    child: Text(
+                    child: LocalizedText(
                       'Summe',
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
@@ -150,7 +152,7 @@ class EscaleroScoreSheet extends StatelessWidget {
                   for (var column = 0; column < 3; column++)
                     Expanded(
                       flex: 2,
-                      child: Text(
+                      child: LocalizedText(
                         '${player.columnTotal(column)}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontWeight: FontWeight.w900),
@@ -182,27 +184,34 @@ class _ScoreCell extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: onTap != null,
-    enabled: onTap != null,
-    label:
-        '${category.label}, Kolonne ${column + 1}, $playerName: ${value == null ? 'frei' : '$value Punkte'}',
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(7),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 48),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: value == null ? Colors.white : const Color(0xFFFFD58A),
-          borderRadius: BorderRadius.circular(7),
-          border: Border.all(color: const Color(0xFFB88955)),
-        ),
-        child: Text(
-          value?.toString() ?? '·',
-          style: const TextStyle(fontWeight: FontWeight.w900),
+  Widget build(BuildContext context) {
+    final categoryName = localizeText(context, category.label);
+    final score = value == null
+        ? localizeText(context, 'frei')
+        : '$value ${localizeText(context, 'Punkte')}';
+    return Semantics(
+      button: onTap != null,
+      enabled: onTap != null,
+      label:
+          '$categoryName, ${localizeText(context, 'Kolonne')} ${column + 1}, '
+          '$playerName: $score',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(7),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: value == null ? Colors.white : const Color(0xFFFFD58A),
+            borderRadius: BorderRadius.circular(7),
+            border: Border.all(color: const Color(0xFFB88955)),
+          ),
+          child: LocalizedText(
+            value?.toString() ?? '·',
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

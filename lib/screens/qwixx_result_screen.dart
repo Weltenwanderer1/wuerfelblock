@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/qwixx_controller.dart';
 import '../models/qwixx_models.dart';
 import '../services/persistence_messages.dart';
@@ -41,7 +43,9 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+          const SnackBar(
+            content: LocalizedText(PersistenceMessages.saveFailed),
+          ),
         );
       }
     }
@@ -54,7 +58,9 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+          const SnackBar(
+            content: LocalizedText(PersistenceMessages.saveFailed),
+          ),
         );
       }
     }
@@ -71,13 +77,13 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: const Text('Qwixx-Ergebnis'),
+          title: const LocalizedText('Qwixx-Ergebnis'),
         ),
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             const Icon(Icons.emoji_events, size: 72, color: Color(0xFFF2B705)),
-            Text(
+            LocalizedText(
               title,
               textAlign: TextAlign.center,
               style: Theme.of(
@@ -106,19 +112,21 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
                         spacing: 14,
                         children: [
                           for (final color in QwixxColor.values)
-                            Text('${color.label}: ${player.rowScore(color)}'),
-                          Text('Fehlwürfe: ${player.missPenalty}'),
+                            LocalizedText(
+                              '${color.label}: ${player.rowScore(color)}',
+                            ),
+                          LocalizedText('Fehlwürfe: ${player.missPenalty}'),
                         ],
                       ),
                       const Divider(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          const LocalizedText(
                             'Gesamt',
                             style: TextStyle(fontWeight: FontWeight.w900),
                           ),
-                          Text(
+                          LocalizedText(
                             '${player.total}',
                             style: const TextStyle(
                               fontSize: 22,
@@ -135,11 +143,11 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
             OutlinedButton.icon(
               onPressed: game.canUndo ? _undo : null,
               icon: const Icon(Icons.undo),
-              label: const Text('Letzte Änderung rückgängig'),
+              label: const LocalizedText('Letzte Änderung rückgängig'),
             ),
             FilledButton(
               onPressed: _finish,
-              child: const Text('Zur Startseite'),
+              child: const LocalizedText('Zur Startseite'),
             ),
           ],
         ),

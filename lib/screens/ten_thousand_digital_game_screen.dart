@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/ten_thousand_controller.dart';
 import '../models/ten_thousand_rules.dart';
 import '../services/persistence_messages.dart';
@@ -40,7 +42,7 @@ class _TenThousandDigitalGameScreenState
 
   void _error() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+      const SnackBar(content: LocalizedText(PersistenceMessages.saveFailed)),
     );
   }
 
@@ -116,18 +118,18 @@ class _TenThousandDigitalGameScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Partie beenden?'),
-        content: const Text(
+        title: const LocalizedText('Partie beenden?'),
+        content: const LocalizedText(
           'Der gespeicherte 10.000-Spielstand wird gelöscht.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Partie beenden'),
+            child: const LocalizedText('Partie beenden'),
           ),
         ],
       ),
@@ -151,10 +153,10 @@ class _TenThousandDigitalGameScreenState
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
       appBar: AppBar(
-        title: const Text('10.000 · Digital'),
+        title: const LocalizedText('10.000 · Digital'),
         actions: [
           IconButton(
-            tooltip: '10.000-Regeln',
+            tooltip: localizeText(context, '10.000-Regeln'),
             onPressed: () => Navigator.push<void>(
               context,
               MaterialPageRoute(builder: (_) => const TenThousandRulesScreen()),
@@ -162,12 +164,12 @@ class _TenThousandDigitalGameScreenState
             icon: const Icon(Icons.menu_book_outlined),
           ),
           IconButton(
-            tooltip: 'Letzte Runde rückgängig',
+            tooltip: localizeText(context, 'Letzte Runde rückgängig'),
             onPressed: game.canUndo && !blocked ? () => _run(game.undo) : null,
             icon: const Icon(Icons.undo),
           ),
           IconButton(
-            tooltip: 'Partie beenden',
+            tooltip: localizeText(context, 'Partie beenden'),
             onPressed: game.isBusy ? null : _abandon,
             icon: const Icon(Icons.close),
           ),
@@ -189,10 +191,10 @@ class _TenThousandDigitalGameScreenState
                           color: const Color(0xFFFFD6A5),
                           child: ListTile(
                             leading: const Icon(Icons.save_outlined),
-                            title: const Text(
+                            title: const LocalizedText(
                               'Würfelstand noch nicht gespeichert',
                             ),
-                            subtitle: const Text(
+                            subtitle: const LocalizedText(
                               'Der Wurf bleibt stehen. Erst speichern, dann weiterspielen.',
                             ),
                             trailing: FilledButton(
@@ -200,7 +202,7 @@ class _TenThousandDigitalGameScreenState
                               onPressed: game.isBusy
                                   ? null
                                   : () => _run(game.retryDigitalSave),
-                              child: const Text('Erneut'),
+                              child: const LocalizedText('Erneut'),
                             ),
                           ),
                         ),
@@ -209,7 +211,7 @@ class _TenThousandDigitalGameScreenState
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
+                            child: LocalizedText(
                               active == null
                                   ? 'Partie beendet'
                                   : '${active.name} ist am Zug',
@@ -228,7 +230,7 @@ class _TenThousandDigitalGameScreenState
                               color: tenThousandAccent,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(
+                            child: LocalizedText(
                               '${turn.roundPoints} Punkte',
                               style: const TextStyle(
                                 color: Colors.white,
@@ -245,7 +247,7 @@ class _TenThousandDigitalGameScreenState
                           color: const Color(0xFFFFE1B8),
                           child: Padding(
                             padding: const EdgeInsets.all(10),
-                            child: Text(
+                            child: LocalizedText(
                               'Letzte Runde · Noch dran: ${state.finalRoundRemainingPlayerIndices.map((index) => state.players[index].name).join(', ')}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w900,
@@ -257,7 +259,7 @@ class _TenThousandDigitalGameScreenState
                       if (turn.mustRoll)
                         const Padding(
                           padding: EdgeInsets.only(top: 8),
-                          child: Text(
+                          child: LocalizedText(
                             'Alle 6 Würfel gewertet – der Bestätigungswurf ist Pflicht.',
                             style: TextStyle(
                               color: tenThousandAccent,
@@ -294,7 +296,7 @@ class _TenThousandDigitalGameScreenState
                           ],
                         )
                       else
-                        Text(
+                        LocalizedText(
                           '${turn.activeDiceCount} Würfel bereit',
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontWeight: FontWeight.w700),
@@ -307,7 +309,7 @@ class _TenThousandDigitalGameScreenState
                               ? null
                               : () => _run(game.rollDigital),
                           icon: const Icon(Icons.casino),
-                          label: Text(
+                          label: LocalizedText(
                             turn.activeDiceCount == 6
                                 ? 'Mit 6 Würfeln würfeln'
                                 : 'Mit ${turn.activeDiceCount} Würfeln weiterwürfeln',
@@ -320,10 +322,12 @@ class _TenThousandDigitalGameScreenState
                               ? null
                               : () => _run(game.confirmDigitalMacke),
                           icon: const Icon(Icons.block),
-                          label: const Text('Macke bestätigen · Runde 0'),
+                          label: const LocalizedText(
+                            'Macke bestätigen · Runde 0',
+                          ),
                         )
                       else ...[
-                        Text(
+                        LocalizedText(
                           turn.selectedValues.isEmpty
                               ? 'Tippe alle Würfel an, die du werten möchtest.'
                               : turn.selectedScore == null
@@ -346,7 +350,7 @@ class _TenThousandDigitalGameScreenState
                               ? () => _run(game.bankDigitalSelection)
                               : null,
                           icon: const Icon(Icons.add_circle_outline),
-                          label: const Text('Auswahl werten'),
+                          label: const LocalizedText('Auswahl werten'),
                         ),
                       ],
                       if (turn.canSecure) ...[
@@ -360,7 +364,9 @@ class _TenThousandDigitalGameScreenState
                               ? null
                               : () => _run(game.secureDigitalTurn),
                           icon: const Icon(Icons.savings_outlined),
-                          label: Text('${turn.roundPoints} Punkte sichern'),
+                          label: LocalizedText(
+                            '${turn.roundPoints} Punkte sichern',
+                          ),
                         ),
                       ],
                       if (!turn.isFresh &&
@@ -374,7 +380,9 @@ class _TenThousandDigitalGameScreenState
                               ? null
                               : () => _run(game.forfeitDigitalTurn),
                           icon: const Icon(Icons.skip_next),
-                          label: const Text('Durchgang beenden · 0 Punkte'),
+                          label: const LocalizedText(
+                            'Durchgang beenden · 0 Punkte',
+                          ),
                         ),
                       ],
                       const SizedBox(height: 14),

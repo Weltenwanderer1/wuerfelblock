@@ -41,6 +41,12 @@ app.*.map.json
 
 *.keystore
 *.jks
+*.pem
+*.p12
+.env
+.env.*
+key.properties
+google-services.json
 android/key.properties
 android/app/upload-keystore.jks
 

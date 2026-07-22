@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
 
@@ -14,7 +16,10 @@ class TotalsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Gesamtstand', style: Theme.of(context).textTheme.titleLarge),
+          LocalizedText(
+            'Gesamtstand',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 8),
           for (final player in state.players)
             Padding(
@@ -32,7 +37,7 @@ class TotalsCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
+                  LocalizedText(
                     '${state.totalFor(player)}',
                     style: const TextStyle(
                       fontSize: 20,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import 'balut_rules_screen.dart';
@@ -14,11 +16,11 @@ class RulesSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Spielregeln')),
+    appBar: AppBar(title: const LocalizedText('Spielregeln')),
     body: ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        Text(
+        LocalizedText(
           'Welche Spielanleitung möchtest du öffnen?',
           style: Theme.of(context).textTheme.titleLarge,
         ),
@@ -64,7 +66,10 @@ class RulesSelectionScreen extends StatelessWidget {
           ruleScreen: EscaleroRulesScreen(),
         ),
         const SizedBox(height: 12),
-        Text('Kartenspiele', style: Theme.of(context).textTheme.titleLarge),
+        LocalizedText(
+          'Kartenspiele',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: 8),
         const _RuleLink(
           key: Key('rules-link-crisps'),
@@ -117,12 +122,15 @@ class _RuleLink extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 8),
     child: Semantics(
       button: true,
-      label: '$title: $subtitle',
+      label: localizeText(context, '$title: $subtitle'),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         leading: Icon(icon, color: AppColors.plum, size: 30),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text(subtitle),
+        title: LocalizedText(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: LocalizedText(subtitle),
         trailing: const Icon(Icons.chevron_right, color: AppColors.plum),
         onTap: () => Navigator.push<void>(
           context,

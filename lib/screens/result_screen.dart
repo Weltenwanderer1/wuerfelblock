@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/game_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
@@ -47,7 +49,7 @@ class _ResultScreenState extends State<ResultScreen> {
   void _saveFailed() {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+      const SnackBar(content: LocalizedText(PersistenceMessages.saveFailed)),
     );
   }
 
@@ -80,18 +82,23 @@ class _ResultScreenState extends State<ResultScreen> {
                       size: 92,
                       color: AppColors.apricot,
                     ),
-                    Text(
+                    LocalizedText(
                       tied ? 'Gleichstand!' : 'Gewonnen!',
                       style: Theme.of(context).textTheme.headlineLarge,
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      tied
-                          ? winners.map((player) => player.name).join(' & ')
-                          : '${winners.first.name} gewinnt mit ${widget.game.state.totalFor(winners.first)} Punkten.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
+                    if (tied)
+                      Text(
+                        winners.map((player) => player.name).join(' & '),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      )
+                    else
+                      LocalizedText(
+                        '${winners.first.name} gewinnt mit ${widget.game.state.totalFor(winners.first)} Punkten.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                     const SizedBox(height: 24),
                     TotalsCard(state: widget.game.state),
                     const SizedBox(height: 20),
@@ -101,7 +108,7 @@ class _ResultScreenState extends State<ResultScreen> {
                             ? null
                             : _correctBlockScores,
                         icon: const Icon(Icons.edit_note),
-                        label: const Text('Wertungen korrigieren'),
+                        label: const LocalizedText('Wertungen korrigieren'),
                       ),
                       const SizedBox(height: 10),
                     ],
@@ -109,14 +116,16 @@ class _ResultScreenState extends State<ResultScreen> {
                       OutlinedButton.icon(
                         onPressed: widget.game.isBusy ? null : _undo,
                         icon: const Icon(Icons.undo),
-                        label: const Text('Letzten Eintrag rückgängig'),
+                        label: const LocalizedText(
+                          'Letzten Eintrag rückgängig',
+                        ),
                       ),
                       const SizedBox(height: 10),
                     ],
                     FilledButton.icon(
                       onPressed: widget.game.isBusy ? null : _home,
                       icon: const Icon(Icons.home),
-                      label: const Text('Zur Startseite'),
+                      label: const LocalizedText('Zur Startseite'),
                     ),
                   ],
                 ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/balut_controller.dart';
 import '../controllers/escalero_controller.dart';
 import '../controllers/game_controller.dart';
@@ -53,10 +55,9 @@ class SetupScreen extends StatefulWidget {
 class _SetupScreenState extends State<SetupScreen> {
   GameKind game = GameKind.yahtzeeKniffel;
   GameMode mode = GameMode.block;
-  final List<TextEditingController> names = [
-    TextEditingController(text: 'Spieler 1'),
-    TextEditingController(text: 'Spieler 2'),
-  ];
+  final List<TextEditingController> names = [];
+  final List<bool> nameWasEdited = [];
+  String? _defaultPlayerPrefix;
   bool starting = false;
   String? startError;
 
@@ -84,6 +85,35 @@ class _SetupScreenState extends State<SetupScreen> {
     return values.toSet().length != values.length;
   }
 
+  String get defaultPlayerPrefix =>
+      _defaultPlayerPrefix ?? localizeText(context, 'Spieler');
+
+  String defaultPlayerName(int index) => '$defaultPlayerPrefix ${index + 1}';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextPrefix = localizeText(context, 'Spieler');
+    final previousPrefix = _defaultPlayerPrefix;
+    if (names.isEmpty) {
+      _defaultPlayerPrefix = nextPrefix;
+      names.addAll([
+        TextEditingController(text: defaultPlayerName(0)),
+        TextEditingController(text: defaultPlayerName(1)),
+      ]);
+      nameWasEdited.addAll([false, false]);
+      return;
+    }
+    if (previousPrefix != null && previousPrefix != nextPrefix) {
+      for (var index = 0; index < names.length; index++) {
+        if (!nameWasEdited[index]) {
+          names[index].text = '$nextPrefix ${index + 1}';
+        }
+      }
+    }
+    _defaultPlayerPrefix = nextPrefix;
+  }
+
   @override
   void dispose() {
     for (final controller in names) {
@@ -98,29 +128,32 @@ class _SetupScreenState extends State<SetupScreen> {
       if (isQwixx || isEscalero) {
         while (names.length > maximumPlayers) {
           names.removeLast().dispose();
+          nameWasEdited.removeLast();
         }
       }
       while (names.length < minimumPlayers) {
-        names.add(TextEditingController(text: 'Spieler ${names.length + 1}'));
+        names.add(TextEditingController(text: defaultPlayerName(names.length)));
+        nameWasEdited.add(false);
       }
     });
   }
 
   void addPlayer() {
     if (names.length == maximumPlayers) return;
-    setState(
-      () =>
-          names.add(TextEditingController(text: 'Spieler ${names.length + 1}')),
-    );
+    setState(() {
+      names.add(TextEditingController(text: defaultPlayerName(names.length)));
+      nameWasEdited.add(false);
+    });
   }
 
   void removePlayer(int index) {
     if (names.length <= minimumPlayers) return;
     setState(() {
       names.removeAt(index).dispose();
+      nameWasEdited.removeAt(index);
       for (var playerIndex = 0; playerIndex < names.length; playerIndex++) {
-        if (RegExp(r'^Spieler \d+$').hasMatch(names[playerIndex].text)) {
-          names[playerIndex].text = 'Spieler ${playerIndex + 1}';
+        if (!nameWasEdited[playerIndex]) {
+          names[playerIndex].text = defaultPlayerName(playerIndex);
         }
       }
     });
@@ -182,28 +215,31 @@ class _SetupScreenState extends State<SetupScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Neue Partie')),
+    appBar: AppBar(title: const LocalizedText('Neue Partie')),
     bottomNavigationBar: SafeArea(
       minimum: const EdgeInsets.fromLTRB(20, 8, 20, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (duplicate) ...[
-            const Text(
+            const LocalizedText(
               'Namen müssen eindeutig sein.',
               style: TextStyle(color: Colors.redAccent),
             ),
             const SizedBox(height: 8),
           ],
           if (startError case final error?) ...[
-            Text(error, style: const TextStyle(color: Colors.redAccent)),
+            LocalizedText(
+              error,
+              style: const TextStyle(color: Colors.redAccent),
+            ),
             const SizedBox(height: 8),
           ],
           FilledButton.icon(
             key: const Key('start-game'),
             onPressed: valid && !starting ? start : null,
             icon: const Icon(Icons.casino),
-            label: const Text('Partie starten'),
+            label: const LocalizedText('Partie starten'),
           ),
         ],
       ),
@@ -211,7 +247,7 @@ class _SetupScreenState extends State<SetupScreen> {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Spiel', style: Theme.of(context).textTheme.titleLarge),
+        LocalizedText('Spiel', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -234,7 +270,10 @@ class _SetupScreenState extends State<SetupScreen> {
           },
         ),
         const SizedBox(height: 22),
-        Text('Spielart', style: Theme.of(context).textTheme.titleLarge),
+        LocalizedText(
+          'Spielart',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -253,7 +292,7 @@ class _SetupScreenState extends State<SetupScreen> {
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Text(
+          child: LocalizedText(
             mode.longDescription,
             key: const Key('game-mode-help'),
             style: const TextStyle(
@@ -266,43 +305,46 @@ class _SetupScreenState extends State<SetupScreen> {
         Row(
           children: [
             Expanded(
-              child: Text(
+              child: LocalizedText(
                 'Spieler (${names.length}/$maximumPlayers)',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
             IconButton(
               key: const Key('add-player'),
-              tooltip: 'Spieler hinzufügen',
+              tooltip: localizeText(context, 'Spieler hinzufügen'),
               onPressed: names.length < maximumPlayers ? addPlayer : null,
               icon: const Icon(Icons.person_add_alt_1),
             ),
           ],
         ),
-        if (isQwixx) const Text('Qwixx wird mit 2 bis 5 Personen gespielt.'),
+        if (isQwixx)
+          const LocalizedText('Qwixx wird mit 2 bis 5 Personen gespielt.'),
         if (game == GameKind.yahtzeeKniffel)
-          const Text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),
+          const LocalizedText(
+            'Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.',
+          ),
         if (game == GameKind.tenThousand)
-          const Text('10.000 wird mit 2 bis 8 Personen gespielt.'),
+          const LocalizedText('10.000 wird mit 2 bis 8 Personen gespielt.'),
         if (game == GameKind.balut)
-          const Text('Balut wird mit 2 bis 8 Personen gespielt.'),
+          const LocalizedText('Balut wird mit 2 bis 8 Personen gespielt.'),
         if (game == GameKind.escalero)
-          const Text('Escalero wird mit 2 bis 3 Personen gespielt.'),
+          const LocalizedText('Escalero wird mit 2 bis 3 Personen gespielt.'),
         for (var index = 0; index < names.length; index++)
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: TextFormField(
               controller: names[index],
-              onChanged: (_) => setState(() {}),
+              onChanged: (_) => setState(() => nameWasEdited[index] = true),
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
-                labelText: 'Name Spieler ${index + 1}',
+                labelText: localizeText(context, 'Name Spieler ${index + 1}'),
                 prefixIcon: const Icon(Icons.person_outline),
                 suffixIcon: names.length > minimumPlayers
                     ? IconButton(
                         onPressed: () => removePlayer(index),
                         icon: const Icon(Icons.close),
-                        tooltip: 'Spieler entfernen',
+                        tooltip: localizeText(context, 'Spieler entfernen'),
                       )
                     : null,
               ),
@@ -335,7 +377,7 @@ class _ChoiceCard extends StatelessWidget {
       selected: selected,
       button: true,
       inMutuallyExclusiveGroup: true,
-      label: '$label, $detail',
+      label: localizeText(context, '$label, $detail'),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
@@ -348,12 +390,12 @@ class _ChoiceCard extends StatelessWidget {
                 color: AppColors.plum,
               ),
               const SizedBox(height: 7),
-              Text(
+              LocalizedText(
                 label,
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              Text(
+              LocalizedText(
                 detail,
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 12),

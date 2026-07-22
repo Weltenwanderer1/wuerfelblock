@@ -1,4 +1,4 @@
-name: Android APK
+name: Android release
 
 on:
   push:
@@ -22,16 +22,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: '3.41.5'
           channel: stable
@@ -47,6 +47,7 @@ jobs:
         run: flutter test
 
       - name: Prepare release signing
+        if: github.event_name != 'pull_request'
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -54,21 +55,62 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           test -n "$KEYSTORE_BASE64"
+          test -n "$STORE_PASSWORD"
+          test -n "$KEY_PASSWORD"
+          test -n "$KEY_ALIAS"
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
           printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
             "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
 
-      - name: Build signed release APK
-        run: flutter build apk --release
+      - name: Build signed ARM64 APK
+        if: github.event_name != 'pull_request'
+        run: flutter build apk --release --target-platform android-arm64 --split-per-abi
 
-      - name: Prepare artifact
-        run: cp build/app/outputs/flutter-apk/app-release.apk "wuerfelblock-${GITHUB_REF_NAME}.apk"
+      - name: Build signed Play App Bundle
+        if: github.event_name != 'pull_request'
+        run: flutter build appbundle --release
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+      - name: Verify signed release artifacts
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-arm64-v8a-release.apk"
+          AAB=build/app/outputs/bundle/release/app-release.aab
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          VERSION="$(python3 -c "import re; print(re.search(r'^version:\\s*(\\S+)', open('pubspec.yaml').read(), re.M).group(1))")"
+          VERSION_NAME="${VERSION%+*}"
+          VERSION_CODE="${VERSION#*+}"
+          APK_VERSION_CODE="$((2000 + VERSION_CODE))"
+
+          "$BUILD_TOOLS/apksigner" verify --verbose "$APK"
+          jarsigner -verify "$AAB"
+
+          BADGING="$("$BUILD_TOOLS/aapt" dump badging "$APK")"
+          grep -F "package: name='at.weltenwanderer.wuerfelblock' versionCode='$APK_VERSION_CODE' versionName='$VERSION_NAME'" <<<"$BADGING"
+
+          PERMISSIONS="$("$BUILD_TOOLS/aapt" dump permissions "$APK")"
+          if grep -Eq 'android.permission.(INTERNET|ACCESS_NETWORK_STATE|CAMERA|RECORD_AUDIO|READ_CONTACTS|WRITE_CONTACTS)' <<<"$PERMISSIONS"; then
+            printf '%s\n' "$PERMISSIONS"
+            echo 'Unexpected sensitive/network permission in release APK.' >&2
+            exit 1
+          fi
+
+      - name: Prepare artifacts
+        if: github.event_name != 'pull_request'
+        run: |
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "wuerfelblock-${GITHUB_REF_NAME}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "wuerfelblock-${GITHUB_REF_NAME}.aab"
+          sha256sum "wuerfelblock-${GITHUB_REF_NAME}.apk" "wuerfelblock-${GITHUB_REF_NAME}.aab" > SHA256SUMS
+
+      - name: Upload Android artifacts
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: wuerfelblock-${{ github.ref_name }}
-          path: wuerfelblock-${{ github.ref_name }}.apk
+          path: |
+            wuerfelblock-${{ github.ref_name }}.apk
+            wuerfelblock-${{ github.ref_name }}.aab
+            SHA256SUMS
           if-no-files-found: error
           retention-days: 30
 
@@ -80,13 +122,16 @@ jobs:
       contents: write
 
     steps:
-      - name: Download signed APK
-        uses: actions/download-artifact@v4
+      - name: Download signed Android artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: wuerfelblock-${{ github.ref_name }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
-          files: wuerfelblock-${{ github.ref_name }}.apk
+          files: |
+            wuerfelblock-${{ github.ref_name }}.apk
+            wuerfelblock-${{ github.ref_name }}.aab
+            SHA256SUMS
           generate_release_notes: true

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 class QwixxRulesScreen extends StatelessWidget {
   const QwixxRulesScreen({super.key});
 
@@ -40,34 +42,39 @@ class QwixxRulesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Qwixx-Regeln')),
+    appBar: AppBar(title: const LocalizedText('Qwixx-Regeln')),
     body: SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          const LocalizedText(
             'Schnell erklärt',
             style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
-          const Text('Für 2–5 Personen · Blockmodus oder digitale Würfel'),
+          const LocalizedText(
+            'Für 2–5 Personen · Blockmodus oder digitale Würfel',
+          ),
           const SizedBox(height: 16),
           for (final section in sections)
             Card(
+              semanticContainer: false,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      section.$1,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
+                    Semantics(
+                      header: true,
+                      child: LocalizedText(
+                        section.$1,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(section.$2),
+                    LocalizedText(section.$2),
                   ],
                 ),
               ),

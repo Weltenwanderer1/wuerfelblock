@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'l10n/app_localizations.dart';
+import 'l10n/localized_text.dart';
+
 import 'controllers/balut_controller.dart';
 import 'controllers/escalero_controller.dart';
 import 'controllers/game_controller.dart';
@@ -28,23 +31,47 @@ import 'screens/ten_thousand_digital_game_screen.dart';
 import 'screens/ten_thousand_result_screen.dart';
 import 'services/game_repository.dart';
 import 'services/load_generation.dart';
+import 'services/locale_controller.dart';
 
 class WuerfelblockApp extends StatelessWidget {
-  const WuerfelblockApp({required this.repository, super.key});
+  WuerfelblockApp({
+    required this.repository,
+    LocaleController? localeController,
+    super.key,
+  }) : localeController = localeController ?? LocaleController.ephemeral();
+
   final GameRepository repository;
+  final LocaleController localeController;
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Würfelblock',
-    debugShowCheckedModeBanner: false,
-    theme: buildTheme(),
-    home: _HomeHost(repository: repository),
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: localeController,
+    builder: (context, _) => MaterialApp(
+      onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(),
+      locale: localeController.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localeListResolutionCallback: (locales, supportedLocales) {
+        for (final locale in locales ?? const <Locale>[]) {
+          if (locale.languageCode == 'en') return const Locale('en');
+          if (locale.languageCode == 'de') return const Locale('de');
+        }
+        return const Locale('de');
+      },
+      home: _HomeHost(
+        repository: repository,
+        localeController: localeController,
+      ),
+    ),
   );
 }
 
 class _HomeHost extends StatefulWidget {
-  const _HomeHost({required this.repository});
+  const _HomeHost({required this.repository, required this.localeController});
   final GameRepository repository;
+  final LocaleController localeController;
 
   @override
   State<_HomeHost> createState() => _HomeHostState();
@@ -80,7 +107,7 @@ class _HomeHostState extends State<_HomeHost> {
     if (showCorruptionMessage && corruptionReason != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(corruptionReason),
+          content: LocalizedText(corruptionReason),
           duration: const Duration(seconds: 6),
         ),
       );
@@ -133,18 +160,18 @@ class _HomeHostState extends State<_HomeHost> {
       final discard = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Gespeicherte Partie verwerfen?'),
-          content: const Text(
+          title: const LocalizedText('Gespeicherte Partie verwerfen?'),
+          content: const LocalizedText(
             'Wenn du neu startest, wird die laufende Partie gelöscht.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Abbrechen'),
+              child: const LocalizedText('Abbrechen'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Verwerfen'),
+              child: const LocalizedText('Verwerfen'),
             ),
           ],
         ),
@@ -172,6 +199,7 @@ class _HomeHostState extends State<_HomeHost> {
     }
     return HomeScreen(
       savedGame: saved,
+      localeController: widget.localeController,
       onNewGame: _newGame,
       onContinue: () {
         final state = saved;

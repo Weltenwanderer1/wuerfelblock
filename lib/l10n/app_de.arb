@@ -1,0 +1,20 @@
+{
+  "@@locale": "de",
+  "appTitle": "Würfelblock",
+  "newGame": "Neue Partie",
+  "aboutTitle": "Über Würfelblock",
+  "privacySummary": "Keine Konten, Werbung, Analyse, Tracking oder Netzwerkzugriffe.",
+  "language": "Sprache",
+  "german": "Deutsch",
+  "english": "Englisch",
+  "settingsAndInfo": "Einstellungen & Info",
+  "manufacturer": "Entwickelt von",
+  "manufacturerName": "Günther Schuch",
+  "versionInformation": "Würfelblock wird als signierte Android-App veröffentlicht.",
+  "privacyTitle": "Datenschutz & Offline-Nutzung",
+  "privacySummaryLong": "Würfelblock funktioniert vollständig offline. Es gibt keine Konten, Werbung, Analyse, Tracking oder Netzwerkzugriffe.",
+  "localData": "Spielstände, eingegebene Namen und die Sprachwahl bleiben ausschließlich lokal auf diesem Gerät. Android-Cloud-Backup und Geräteübertragung sind deaktiviert.",
+  "deleteData": "Diese lokalen Daten können durch das Löschen einer laufenden Partie oder durch Deinstallieren der App entfernt werden.",
+  "developerNoAccess": "Der Entwickler hat keinen Zugriff auf Namen, Spielstände oder andere lokale App-Daten. Es werden keine Daten an Dritte übermittelt.",
+  "languageSaveFailed": "Die Sprachwahl konnte nicht gespeichert werden."
+}

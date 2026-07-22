@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/escalero_controller.dart';
 import 'escalero_game_screen.dart';
 import 'escalero_rules_screen.dart';
@@ -52,11 +54,11 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
         backgroundColor: const Color(0xFFFFF8E8),
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: const Text('Escalero · Ergebnis'),
+          title: const LocalizedText('Escalero · Ergebnis'),
           actions: [
             IconButton(
               key: const Key('escalero-result-rules'),
-              tooltip: 'Escalero-Regeln',
+              tooltip: localizeText(context, 'Escalero-Regeln'),
               onPressed: () => Navigator.push<void>(
                 context,
                 MaterialPageRoute(builder: (_) => const EscaleroRulesScreen()),
@@ -76,11 +78,11 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
                     Icons.emoji_events,
                     color: Color(0xFF8A4B08),
                   ),
-                  title: Text(
+                  title: LocalizedText(
                     'Gewonnen: ${state.winners.map((p) => p.name).join(', ')}',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
-                  subtitle: const Text(
+                  subtitle: const LocalizedText(
                     'Abrechnung ausschließlich nach den Spielpunkten.',
                   ),
                 ),
@@ -112,7 +114,7 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
               const Card(
                 child: Padding(
                   padding: EdgeInsets.all(12),
-                  child: Text(
+                  child: LocalizedText(
                     'Kolonnenwert: 1 · 2 · 4 Spielpunkte. Pro Kolonne kassiert die Person mit der höchsten Summe den Kolonnenwert von jedem Gegner. Ein Gewinn aller drei Kolonnen bringt zusätzlich 2 Punkte pro Gegner. Bei Gleichstand an der Spitze erhält niemand Punkte.',
                     style: TextStyle(height: 1.35),
                   ),
@@ -121,7 +123,7 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
+                  child: LocalizedText(
                     error!,
                     style: const TextStyle(color: Colors.red),
                   ),
@@ -130,14 +132,14 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
                 key: const Key('escalero-correct-scores'),
                 onPressed: busy || widget.game.isBusy ? null : _correctScores,
                 icon: const Icon(Icons.edit_note),
-                label: const Text('Wertungen korrigieren'),
+                label: const LocalizedText('Wertungen korrigieren'),
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
                 key: const Key('escalero-finish'),
                 onPressed: busy ? null : _finish,
                 icon: const Icon(Icons.home),
-                label: const Text('Zur Startseite'),
+                label: const LocalizedText('Zur Startseite'),
               ),
             ],
           ),
@@ -189,7 +191,7 @@ class _PlayerResult extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
+              LocalizedText(
                 '${gamePoints >= 0 ? '+' : ''}$gamePoints SP',
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
@@ -205,11 +207,11 @@ class _PlayerResult extends StatelessWidget {
             runSpacing: 4,
             children: [
               for (var i = 0; i < 3; i++)
-                Text(
+                LocalizedText(
                   'K${i + 1}: ${columns[i]}',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-              Text(
+              LocalizedText(
                 'Roh: $raw',
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),

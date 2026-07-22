@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../models/rules_content.dart';
@@ -13,7 +15,7 @@ class RulesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final content = RulesContent.forRuleSet(ruleSet);
     return Scaffold(
-      appBar: AppBar(title: Text(content.title)),
+      appBar: AppBar(title: LocalizedText(content.title)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -21,9 +23,15 @@ class RulesScreen extends StatelessWidget {
           const SizedBox(height: 12),
           for (final section in content.sections)
             _RuleSectionCard(section: section),
-          Text('Kategorien', style: Theme.of(context).textTheme.headlineMedium),
+          Semantics(
+            header: true,
+            child: LocalizedText(
+              'Kategorien',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(
+          LocalizedText(
             'Tippe im Spiel auf das Info-Symbol neben einer Kategorie, um diese Erklärung schnell wiederzufinden.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
@@ -31,15 +39,15 @@ class RulesScreen extends StatelessWidget {
           for (final help in content.categories)
             Card(
               child: ExpansionTile(
-                title: Text(
+                title: LocalizedText(
                   help.title,
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
-                subtitle: Text(help.explanation),
+                subtitle: LocalizedText(help.explanation),
                 childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 expandedCrossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  LocalizedText(
                     'Beispiel: ${help.example}',
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
@@ -74,7 +82,7 @@ class _IntroBanner extends StatelessWidget {
         const Icon(Icons.casino_outlined, size: 38, color: Color(0xFF264F78)),
         const SizedBox(width: 14),
         Expanded(
-          child: Text(
+          child: LocalizedText(
             '${ruleSet.label} einfach erklärt – vom ersten Wurf bis zur Endabrechnung.',
             style: Theme.of(context).textTheme.titleLarge,
           ),
@@ -92,6 +100,7 @@ class _RuleSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
+    semanticContainer: false,
     margin: const EdgeInsets.only(bottom: 10),
     shape: RoundedRectangleBorder(
       side: BorderSide(color: accent ?? const Color(0xFF264F78), width: 1),
@@ -102,9 +111,18 @@ class _RuleSectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(section.title, style: Theme.of(context).textTheme.titleLarge),
+          Semantics(
+            header: true,
+            child: LocalizedText(
+              section.title,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(section.body, style: Theme.of(context).textTheme.bodyLarge),
+          LocalizedText(
+            section.body,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
         ],
       ),
     ),

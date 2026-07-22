@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/balut_controller.dart';
 import '../models/balut_models.dart';
 import 'balut_rules_screen.dart';
@@ -52,12 +54,12 @@ class _BalutResultScreenState extends State<BalutResultScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFFFF8E8),
         appBar: AppBar(
-          title: const Text('Balut · Ergebnis'),
+          title: const LocalizedText('Balut · Ergebnis'),
           automaticallyImplyLeading: false,
           actions: [
             IconButton(
               key: const Key('balut-result-rules'),
-              tooltip: 'Balut-Regeln',
+              tooltip: localizeText(context, 'Balut-Regeln'),
               onPressed: () => Navigator.push<void>(
                 context,
                 MaterialPageRoute(builder: (_) => const BalutRulesScreen()),
@@ -74,14 +76,14 @@ class _BalutResultScreenState extends State<BalutResultScreen> {
                 color: const Color(0xFFE7F6E7),
                 child: ListTile(
                   leading: const Icon(Icons.emoji_events, color: _balutAccent),
-                  title: Text(
+                  title: LocalizedText(
                     'Sieger: ${winners.map((player) => player.name).join(', ')}',
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       color: _balutInk,
                     ),
                   ),
-                  subtitle: Text(
+                  subtitle: LocalizedText(
                     '28 Wertungen pro Person · Gesamtpunkte aus Roh- und Incentive-Punkten.',
                     style: const TextStyle(color: _balutInk),
                   ),
@@ -91,14 +93,17 @@ class _BalutResultScreenState extends State<BalutResultScreen> {
               for (final player in sorted) _ResultRow(player: player),
               const SizedBox(height: 18),
               if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+                LocalizedText(
+                  _error!,
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
                 const SizedBox(height: 8),
               ],
               FilledButton.icon(
                 key: const Key('balut-finish'),
                 onPressed: _busy ? null : _close,
                 icon: const Icon(Icons.home),
-                label: const Text('Zur Startseite'),
+                label: const LocalizedText('Zur Startseite'),
               ),
             ],
           ),
@@ -137,12 +142,12 @@ class _ResultRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('Roh ${player.rawTotal}'),
-              Text('Bonus ${player.incentivePoints}'),
+              LocalizedText('Roh ${player.rawTotal}'),
+              LocalizedText('Bonus ${player.incentivePoints}'),
             ],
           ),
           const SizedBox(width: 14),
-          Text(
+          LocalizedText(
             '${player.rawTotal + player.incentivePoints}',
             style: const TextStyle(
               color: _balutAccent,

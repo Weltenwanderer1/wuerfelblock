@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/localized_text.dart';
+
 import '../controllers/ten_thousand_controller.dart';
 import '../services/persistence_messages.dart';
 import '../widgets/ten_thousand_score_sheet.dart';
@@ -36,7 +38,7 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
 
   void _showSaveError() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(PersistenceMessages.saveFailed)),
+      const SnackBar(content: LocalizedText(PersistenceMessages.saveFailed)),
     );
   }
 
@@ -73,19 +75,19 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Fehlwurf (0) eintragen?'),
-        content: Text(
+        title: const LocalizedText('Fehlwurf (0) eintragen?'),
+        content: LocalizedText(
           'Für ${player.name} werden 0 Punkte eingetragen. Der Zug geht danach an die nächste Person.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             key: const Key('confirm-bust'),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Fehlwurf eintragen'),
+            child: const LocalizedText('Fehlwurf eintragen'),
           ),
         ],
       ),
@@ -150,17 +152,19 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Partie beenden?'),
-        content: const Text('Der gespeicherte 10.000-Block wird gelöscht.'),
+        title: const LocalizedText('Partie beenden?'),
+        content: const LocalizedText(
+          'Der gespeicherte 10.000-Block wird gelöscht.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const LocalizedText('Abbrechen'),
           ),
           FilledButton(
             key: const Key('confirm-abandon'),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Partie beenden'),
+            child: const LocalizedText('Partie beenden'),
           ),
         ],
       ),
@@ -182,10 +186,10 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
       appBar: AppBar(
-        title: const Text('10.000-Block'),
+        title: const LocalizedText('10.000-Block'),
         actions: [
           IconButton(
-            tooltip: '10.000-Regeln',
+            tooltip: localizeText(context, '10.000-Regeln'),
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: () => Navigator.push<void>(
               context,
@@ -194,7 +198,7 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
             icon: const Icon(Icons.menu_book_outlined),
           ),
           IconButton(
-            tooltip: 'Letzte Änderung rückgängig',
+            tooltip: localizeText(context, 'Letzte Änderung rückgängig'),
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: game.canUndo && !game.isBusy
                 ? () => _run(game.undo)
@@ -203,7 +207,7 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
           ),
           IconButton(
             key: const Key('abandon-game'),
-            tooltip: 'Partie beenden',
+            tooltip: localizeText(context, 'Partie beenden'),
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: game.isBusy ? null : _abandon,
             icon: const Icon(Icons.close),
@@ -223,7 +227,10 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
                     children: [
                       if (active != null)
                         Semantics(
-                          label: 'Aktive Person: ${active.name}',
+                          label: localizeText(
+                            context,
+                            'Aktive Person: ${active.name}',
+                          ),
                           container: true,
                           excludeSemantics: true,
                           child: Container(
@@ -245,7 +252,7 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
+                                      const LocalizedText(
                                         'JETZT AM ZUG',
                                         style: TextStyle(
                                           color: tenThousandAccentSoft,
@@ -254,7 +261,7 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
                                           letterSpacing: 1.2,
                                         ),
                                       ),
-                                      Text(
+                                      LocalizedText(
                                         active.name,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -279,7 +286,10 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
                           Expanded(
                             child: Semantics(
                               button: true,
-                              label: 'Punkte für aktive Person eintragen',
+                              label: localizeText(
+                                context,
+                                'Punkte für aktive Person eintragen',
+                              ),
                               child: FilledButton.icon(
                                 key: const Key('enter-points'),
                                 style: FilledButton.styleFrom(
@@ -288,7 +298,7 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
                                 ),
                                 onPressed: game.isBusy ? null : _enterPoints,
                                 icon: const Icon(Icons.edit_outlined),
-                                label: const Text('Punkte'),
+                                label: const LocalizedText('Punkte'),
                               ),
                             ),
                           ),
@@ -296,7 +306,10 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
                           Expanded(
                             child: Semantics(
                               button: true,
-                              label: 'Fehlwurf mit 0 Punkten eintragen',
+                              label: localizeText(
+                                context,
+                                'Fehlwurf mit 0 Punkten eintragen',
+                              ),
                               child: OutlinedButton.icon(
                                 key: const Key('bust-turn'),
                                 style: OutlinedButton.styleFrom(
@@ -309,7 +322,7 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
                                 ),
                                 onPressed: game.isBusy ? null : _enterBust,
                                 icon: const Icon(Icons.block),
-                                label: const Text('Fehlwurf (0)'),
+                                label: const LocalizedText('Fehlwurf (0)'),
                               ),
                             ),
                           ),
@@ -321,8 +334,8 @@ class _TenThousandGameScreenState extends State<TenThousandGameScreen> {
                 ),
                 TenThousandScoreSheet(
                   state: state,
-                  onEdit: game.isBusy ? (_) {} : _editTurn,
-                  onDelete: game.isBusy ? (_) {} : _deleteTurn,
+                  onEdit: game.isBusy ? null : _editTurn,
+                  onDelete: game.isBusy ? null : _deleteTurn,
                 ),
               ],
             ),
@@ -355,14 +368,14 @@ class _RoundBanner extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const LocalizedText(
               'Letzte Runde',
               style: TextStyle(
                 color: tenThousandAccent,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            Text('Noch am Zug: $names'),
+            LocalizedText('Noch am Zug: $names'),
           ],
         ),
       );
@@ -372,7 +385,7 @@ class _RoundBanner extends StatelessWidget {
         Icon(Icons.flag_outlined, size: 20, color: tenThousandAccent),
         SizedBox(width: 8),
         Expanded(
-          child: Text(
+          child: LocalizedText(
             'Mindestens 350 Punkte sichern · ab 10.000 beginnt die letzte Runde.',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
