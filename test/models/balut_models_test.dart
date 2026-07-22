@@ -16,6 +16,9 @@ void main() {
       ]);
       expect(BalutPlayer.entriesPerCategory, 4);
       expect(BalutPlayer.entriesPerSheet, 28);
+      expect(BalutCategory.fours.bonusHint, 'Bonus +2 ab 52');
+      expect(BalutCategory.straights.bonusHint, 'Bonus +4 bei 4 Straßen');
+      expect(BalutCategory.balut.bonusHint, 'Bonus +2 je Balut');
     });
 
     test('scores number categories using matching dice only', () {
@@ -36,6 +39,50 @@ void main() {
       expect(BalutScoring.score(BalutCategory.choice, [1, 2, 3, 4, 6]), 16);
       expect(BalutScoring.score(BalutCategory.balut, [6, 6, 6, 6, 6]), 50);
       expect(BalutScoring.score(BalutCategory.balut, [6, 6, 6, 6, 5]), 0);
+    });
+
+    test('lists every valid score for each category for block input', () {
+      expect(BalutScoring.validScores(BalutCategory.fours), [
+        0,
+        4,
+        8,
+        12,
+        16,
+        20,
+      ]);
+      expect(BalutScoring.validScores(BalutCategory.straights), [0, 15, 20]);
+      expect(BalutScoring.validScores(BalutCategory.fullHouse), [
+        0,
+        7,
+        8,
+        9,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        26,
+        27,
+        28,
+      ]);
+      expect(BalutScoring.validScores(BalutCategory.balut), [
+        0,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+      ]);
     });
 
     test('requires exactly five valid dice', () {

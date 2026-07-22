@@ -15,6 +15,29 @@ extension BalutCategoryInfo on BalutCategory {
     BalutCategory.choice => 'Choice',
     BalutCategory.balut => 'Balut',
   };
+
+  String get bonusHint => switch (this) {
+    BalutCategory.fours => 'Bonus +2 ab 52',
+    BalutCategory.fives => 'Bonus +2 ab 65',
+    BalutCategory.sixes => 'Bonus +2 ab 78',
+    BalutCategory.straights => 'Bonus +4 bei 4 Straßen',
+    BalutCategory.fullHouse => 'Bonus +3 bei 4 Full Houses',
+    BalutCategory.choice => 'Bonus +2 ab 100',
+    BalutCategory.balut => 'Bonus +2 je Balut',
+  };
+
+  String get scoringExplanation => switch (this) {
+    BalutCategory.fours => 'Nur gewürfelte Vierer zählen: Anzahl × 4.',
+    BalutCategory.fives => 'Nur gewürfelte Fünfer zählen: Anzahl × 5.',
+    BalutCategory.sixes => 'Nur gewürfelte Sechser zählen: Anzahl × 6.',
+    BalutCategory.straights =>
+      '1–5 bringt 15 Punkte, 2–6 bringt 20 Punkte. Andere Würfe zählen 0.',
+    BalutCategory.fullHouse =>
+      'Genau drei gleiche plus zwei gleiche; gewertet wird die Summe aller Augen.',
+    BalutCategory.choice => 'Die Summe aller fünf Würfel zählt.',
+    BalutCategory.balut =>
+      'Fünf gleiche bringen 20 Punkte plus die Summe aller Augen.',
+  };
 }
 
 abstract final class BalutScoring {
@@ -45,6 +68,12 @@ abstract final class BalutScoring {
         score >= 25 && score <= 50 && (score - 20) % 5 == 0,
     };
   }
+
+  static List<int> validScores(BalutCategory category) =>
+      List<int>.unmodifiable([
+        for (var score = 0; score <= 50; score++)
+          if (isValidEntry(category, score)) score,
+      ]);
 
   static int rawTotalIncentive(int rawTotal) {
     if (rawTotal < 0 || rawTotal > 812) {

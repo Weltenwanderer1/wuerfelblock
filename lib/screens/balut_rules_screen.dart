@@ -17,7 +17,7 @@ class BalutRulesScreen extends StatelessWidget {
     ),
     (
       'Kategorien',
-      'Vierer, Fünfer und Sechser zählen nur die passenden Augen. Straßen bringen 15 (1–5) oder 20 Punkte (2–6). Ein Full House (drei gleiche + zwei gleiche) bringt die Summe aller Augen. Choice nimmt jeden Wurf. Ein Balut (fünf gleiche) bringt 20 plus die Summe.',
+      'Vierer: nur Vierer (4–20). Fünfer: nur Fünfer (5–25). Sechser: nur Sechser (6–30). Straßen: 1–5 = 15, 2–6 = 20. Full House: genau Drilling + Paar, die Augensumme zählt. Choice: jede Augensumme. Balut: fünf gleiche, 20 plus Augensumme. Ein Strich (0) ist in jeder Kategorie erlaubt.',
       Icons.format_list_numbered,
     ),
     (
@@ -27,7 +27,7 @@ class BalutRulesScreen extends StatelessWidget {
     ),
     (
       'Incentive-Punkte',
-      'Bestimmte Schwellen in den Zahlenkategorien, jede vollständige Straße, jedes vollständige Full House und Balut-Treffer bringen Bonuspunkte. Der Gesamtwert-Bonus reicht von −2 (unter 300) bis +6 (ab 650). Theoretisches Maximum: 812 Rohpunkte plus 29 Incentive-Punkte.',
+      'Diese Extrapunkte kommen zur Rohwertung dazu:\n• Vierer gesamt mindestens 52: +2\n• Fünfer gesamt mindestens 65: +2\n• Sechser gesamt mindestens 78: +2\n• Alle 4 Straßen ohne Strich: +4\n• Alle 4 Full Houses ohne Strich: +3\n• Choice gesamt mindestens 100: +2\n• Jeder Balut ohne Strich: +2\n• Roh-Gesamtwert: unter 300 = −2, 300–349 = −1, 350–399 = 0, dann je 50 Punkte +1 bis maximal +6 ab 650.\nTheoretisches Maximum: 812 Rohpunkte + 29 Bonuspunkte.',
       Icons.workspace_premium,
     ),
     (
