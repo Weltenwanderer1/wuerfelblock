@@ -17,9 +17,9 @@ class EscaleroController extends ChangeNotifier {
        _roller = roller ?? (() => Random().nextInt(6) + 1) {
     _transactions =
         ControllerTransactions<EscaleroGameState, EscaleroGameState>(
-          capture: () => state.copy(),
+          capture: () => _state.copy(),
           restore: (snapshot) => _state = snapshot.copy(),
-          save: () => repository.save(state),
+          save: () => repository.save(_state),
           clear: repository.clear,
           notifyListeners: notifyListeners,
         );

@@ -42,12 +42,18 @@ void main() {
     expect(controller.state.players[0].entries[EscaleroCategory.nine]![0], 3);
     expect(controller.state.activePlayerIndex, 1);
     expect(controller.canUndo, isTrue);
+    final savedScore = repository.saved! as EscaleroGameState;
+    expect(savedScore.players[0].entries[EscaleroCategory.nine]![0], 3);
+    expect(savedScore.activePlayerIndex, 1);
     await controller.undo();
     expect(
       controller.state.players[0].entries[EscaleroCategory.nine]![0],
       isNull,
     );
     expect(controller.state.activePlayerIndex, 0);
+    final savedUndo = repository.saved! as EscaleroGameState;
+    expect(savedUndo.players[0].entries[EscaleroCategory.nine]![0], isNull);
+    expect(savedUndo.activePlayerIndex, 0);
   });
 
   test('normal save failure rolls scoring back', () async {

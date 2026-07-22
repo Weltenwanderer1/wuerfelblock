@@ -38,7 +38,24 @@ void main() {
         EscaleroScoring.score(EscaleroCategory.poker, [4, 4, 4, 4, 2]),
         40,
       );
-      expect(EscaleroScoring.score(EscaleroCategory.poker, [4, 4, 4, 4, 4]), 0);
+      expect(
+        EscaleroScoring.score(EscaleroCategory.poker, [4, 4, 4, 4, 4]),
+        40,
+      );
+      expect(
+        EscaleroScoring.score(EscaleroCategory.poker, [
+          4,
+          4,
+          4,
+          4,
+          4,
+        ], served: true),
+        45,
+      );
+      expect(
+        EscaleroScoring.score(EscaleroCategory.fullHouse, [5, 5, 5, 5, 5]),
+        30,
+      );
       expect(
         EscaleroScoring.score(EscaleroCategory.grande, [
           3,
@@ -74,60 +91,82 @@ void main() {
     );
   });
 
-  test('pair settlement uses 1/2/4 and sweep bonus', () {
-    EscaleroPlayer fill(EscaleroPlayer player, List<int> values) {
-      var result = player;
-      for (final category in EscaleroCategory.values) {
-        for (var column = 0; column < 3; column++) {
-          result = result.withEntry(
-            category,
-            column,
-            category == EscaleroCategory.nine ? values[column] : 0,
-          );
-        }
-      }
-      return result;
-    }
-
-    final state = EscaleroGameState(
-      players: [
-        fill(EscaleroPlayer('Ada'), [1, 2, 4]),
-        fill(EscaleroPlayer('Bob'), [0, 0, 0]),
-        fill(EscaleroPlayer('Cid'), [2, 1, 4]),
-      ],
-    );
-    expect(state.gamePointsFor(0), 10);
-    expect(state.gamePointsFor(1), -18);
-    expect(state.gamePointsFor(2), 8);
-  });
-
-  test('ranking is net game points then raw total', () {
-    EscaleroPlayer filled(String name, List<int> columnScores) {
+  test('three-player settlement follows the original booklet example', () {
+    EscaleroPlayer withColumns(String name, List<int> values) {
       var player = EscaleroPlayer(name);
-      for (final category in EscaleroCategory.values) {
-        for (var column = 0; column < 3; column++) {
-          player = player.withEntry(
-            category,
-            column,
-            category == EscaleroCategory.nine ? columnScores[column] : 0,
-          );
-        }
+      for (var column = 0; column < 3; column++) {
+        player = player.withEntry(
+          EscaleroCategory.nine,
+          column,
+          values[column],
+        );
       }
       return player;
     }
 
     final state = EscaleroGameState(
       players: [
-        filled('Ada', [0, 0, 0]),
-        filled('Bob', [1, 0, 2]),
-        filled('Cid', [1, 2, 1]),
+        withColumns('A', [2, 4, 2]),
+        withColumns('B', [3, 2, 4]),
+        withColumns('C', [1, 1, 1]),
       ],
     );
-    expect(state.gamePointsFor(1), state.gamePointsFor(2));
-    expect(state.players[1].rawTotal, 3);
-    expect(state.players[2].rawTotal, 4);
-    expect(state.ranking.first.name, 'Cid');
-    expect(state.winners.map((p) => p.name), ['Cid']);
+
+    expect(state.gamePointsFor(0), -1);
+    expect(state.gamePointsFor(1), 8);
+    expect(state.gamePointsFor(2), -7);
+  });
+
+  test('winning all columns pays nine points per opponent', () {
+    EscaleroPlayer withColumns(String name, List<int> values) {
+      var player = EscaleroPlayer(name);
+      for (var column = 0; column < 3; column++) {
+        player = player.withEntry(
+          EscaleroCategory.nine,
+          column,
+          values[column],
+        );
+      }
+      return player;
+    }
+
+    final state = EscaleroGameState(
+      players: [
+        withColumns('A', [5, 5, 5]),
+        withColumns('B', [2, 2, 2]),
+        withColumns('C', [1, 1, 1]),
+      ],
+    );
+
+    expect(state.gamePointsFor(0), 18);
+    expect(state.gamePointsFor(1), -9);
+    expect(state.gamePointsFor(2), -9);
+  });
+
+  test('column ties and overall ranking do not use raw-score tie-breaks', () {
+    EscaleroPlayer withColumns(String name, List<int> values) {
+      var player = EscaleroPlayer(name);
+      for (var column = 0; column < 3; column++) {
+        player = player.withEntry(
+          EscaleroCategory.nine,
+          column,
+          values[column],
+        );
+      }
+      return player;
+    }
+
+    final state = EscaleroGameState(
+      players: [
+        withColumns('A', [5, 5, 5]),
+        withColumns('B', [5, 5, 5]),
+        withColumns('C', [1, 2, 3]),
+      ],
+    );
+
+    expect([for (var i = 0; i < 3; i++) state.gamePointsFor(i)], [0, 0, 0]);
+    expect(state.ranking.map((player) => player.name), ['A', 'B', 'C']);
+    expect(state.winners.map((player) => player.name), ['A', 'B', 'C']);
   });
 
   test('digital served depends on all five dice in decisive roll', () {
@@ -152,6 +191,22 @@ void main() {
     state = state.withDigitalRoll([2, 3, 4, 5, 6]);
     state = state.withDigitalScore(EscaleroCategory.straight, 1);
     expect(state.players[0].entries[EscaleroCategory.straight]![1], 25);
+  });
+
+  test('served poker loses bonus after rerolling the fifth die for Grande', () {
+    var state = EscaleroGameState.newGame([
+      'Ada',
+      'Bob',
+    ], mode: GameMode.digital);
+
+    state = state.withDigitalRoll([2, 2, 2, 2, 3]);
+    for (var index = 0; index < 4; index++) {
+      state = state.withToggledHold(index);
+    }
+    state = state.withDigitalRoll([4]);
+    state = state.withDigitalScore(EscaleroCategory.poker, 0);
+
+    expect(state.players.first.entries[EscaleroCategory.poker]![0], 40);
   });
 
   test('strict JSON round-trip rejects missing and unknown keys', () {

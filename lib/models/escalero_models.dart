@@ -52,8 +52,11 @@ abstract final class EscaleroScoring {
     return switch (category) {
       EscaleroCategory.straight => _isStraight(dice) ? (served ? 25 : 20) : 0,
       EscaleroCategory.fullHouse =>
-        _same(groups, const [2, 3]) ? (served ? 35 : 30) : 0,
-      EscaleroCategory.poker => groups.contains(4) ? (served ? 45 : 40) : 0,
+        (_same(groups, const [2, 3]) || groups.length == 1)
+            ? (served ? 35 : 30)
+            : 0,
+      EscaleroCategory.poker =>
+        (groups.contains(4) || groups.length == 1) ? (served ? 45 : 40) : 0,
       EscaleroCategory.grande => groups.length == 1 ? (served ? 80 : 50) : 0,
       _ => throw StateError('Unbekannte Kategorie.'),
     };
@@ -390,38 +393,39 @@ class EscaleroGameState implements SavedGameState {
       throw RangeError.index(playerIndex, _players);
     }
     var points = 0;
-    for (var opponent = 0; opponent < _players.length; opponent++) {
-      if (opponent == playerIndex) continue;
-      var wonAll = true;
-      var lostAll = true;
-      for (var column = 0; column < 3; column++) {
-        final weight = 1 << column;
-        final mine = _players[playerIndex].columnTotal(column);
-        final theirs = _players[opponent].columnTotal(column);
-        if (mine > theirs) {
-          points += weight;
-          lostAll = false;
-        } else if (mine < theirs) {
-          points -= weight;
-          wonAll = false;
-        } else {
-          wonAll = false;
-          lostAll = false;
-        }
-      }
-      if (wonAll) points += 2;
-      if (lostAll) points -= 2;
+    final columnWinners = <int?>[];
+    for (var column = 0; column < 3; column++) {
+      final winner = _soleColumnWinner(column);
+      columnWinners.add(winner);
+      if (winner == null) continue;
+      final weight = 1 << column;
+      points += winner == playerIndex
+          ? weight * (_players.length - 1)
+          : -weight;
+    }
+    final sweepWinner = columnWinners.first;
+    if (sweepWinner != null &&
+        columnWinners.every((winner) => winner == sweepWinner)) {
+      points += sweepWinner == playerIndex ? 2 * (_players.length - 1) : -2;
     }
     return points;
+  }
+
+  int? _soleColumnWinner(int column) {
+    final totals = [for (final player in _players) player.columnTotal(column)];
+    final highest = totals.reduce((a, b) => a > b ? a : b);
+    final winners = [
+      for (var index = 0; index < totals.length; index++)
+        if (totals[index] == highest) index,
+    ];
+    return winners.length == 1 ? winners.single : null;
   }
 
   List<EscaleroPlayer> get ranking {
     final indexed = List<int>.generate(_players.length, (i) => i)
       ..sort((a, b) {
         final byPoints = gamePointsFor(b).compareTo(gamePointsFor(a));
-        return byPoints != 0
-            ? byPoints
-            : _players[b].rawTotal.compareTo(_players[a].rawTotal);
+        return byPoints != 0 ? byPoints : a.compareTo(b);
       });
     return List.unmodifiable(indexed.map((i) => _players[i]));
   }
@@ -431,17 +435,11 @@ class EscaleroGameState implements SavedGameState {
       _players.length,
       gamePointsFor,
     ).reduce((a, b) => a > b ? a : b);
-    final candidates = List<int>.generate(
-      _players.length,
-      (i) => i,
-    ).where((i) => gamePointsFor(i) == bestPoints);
-    final bestRaw = candidates
-        .map((i) => _players[i].rawTotal)
-        .reduce((a, b) => a > b ? a : b);
     return List.unmodifiable(
-      candidates
-          .where((i) => _players[i].rawTotal == bestRaw)
-          .map((i) => _players[i]),
+      List<int>.generate(
+        _players.length,
+        (i) => i,
+      ).where((i) => gamePointsFor(i) == bestPoints).map((i) => _players[i]),
     );
   }
 

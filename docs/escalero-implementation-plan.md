@@ -6,7 +6,7 @@ Escalero wird als fünftes spielbares Würfelspiel in Würfelblock ergänzt. Es 
 
 ## Normative Regelentscheidung
 
-Die App implementiert die Piatnik-Escalero-Regeln, wie sie in der deutschsprachigen Wikipedia beschrieben sind. Die BrainKing-Regel bestätigt den gemeinsamen Grundablauf aus fünf Würfeln, Halten und maximal drei Würfen, beschreibt aber ein anderes, Yahtzee-artiges Würfelpoker mit 13 Feldern und ist daher nicht die Escalero-Wertung. Das historische Pokerwürfel-PDF bestätigt die Pokerbilder, Grundkombinationen, Servierungslogik und Pflicht zum Eintragen beziehungsweise Streichen.
+Die App implementiert die vom Nutzer bereitgestellte originale deutschsprachige Escalero-Spielanleitung. Die Piatnik-Regelbeschreibung auf Wikipedia bestätigt Würfe, Kategorien, Servierung und Abrechnung. Die am Ende sichtbare Überschrift „Würfel-Poker“ markiert lediglich den Beginn des nächsten Spiels; sie gehört nicht zum bereitgestellten Escalero-Regeltext. BrainKing bleibt ebenfalls nur eine abweichende Würfelpoker-Referenz.
 
 Quellen:
 
@@ -39,21 +39,20 @@ Quellen:
 ### Kombinationen
 
 - Straße: 9-10-B-D-K oder 10-B-D-K-A; 20 Punkte, serviert 25.
-- Full House: drei gleiche und zwei andere gleiche; 30 Punkte, serviert 35.
-- Poker: genau vier gleiche; 40 Punkte, serviert 45.
+- Full House: drei gleiche und zwei gleiche; 30 Punkte, serviert 35. Fünf gleiche dürfen ebenfalls als Full House gewertet werden.
+- Poker: vier oder fünf gleiche; 40 Punkte, serviert 45.
 - Grande: fünf gleiche; 50 Punkte, serviert 80.
 
 Eine Servierung liegt nur vor, wenn die wertbare Kombination aus einem Wurf entsteht, bei dem alle fünf Würfel gleichzeitig geworfen wurden. Das kann der erste, zweite oder dritte Wurf sein. Sobald für den entscheidenden Wurf Würfel gehalten bleiben, gibt es keinen Servierungsbonus.
 
 ## Kolonnen- und Partieabrechnung
 
-- Jede Kolonne wird separat zwischen allen Personen verglichen.
+- Jede Kolonne hat bei eindeutigem Höchstwert genau eine Siegerperson.
 - Kolonne 1 zählt 1 Spielpunkt, Kolonne 2 zählt 2, Kolonne 3 zählt 4.
-- Bei Gleichstand erhält in diesem Paarvergleich niemand Punkte.
-- Für jeden Gegner, gegen den eine Person alle drei Kolonnen gewinnt, kommen 2 Bonuspunkte hinzu.
-- Bei zwei Personen ergibt ein vollständiger Sieg 1 + 2 + 4 + 2 = 9 Spielpunkte.
-- Bei drei Personen werden die positiven und negativen Paarergebnisse summiert; das entspricht der Piatnik-Abrechnung.
-- Ergebnis-Ranking: zuerst Netto-Spielpunkte, dann Gesamt-Rohpunkte; exakte Gleichheit bleibt Gleichstand.
+- Bei Gleichstand an der Spitze erhält niemand Punkte.
+- Bei drei Personen erhält der Kolonnensieger den Kolonnenwert von jedem der beiden Gegner; beide Gegner verlieren diesen Wert. Die übrigen Platzierungen werden nicht paarweise gegeneinander verrechnet.
+- Gewinnt eine Person alle drei Kolonnen, erhält sie zusätzlich 2 Punkte von jedem Gegner; das sind 9 Punkte pro Gegner.
+- Das Ergebnis wird ausschließlich nach den Netto-Spielpunkten abgerechnet. Rohpunkte sind Anzeige, aber kein zusätzlicher Tiebreak.
 
 ## Architektur
 

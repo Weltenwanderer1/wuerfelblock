@@ -182,9 +182,32 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: EscaleroResultScreen(game: game)),
     );
+    final rankLabels = tester
+        .widgetList<CircleAvatar>(find.byType(CircleAvatar))
+        .map((avatar) => (avatar.child! as Text).data);
+    expect(rankLabels, ['1', '1']);
+    expect(
+      find.text('Abrechnung ausschließlich nach den Spielpunkten.'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('kassiert die Person mit der höchsten Summe'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('danach Rohpunkten'), findsNothing);
     await tester.tap(find.byKey(const Key('escalero-result-rules')));
     await tester.pumpAndSettle();
     expect(find.byType(EscaleroRulesScreen), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('escalero-rule-5')),
+      300,
+    );
+    expect(
+      find.textContaining('Person mit der höchsten Kolonnensumme'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('von jedem der beiden Gegner'), findsOneWidget);
+    expect(find.textContaining('Paarvergleich'), findsNothing);
   });
 
   testWidgets('Regeln bleiben bei 200 % Text zugänglich', (tester) async {

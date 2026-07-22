@@ -67,21 +67,31 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                   subtitle: const Text(
-                    'Ranking nach Netto-Spielpunkten, danach Rohpunkten.',
+                    'Abrechnung ausschließlich nach den Spielpunkten.',
                   ),
                 ),
               ),
               const SizedBox(height: 8),
-              for (var rank = 0; rank < ranking.length; rank++)
+              for (var index = 0; index < ranking.length; index++)
                 _PlayerResult(
-                  rank: rank + 1,
-                  name: ranking[rank].name,
+                  itemIndex: index,
+                  rank:
+                      1 +
+                      ranking.where((player) {
+                        final playerIndex = state.players.indexOf(player);
+                        final currentIndex = state.players.indexOf(
+                          ranking[index],
+                        );
+                        return state.gamePointsFor(playerIndex) >
+                            state.gamePointsFor(currentIndex);
+                      }).length,
+                  name: ranking[index].name,
                   columns: [
-                    for (var c = 0; c < 3; c++) ranking[rank].columnTotal(c),
+                    for (var c = 0; c < 3; c++) ranking[index].columnTotal(c),
                   ],
-                  raw: ranking[rank].rawTotal,
+                  raw: ranking[index].rawTotal,
                   gamePoints: state.gamePointsFor(
-                    state.players.indexOf(ranking[rank]),
+                    state.players.indexOf(ranking[index]),
                   ),
                 ),
               const SizedBox(height: 12),
@@ -89,7 +99,7 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(12),
                   child: Text(
-                    'Kolonnenwert: 1 · 2 · 4 Spielpunkte. Ein kompletter 3:0-Sieg gegen einen Gegner bringt zusätzlich 2 Punkte. Gleichstände in einer Kolonne bringen niemandem Punkte.',
+                    'Kolonnenwert: 1 · 2 · 4 Spielpunkte. Pro Kolonne kassiert die Person mit der höchsten Summe den Kolonnenwert von jedem Gegner. Ein Gewinn aller drei Kolonnen bringt zusätzlich 2 Punkte pro Gegner. Bei Gleichstand an der Spitze erhält niemand Punkte.',
                     style: TextStyle(height: 1.35),
                   ),
                 ),
@@ -118,12 +128,14 @@ class _EscaleroResultScreenState extends State<EscaleroResultScreen> {
 
 class _PlayerResult extends StatelessWidget {
   const _PlayerResult({
+    required this.itemIndex,
     required this.rank,
     required this.name,
     required this.columns,
     required this.raw,
     required this.gamePoints,
   });
+  final int itemIndex;
   final int rank;
   final String name;
   final List<int> columns;
@@ -131,7 +143,7 @@ class _PlayerResult extends StatelessWidget {
   final int gamePoints;
   @override
   Widget build(BuildContext context) => Card(
-    key: Key('escalero-result-player-${rank - 1}'),
+    key: Key('escalero-result-player-$itemIndex'),
     child: Padding(
       padding: const EdgeInsets.all(11),
       child: Column(

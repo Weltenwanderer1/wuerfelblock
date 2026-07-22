@@ -21,7 +21,7 @@ class EscaleroRulesScreen extends StatelessWidget {
     ),
     (
       'Kombinationen',
-      'Straße (9-10-B-D-K oder 10-B-D-K-A): 20 Punkte. Full House (drei gleiche plus zwei gleiche): 30. Poker (genau vier gleiche): 40. Grande (fünf gleiche): 50 Punkte.',
+      'Straße (9-10-B-D-K oder 10-B-D-K-A): 20 Punkte. Full House (drei gleiche plus zwei gleiche): 30. Poker (mindestens vier gleiche): 40. Grande (fünf gleiche): 50 Punkte. Ist das Grande-Feld schon belegt, dürfen fünf gleiche auch als Poker oder Full House gewertet werden.',
       Icons.auto_awesome_outlined,
     ),
     (
@@ -30,8 +30,8 @@ class EscaleroRulesScreen extends StatelessWidget {
       Icons.room_service_outlined,
     ),
     (
-      'Kolonnen und Sieg',
-      'Jede Kolonne wird zwischen allen Personen verglichen. Die erste ist 1, die zweite 2 und die dritte 4 Spielpunkte wert. Gleichstand bringt in diesem Paarvergleich keine Punkte. Wer gegen einen Gegner alle drei Kolonnen gewinnt, erhält 2 Bonuspunkte. Das Ranking folgt zuerst den Netto-Spielpunkten, dann den Rohpunkten; exakte Gleichheit bleibt Gleichstand.',
+      'Kolonnen und Abrechnung',
+      'Jede Kolonne hat genau einen Sieger: die Person mit der höchsten Kolonnensumme. Die erste Kolonne zählt 1, die zweite 2 und die dritte 4 Spielpunkte. Bei drei Personen erhält der Kolonnensieger den Wert von jedem der beiden Gegner; beide Gegner verlieren diesen Wert. Ein Gleichstand an der Spitze bringt niemandem Punkte. Wer alle drei Kolonnen gewinnt, erhält zusätzlich 2 Punkte von jedem Gegner – insgesamt also 9 pro Gegner.',
       Icons.emoji_events_outlined,
     ),
   ];
@@ -70,7 +70,7 @@ class EscaleroRulesScreen extends StatelessWidget {
             child: const Padding(
               padding: EdgeInsets.all(14),
               child: Text(
-                'Quellenhinweis: Wertung nach den Piatnik-Escalero-Regeln, zusammengefasst nach der deutschsprachigen Wikipedia (Escalero). BrainKing beschreibt eine andere Würfelpoker-Variante mit 13 Feldern und ist nicht Grundlage dieser Wertung. Ergänzend: historisches Pokerwürfel-Regelblatt PokerWS.',
+                'Maßgeblich ist die originale deutschsprachige Escalero-Spielanleitung. Die Piatnik-Regelbeschreibung auf Wikipedia bestätigt dieselbe Wertung.',
                 style: TextStyle(height: 1.4),
               ),
             ),
