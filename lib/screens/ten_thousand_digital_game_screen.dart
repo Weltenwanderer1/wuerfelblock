@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../l10n/localized_text.dart';
 
 import '../controllers/ten_thousand_controller.dart';
-import '../models/ten_thousand_rules.dart';
 import '../services/persistence_messages.dart';
 import '../widgets/die_widget.dart';
 import '../widgets/ten_thousand_score_sheet.dart';
@@ -268,65 +267,96 @@ class _TenThousandDigitalGameScreenState
                           ),
                         ),
                       const SizedBox(height: 12),
-                      if (turn.hasRolled)
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 10,
-                          runSpacing: 10,
+                      if (turn.hasRolled) ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            for (
-                              var index = 0;
-                              index < turn.dice.length;
-                              index++
-                            )
-                              DieWidget(
-                                key: Key('tenk-die-$index'),
-                                value: turn.dice[index],
-                                held: turn.selected[index],
-                                selectedSemantic: 'zur Wertung ausgewählt',
-                                unselectedSemantic:
-                                    'nicht zur Wertung ausgewählt',
-                                index: 100 + index,
-                                onTap: !blocked
-                                    ? () => _run(
-                                        () => game.toggleDigitalDie(index),
-                                      )
-                                    : null,
-                              ),
+                            // 2×3 Würfel-Grid
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (
+                                  var row = 0;
+                                  row < (turn.dice.length + 1) ~/ 2;
+                                  row++
+                                )
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom:
+                                          row < (turn.dice.length + 1) ~/ 2 - 1
+                                          ? 8
+                                          : 0,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        for (var col = 0; col < 2; col++)
+                                          if (row * 2 + col < turn.dice.length)
+                                            Padding(
+                                              padding: EdgeInsets.only(
+                                                right: col == 0 ? 8 : 0,
+                                              ),
+                                              child: DieWidget(
+                                                key: Key(
+                                                  'tenk-die-${row * 2 + col}',
+                                                ),
+                                                value: turn.dice[row * 2 + col],
+                                                held: turn
+                                                    .selected[row * 2 + col],
+                                                selectable:
+                                                    !blocked &&
+                                                    !turn.selected[row * 2 +
+                                                        col],
+                                                selectedSemantic:
+                                                    'zur Wertung ausgewählt',
+                                                unselectedSemantic:
+                                                    'nicht zur Wertung ausgewählt',
+                                                index: 100 + row * 2 + col,
+                                                onTap: !blocked
+                                                    ? () => _run(
+                                                        () => game
+                                                            .toggleDigitalDie(
+                                                              row * 2 + col,
+                                                            ),
+                                                      )
+                                                    : null,
+                                              ),
+                                            ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(width: 14),
+                            // Aktions-Button rechts neben dem Grid
+                            Expanded(
+                              child: turn.isMacke
+                                  ? FilledButton.icon(
+                                      key: const Key('tenk-confirm-macke'),
+                                      onPressed: blocked
+                                          ? null
+                                          : () =>
+                                                _run(game.confirmDigitalMacke),
+                                      icon: const Icon(Icons.block),
+                                      label: const LocalizedText('Macke · 0'),
+                                    )
+                                  : FilledButton.icon(
+                                      key: const Key('tenk-bank'),
+                                      onPressed: turn.canBank && !blocked
+                                          ? () =>
+                                                _run(game.bankDigitalSelection)
+                                          : null,
+                                      icon: const Icon(
+                                        Icons.add_circle_outline,
+                                      ),
+                                      label: const LocalizedText(
+                                        'Werten &\nweiter würfeln',
+                                      ),
+                                    ),
+                            ),
                           ],
-                        )
-                      else
-                        LocalizedText(
-                          '${turn.activeDiceCount} Würfel bereit',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                      const SizedBox(height: 10),
-                      if (!turn.hasRolled)
-                        FilledButton.icon(
-                          key: const Key('tenk-roll'),
-                          onPressed: blocked
-                              ? null
-                              : () => _run(game.rollDigital),
-                          icon: const Icon(Icons.casino),
-                          label: LocalizedText(
-                            turn.activeDiceCount == 6
-                                ? 'Mit 6 Würfeln würfeln'
-                                : 'Mit ${turn.activeDiceCount} Würfeln weiterwürfeln',
-                          ),
-                        )
-                      else if (turn.isMacke)
-                        FilledButton.icon(
-                          key: const Key('tenk-confirm-macke'),
-                          onPressed: blocked
-                              ? null
-                              : () => _run(game.confirmDigitalMacke),
-                          icon: const Icon(Icons.block),
-                          label: const LocalizedText(
-                            'Macke bestätigen · Runde 0',
-                          ),
-                        )
-                      else ...[
+                        const SizedBox(height: 10),
                         LocalizedText(
                           turn.selectedValues.isEmpty
                               ? 'Tippe alle Würfel an, die du werten möchtest.'
@@ -343,14 +373,24 @@ class _TenThousandDigitalGameScreenState
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        FilledButton.tonalIcon(
-                          key: const Key('tenk-bank'),
-                          onPressed: turn.canBank && !blocked
-                              ? () => _run(game.bankDigitalSelection)
-                              : null,
-                          icon: const Icon(Icons.add_circle_outline),
-                          label: const LocalizedText('Auswahl werten'),
+                      ] else ...[
+                        LocalizedText(
+                          '${turn.activeDiceCount} Würfel bereit',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 10),
+                        FilledButton.icon(
+                          key: const Key('tenk-roll'),
+                          onPressed: blocked
+                              ? null
+                              : () => _run(game.rollDigital),
+                          icon: const Icon(Icons.casino),
+                          label: LocalizedText(
+                            turn.activeDiceCount == 6
+                                ? 'Mit 6 Würfeln würfeln'
+                                : 'Mit ${turn.activeDiceCount} Würfeln weiterwürfeln',
+                          ),
                         ),
                       ],
                       if (turn.canSecure) ...[
@@ -366,22 +406,6 @@ class _TenThousandDigitalGameScreenState
                           icon: const Icon(Icons.savings_outlined),
                           label: LocalizedText(
                             '${turn.roundPoints} Punkte sichern',
-                          ),
-                        ),
-                      ],
-                      if (!turn.isFresh &&
-                          turn.roundPoints <
-                              TenThousandRules.minimumBankScore &&
-                          !turn.isMacke) ...[
-                        const SizedBox(height: 8),
-                        OutlinedButton.icon(
-                          key: const Key('tenk-forfeit'),
-                          onPressed: blocked
-                              ? null
-                              : () => _run(game.forfeitDigitalTurn),
-                          icon: const Icon(Icons.skip_next),
-                          label: const LocalizedText(
-                            'Durchgang beenden · 0 Punkte',
                           ),
                         ),
                       ],

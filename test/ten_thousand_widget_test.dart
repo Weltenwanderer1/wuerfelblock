@@ -92,7 +92,7 @@ void main() {
       expect(game.state.activePlayer?.name, 'Bea');
     });
 
-    testWidgets('fresh dice stay hidden and a low turn can be forfeited', (
+    testWidgets('fresh dice stay hidden and dice are shown in grid', (
       tester,
     ) async {
       final values = <int>[1, 2, 3, 4, 5, 6];
@@ -110,13 +110,18 @@ void main() {
       expect(find.text('6 Würfel bereit'), findsOneWidget);
       await tester.tap(find.byKey(const Key('tenk-roll')));
       await tester.pumpAndSettle();
+      // Alle 6 Würfel im 2×3-Grid sichtbar
+      for (var i = 0; i < 6; i++) {
+        expect(find.byKey(Key('tenk-die-$i')), findsOneWidget);
+      }
       await tester.tap(find.byKey(const Key('tenk-die-0')));
       await tester.pumpAndSettle();
       expect(
         find.bySemanticsLabel('Würfel 1, zur Wertung ausgewählt'),
         findsOneWidget,
       );
-      await tester.tap(find.byKey(const Key('tenk-forfeit')));
+      // Forfeit über den Controller (kein UI-Button mehr)
+      await game.forfeitDigitalTurn();
       await tester.pumpAndSettle();
       expect(game.state.turns.single.points, 0);
       expect(game.state.activePlayer?.name, 'Bea');
