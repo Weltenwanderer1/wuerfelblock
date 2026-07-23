@@ -799,6 +799,9 @@ class _BalutScoreDialogState extends State<_BalutScoreDialog> {
                     ? null
                     : localizeText(context, _error!),
               ),
+              onChanged: (_) => setState(() {
+                _error = null;
+              }),
               onSubmitted: (_) => _submit(),
             ),
           ],
