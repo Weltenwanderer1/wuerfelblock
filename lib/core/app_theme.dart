@@ -7,6 +7,7 @@ class AppColors {
   static const plum = Color(0xFF673A62);
   static const apricot = Color(0xFFF4B889);
   static const ink = Color(0xFF382D36);
+  static const sage = Color(0xFFA8C5A0);
 }
 
 ThemeData buildTheme() {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/localized_text.dart';
 
 import '../core/app_theme.dart';
+import 'regicide_counter_screen.dart';
 
 enum CardGame { crisps, regicide, haggis }
 
@@ -167,9 +168,31 @@ class CardGameRulesScreen extends StatelessWidget {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
-              child: _GameRulesCard(
-                key: Key('card-game-rules-${selectedGame.keyName}'),
-                game: selectedGame,
+              child: Column(
+                children: [
+                  if (game == CardGame.regicide)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          key: const Key('regicide-counter-from-rules'),
+                          onPressed: () => Navigator.push<void>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegicideCounterScreen(),
+                            ),
+                          ),
+                          icon: const Icon(Icons.castle_outlined),
+                          label: const LocalizedText('Gegner-Zähler öffnen'),
+                        ),
+                      ),
+                    ),
+                  _GameRulesCard(
+                    key: Key('card-game-rules-${selectedGame.keyName}'),
+                    game: selectedGame,
+                  ),
+                ],
               ),
             ),
           ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/localized_text.dart';
 
 import '../core/app_theme.dart';
+import 'regicide_counter_screen.dart';
 import '../models/saved_game_state.dart';
 import '../services/locale_controller.dart';
 import 'about_privacy_screen.dart';
@@ -97,6 +98,18 @@ class HomeScreen extends StatelessWidget {
                   ),
                   icon: const Icon(Icons.menu_book_outlined),
                   label: const LocalizedText('Spielregeln'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  key: const Key('regicide-counter-action'),
+                  onPressed: () => Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RegicideCounterScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.castle_outlined),
+                  label: const LocalizedText('Regicide Gegner-Zähler'),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
