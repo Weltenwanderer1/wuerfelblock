@@ -468,7 +468,7 @@ void main() {
         ),
       );
       expect(find.text('Yahtzee/Kniffel'), findsOneWidget);
-      expect(find.text('Qwixx'), findsOneWidget);
+      expect(find.text('Colordice'), findsOneWidget);
       expect(find.text('10.000'), findsOneWidget);
       expect(find.text('Balut'), findsOneWidget);
       expect(find.byKey(const Key('game-kind-escalero')), findsOneWidget);
@@ -476,8 +476,8 @@ void main() {
       expect(find.text('Pokerwürfel · 3 Kolonnen'), findsOneWidget);
       expect(find.text('Yatzy'), findsNothing);
       final yahtzeeX = tester.getCenter(find.text('Yahtzee/Kniffel')).dx;
-      final qwixxX = tester.getCenter(find.text('Qwixx')).dx;
-      expect((yahtzeeX - qwixxX).abs(), greaterThan(50));
+      final colordiceX = tester.getCenter(find.text('Colordice')).dx;
+      expect((yahtzeeX - colordiceX).abs(), greaterThan(50));
       expect(find.byType(TextFormField, skipOffstage: false), findsNWidgets(2));
       expect(
         find.text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),

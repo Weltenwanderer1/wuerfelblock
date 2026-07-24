@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../l10n/localized_text.dart';
 
-class QwixxRulesScreen extends StatelessWidget {
-  const QwixxRulesScreen({super.key});
+class ColordiceRulesScreen extends StatelessWidget {
+  const ColordiceRulesScreen({super.key});
 
   static const sections = <(String, String)>[
     (
       'Ziel & Material',
-      'Qwixx nutzt zwei weiße und je einen roten, gelben, grünen und blauen Würfel. Ihr könnt mit echten Würfeln im Blockmodus oder direkt digital in der App spielen. Sammelt möglichst viele Kreuze und damit die meisten Punkte.',
+      'Colordice nutzt zwei weiße und je einen roten, gelben, grünen und blauen Würfel. Ihr könnt mit echten Würfeln im Blockmodus oder direkt digital in der App spielen. Sammelt möglichst viele Kreuze und damit die meisten Punkte.',
     ),
     (
       'Von links nach rechts',
@@ -42,7 +42,7 @@ class QwixxRulesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const LocalizedText('Qwixx-Regeln')),
+    appBar: AppBar(title: const LocalizedText('Colordice-Regeln')),
     body: SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(

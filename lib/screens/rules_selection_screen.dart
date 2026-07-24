@@ -7,7 +7,7 @@ import '../models/game_models.dart';
 import 'balut_rules_screen.dart';
 import 'card_games_rules_screen.dart';
 import 'escalero_rules_screen.dart';
-import 'qwixx_rules_screen.dart';
+import 'colordice_rules_screen.dart';
 import 'rules_screen.dart';
 import 'ten_thousand_rules_screen.dart';
 
@@ -34,12 +34,12 @@ class RulesSelectionScreen extends StatelessWidget {
           ruleScreen: RulesScreen(ruleSet: RuleSet.kniffel),
         ),
         const _RuleLink(
-          key: Key('rules-link-qwixx'),
-          title: 'Qwixx',
+          key: Key('rules-link-colordice'),
+          title: 'Colordice',
           subtitle: 'Farbreihen als Block oder digital',
           icon: Icons.grid_3x3_outlined,
           accent: AppColors.lavender,
-          ruleScreen: QwixxRulesScreen(),
+          ruleScreen: ColordiceRulesScreen(),
         ),
         const _RuleLink(
           key: Key('rules-link-ten-thousand'),

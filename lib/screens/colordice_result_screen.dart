@@ -2,32 +2,32 @@ import 'package:flutter/material.dart';
 
 import '../l10n/localized_text.dart';
 
-import '../controllers/qwixx_controller.dart';
-import '../models/qwixx_models.dart';
+import '../controllers/colordice_controller.dart';
+import '../models/colordice_models.dart';
 import '../services/persistence_messages.dart';
-import '../services/qwixx_orientation.dart';
-import 'qwixx_game_screen.dart';
+import '../services/colordice_orientation.dart';
+import 'colordice_game_screen.dart';
 
-class QwixxResultScreen extends StatefulWidget {
-  const QwixxResultScreen({required this.game, super.key});
-  final QwixxController game;
+class ColordiceResultScreen extends StatefulWidget {
+  const ColordiceResultScreen({required this.game, super.key});
+  final ColordiceController game;
 
   @override
-  State<QwixxResultScreen> createState() => _QwixxResultScreenState();
+  State<ColordiceResultScreen> createState() => _ColordiceResultScreenState();
 }
 
-class _QwixxResultScreenState extends State<QwixxResultScreen> {
-  QwixxController get game => widget.game;
+class _ColordiceResultScreenState extends State<ColordiceResultScreen> {
+  ColordiceController get game => widget.game;
 
   @override
   void initState() {
     super.initState();
-    QwixxOrientation.acquire();
+    ColordiceOrientation.acquire();
   }
 
   @override
   void dispose() {
-    QwixxOrientation.release();
+    ColordiceOrientation.release();
     super.dispose();
   }
 
@@ -37,7 +37,7 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
       if (mounted) {
         await Navigator.pushReplacement<void, void>(
           context,
-          MaterialPageRoute(builder: (_) => QwixxGameScreen(game: game)),
+          MaterialPageRoute(builder: (_) => ColordiceGameScreen(game: game)),
         );
       }
     } catch (_) {
@@ -77,7 +77,7 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: const LocalizedText('Qwixx-Ergebnis'),
+          title: const LocalizedText('Colordice-Ergebnis'),
         ),
         body: ListView(
           padding: const EdgeInsets.all(20),
@@ -111,7 +111,7 @@ class _QwixxResultScreenState extends State<QwixxResultScreen> {
                       Wrap(
                         spacing: 14,
                         children: [
-                          for (final color in QwixxColor.values)
+                          for (final color in ColordiceColor.values)
                             LocalizedText(
                               '${color.label}: ${player.rowScore(color)}',
                             ),

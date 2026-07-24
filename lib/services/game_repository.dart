@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/balut_models.dart';
 import '../models/escalero_models.dart';
 import '../models/game_models.dart';
-import '../models/qwixx_models.dart';
+import '../models/colordice_models.dart';
 import '../models/saved_game_state.dart';
 import '../models/ten_thousand_models.dart';
 
@@ -110,7 +110,7 @@ String _describeCorruption(String raw, Object error) {
 SavedGameState decodeSavedGameState(Map<String, dynamic> json) =>
     switch (json['type']) {
       null || 'classic' => GameState.fromJson(json),
-      'qwixx' => QwixxGameState.fromJson(json),
+      'colordice' || 'qwixx' => ColordiceGameState.fromJson(json),
       'tenThousand' => TenThousandGameState.fromJson(json),
       'balut' => BalutGameState.fromJson(json),
       'escalero' => EscaleroGameState.fromJson(json),

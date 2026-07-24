@@ -45,7 +45,7 @@ void main() {
 
     for (final title in <String>[
       'Yahtzee/Kniffel',
-      'Qwixx',
+      'Colordice',
       '10.000',
       'Balut',
       'Crisps!',

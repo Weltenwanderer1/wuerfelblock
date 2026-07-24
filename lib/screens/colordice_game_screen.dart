@@ -2,39 +2,39 @@ import 'package:flutter/material.dart';
 
 import '../l10n/localized_text.dart';
 
-import '../controllers/qwixx_controller.dart';
+import '../controllers/colordice_controller.dart';
 import '../models/game_models.dart';
-import '../models/qwixx_models.dart';
+import '../models/colordice_models.dart';
 import '../services/persistence_messages.dart';
-import '../services/qwixx_orientation.dart';
-import 'qwixx_result_screen.dart';
-import 'qwixx_rules_screen.dart';
+import '../services/colordice_orientation.dart';
+import 'colordice_result_screen.dart';
+import 'colordice_rules_screen.dart';
 
-class QwixxGameScreen extends StatefulWidget {
-  const QwixxGameScreen({required this.game, super.key});
-  final QwixxController game;
+class ColordiceGameScreen extends StatefulWidget {
+  const ColordiceGameScreen({required this.game, super.key});
+  final ColordiceController game;
 
   @override
-  State<QwixxGameScreen> createState() => _QwixxGameScreenState();
+  State<ColordiceGameScreen> createState() => _ColordiceGameScreenState();
 }
 
-class _QwixxGameScreenState extends State<QwixxGameScreen> {
+class _ColordiceGameScreenState extends State<ColordiceGameScreen> {
   int displayedPlayerIndex = 0;
 
-  QwixxController get game => widget.game;
+  ColordiceController get game => widget.game;
 
   @override
   void initState() {
     super.initState();
     displayedPlayerIndex = game.state.activePlayerIndex;
     game.addListener(_changed);
-    QwixxOrientation.acquire();
+    ColordiceOrientation.acquire();
   }
 
   @override
   void dispose() {
     game.removeListener(_changed);
-    QwixxOrientation.release();
+    ColordiceOrientation.release();
     super.dispose();
   }
 
@@ -48,7 +48,7 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
       if (mounted && game.state.isComplete) {
         await Navigator.pushReplacement<void, void>(
           context,
-          MaterialPageRoute(builder: (_) => QwixxResultScreen(game: game)),
+          MaterialPageRoute(builder: (_) => ColordiceResultScreen(game: game)),
         );
       }
     } catch (_) {
@@ -62,20 +62,23 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
     }
   }
 
-  List<QwixxDigitalAction> _digitalActions(QwixxColor color, int value) => [
-    for (final action in QwixxDigitalAction.values)
+  List<ColordiceDigitalAction> _digitalActions(
+    ColordiceColor color,
+    int value,
+  ) => [
+    for (final action in ColordiceDigitalAction.values)
       if (game.state.canMarkDigital(displayedPlayerIndex, color, value, action))
         action,
   ];
 
-  Future<void> _confirmMark(QwixxColor color, int value) async {
+  Future<void> _confirmMark(ColordiceColor color, int value) async {
     final state = game.state;
     if (state.mode == GameMode.digital) {
       final actions = _digitalActions(color, value);
       if (actions.isEmpty) return;
       final action = actions.length == 1
           ? actions.single
-          : await showDialog<QwixxDigitalAction>(
+          : await showDialog<ColordiceDigitalAction>(
               context: context,
               builder: (context) => AlertDialog(
                 title: const LocalizedText('Welche Würfelaktion?'),
@@ -89,12 +92,12 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
                   ),
                   FilledButton.tonal(
                     onPressed: () =>
-                        Navigator.pop(context, QwixxDigitalAction.white),
+                        Navigator.pop(context, ColordiceDigitalAction.white),
                     child: const LocalizedText('Weiße Summe'),
                   ),
                   FilledButton(
                     onPressed: () =>
-                        Navigator.pop(context, QwixxDigitalAction.color),
+                        Navigator.pop(context, ColordiceDigitalAction.color),
                     child: const LocalizedText('Weiß + Farbe'),
                   ),
                 ],
@@ -212,13 +215,13 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
       backgroundColor: const Color(0xFFFFF9EC),
       appBar: AppBar(
         toolbarHeight: 48,
-        title: LocalizedText('Qwixx · Aktiv: ${state.activePlayer.name}'),
+        title: LocalizedText('Colordice · Aktiv: ${state.activePlayer.name}'),
         actions: [
           IconButton(
-            tooltip: localizeText(context, 'Qwixx-Regeln'),
+            tooltip: localizeText(context, 'Colordice-Regeln'),
             onPressed: () => Navigator.push<void>(
               context,
-              MaterialPageRoute(builder: (_) => const QwixxRulesScreen()),
+              MaterialPageRoute(builder: (_) => const ColordiceRulesScreen()),
             ),
             icon: const Icon(Icons.menu_book_outlined),
           ),
@@ -242,7 +245,7 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
         ],
       ),
       body: SafeArea(
-        child: _QwixxTextScaleLayout(
+        child: _ColordiceTextScaleLayout(
           child: Padding(
             padding: const EdgeInsets.all(6),
             child: Row(
@@ -289,9 +292,9 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
                           ],
                         ),
                       ),
-                      for (final color in QwixxColor.values)
+                      for (final color in ColordiceColor.values)
                         Expanded(
-                          child: _QwixxRow(
+                          child: _ColordiceRow(
                             color: color,
                             player: player,
                             globallyClosed: state.closedColors.contains(color),
@@ -324,8 +327,8 @@ class _QwixxGameScreenState extends State<QwixxGameScreen> {
   }
 }
 
-class _QwixxTextScaleLayout extends StatelessWidget {
-  const _QwixxTextScaleLayout({required this.child});
+class _ColordiceTextScaleLayout extends StatelessWidget {
+  const _ColordiceTextScaleLayout({required this.child});
 
   final Widget child;
 
@@ -338,7 +341,7 @@ class _QwixxTextScaleLayout extends StatelessWidget {
       ).scale(referenceFontSize);
       if (scaledFontSize <= referenceFontSize) return child;
       return SingleChildScrollView(
-        key: const Key('qwixx-game-scroll'),
+        key: const Key('colordice-game-scroll'),
         child: SizedBox(
           height: constraints.maxHeight * scaledFontSize / referenceFontSize,
           child: child,
@@ -357,7 +360,7 @@ class _ControlPanel extends StatelessWidget {
     required this.onMiss,
   });
 
-  final QwixxController game;
+  final ColordiceController game;
   final int displayedPlayerIndex;
   final ValueChanged<int> onSelectPlayer;
   final Future<void> Function(Future<void> Function()) onRun;
@@ -437,7 +440,7 @@ class _ControlPanel extends StatelessWidget {
 class _DigitalDicePanel extends StatelessWidget {
   const _DigitalDicePanel({required this.game, required this.onRun});
 
-  final QwixxController game;
+  final ColordiceController game;
   final Future<void> Function(Future<void> Function()) onRun;
 
   @override
@@ -454,7 +457,7 @@ class _DigitalDicePanel extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           FilledButton.icon(
-            key: const Key('qwixx-retry-save'),
+            key: const Key('colordice-retry-save'),
             onPressed: game.isBusy ? null : () => onRun(game.retryDigitalSave),
             icon: const Icon(Icons.save_outlined, size: 18),
             label: const LocalizedText('Speichern'),
@@ -464,7 +467,7 @@ class _DigitalDicePanel extends StatelessWidget {
     }
     if (!state.hasRolled) {
       return FilledButton.icon(
-        key: const Key('qwixx-roll'),
+        key: const Key('colordice-roll'),
         onPressed: game.isBusy ? null : () => onRun(game.rollDigital),
         icon: const Icon(Icons.casino, size: 18),
         label: const LocalizedText('Würfeln'),
@@ -479,10 +482,10 @@ class _DigitalDicePanel extends StatelessWidget {
           runSpacing: 4,
           children: [
             for (var index = 0; index < state.dice.length; index++)
-              _QwixxDie(
-                key: Key('qwixx-die-$index'),
+              _ColordiceDie(
+                key: Key('colordice-die-$index'),
                 value: state.dice[index],
-                color: index < 2 ? null : QwixxColor.values[index - 2],
+                color: index < 2 ? null : ColordiceColor.values[index - 2],
               ),
           ],
         ),
@@ -494,7 +497,7 @@ class _DigitalDicePanel extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         FilledButton.icon(
-          key: const Key('qwixx-finish-turn'),
+          key: const Key('colordice-finish-turn'),
           onPressed: game.isBusy ? null : () => onRun(game.finishDigitalTurn),
           icon: const Icon(Icons.skip_next, size: 18),
           label: const LocalizedText('Zug beenden'),
@@ -504,17 +507,17 @@ class _DigitalDicePanel extends StatelessWidget {
   }
 }
 
-class _QwixxDie extends StatelessWidget {
-  const _QwixxDie({required this.value, required this.color, super.key});
+class _ColordiceDie extends StatelessWidget {
+  const _ColordiceDie({required this.value, required this.color, super.key});
 
   final int value;
-  final QwixxColor? color;
+  final ColordiceColor? color;
 
   Color get background => switch (color) {
-    QwixxColor.red => const Color(0xFFD72C2C),
-    QwixxColor.yellow => const Color(0xFFF2B705),
-    QwixxColor.green => const Color(0xFF168447),
-    QwixxColor.blue => const Color(0xFF1967C9),
+    ColordiceColor.red => const Color(0xFFD72C2C),
+    ColordiceColor.yellow => const Color(0xFFF2B705),
+    ColordiceColor.green => const Color(0xFF168447),
+    ColordiceColor.blue => const Color(0xFF1967C9),
     null => Colors.white,
   };
 
@@ -536,7 +539,7 @@ class _QwixxDie extends StatelessWidget {
         child: Text(
           '$value',
           style: TextStyle(
-            color: color == null || color == QwixxColor.yellow
+            color: color == null || color == ColordiceColor.yellow
                 ? Colors.black
                 : Colors.white,
             fontSize: 19,
@@ -548,8 +551,8 @@ class _QwixxDie extends StatelessWidget {
   }
 }
 
-class _QwixxRow extends StatelessWidget {
-  const _QwixxRow({
+class _ColordiceRow extends StatelessWidget {
+  const _ColordiceRow({
     required this.color,
     required this.player,
     required this.globallyClosed,
@@ -558,18 +561,18 @@ class _QwixxRow extends StatelessWidget {
     required this.onMark,
   });
 
-  final QwixxColor color;
-  final QwixxPlayer player;
+  final ColordiceColor color;
+  final ColordicePlayer player;
   final bool globallyClosed;
   final bool pendingSharedClosure;
   final bool Function(int value) canMark;
   final ValueChanged<int> onMark;
 
   Color get bandColor => switch (color) {
-    QwixxColor.red => const Color(0xFFD72C2C),
-    QwixxColor.yellow => const Color(0xFFF2B705),
-    QwixxColor.green => const Color(0xFF168447),
-    QwixxColor.blue => const Color(0xFF1967C9),
+    ColordiceColor.red => const Color(0xFFD72C2C),
+    ColordiceColor.yellow => const Color(0xFFF2B705),
+    ColordiceColor.green => const Color(0xFF168447),
+    ColordiceColor.blue => const Color(0xFF1967C9),
   };
 
   String get lockStatus => globallyClosed
@@ -602,7 +605,9 @@ class _QwixxRow extends StatelessWidget {
               color.label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: color == QwixxColor.yellow ? Colors.black : Colors.white,
+                color: color == ColordiceColor.yellow
+                    ? Colors.black
+                    : Colors.white,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -611,7 +616,7 @@ class _QwixxRow extends StatelessWidget {
         for (final value in color.numbers)
           Expanded(
             child: _NumberCell(
-              key: Key('qwixx-${color.name}-$value'),
+              key: Key('colordice-${color.name}-$value'),
               color: color,
               value: value,
               crossed: player.crossed[color]!.contains(value),
@@ -658,7 +663,7 @@ class _NumberCell extends StatelessWidget {
     super.key,
   });
 
-  final QwixxColor color;
+  final ColordiceColor color;
   final int value;
   final bool crossed;
   final bool enabled;
@@ -711,7 +716,7 @@ class _NumberCell extends StatelessWidget {
 
 class _CompactMisses extends StatelessWidget {
   const _CompactMisses({required this.player});
-  final QwixxPlayer player;
+  final ColordicePlayer player;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -746,12 +751,12 @@ class _CompactMisses extends StatelessWidget {
 
 class _ScoreSummary extends StatelessWidget {
   const _ScoreSummary({required this.player});
-  final QwixxPlayer player;
+  final ColordicePlayer player;
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      for (final color in QwixxColor.values)
+      for (final color in ColordiceColor.values)
         Expanded(
           child: FittedBox(
             fit: BoxFit.scaleDown,

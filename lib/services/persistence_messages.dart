@@ -3,6 +3,6 @@ abstract final class PersistenceMessages {
   static const saveFailed = 'Speichern fehlgeschlagen';
   static const pendingDigitalDiceSave =
       'Der letzte Würfelstand muss zuerst gespeichert werden.';
-  static const pendingQwixxRollSave =
+  static const pendingColordiceRollSave =
       'Der letzte Wurf muss zuerst gespeichert werden.';
 }

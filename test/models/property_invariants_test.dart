@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/models/balut_models.dart';
-import 'package:wuerfelblock/models/qwixx_models.dart';
+import 'package:wuerfelblock/models/colordice_models.dart';
 import 'package:wuerfelblock/models/ten_thousand_models.dart';
 
 void main() {
@@ -60,15 +60,15 @@ void main() {
     expect(checked, 7776);
   });
 
-  test('Qwixx row order always contains each number exactly once', () {
+  test('Colordice row order always contains each number exactly once', () {
     const allNumbers = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-    for (final color in QwixxColor.values) {
+    for (final color in ColordiceColor.values) {
       final numbers = color.numbers;
       expect(numbers, hasLength(11));
       expect(numbers.toSet(), allNumbers);
       expect(
         numbers,
-        color == QwixxColor.red || color == QwixxColor.yellow
+        color == ColordiceColor.red || color == ColordiceColor.yellow
             ? orderedEquals([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
             : orderedEquals([12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]),
       );

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/models/balut_models.dart';
 import 'package:wuerfelblock/models/game_models.dart';
-import 'package:wuerfelblock/models/qwixx_models.dart';
+import 'package:wuerfelblock/models/colordice_models.dart';
 import 'package:wuerfelblock/models/ten_thousand_models.dart';
 import 'package:wuerfelblock/services/game_repository.dart';
 
@@ -24,14 +24,14 @@ void main() {
     expect(decoded.progressLabel, '1 von 13 Einträgen');
   });
 
-  test('legacy Qwixx fixture restores block defaults', () async {
+  test('legacy Colordice fixture restores block defaults', () async {
     final decoded = decodeSavedGameState(
-      await _fixture('qwixx_v1_legacy_block.json'),
+      await _fixture('colordice_v1_legacy_block.json'),
     );
-    final state = decoded as QwixxGameState;
+    final state = decoded as ColordiceGameState;
 
     expect(state.mode, GameMode.block);
-    expect(state.players.first.crossed[QwixxColor.red], {2});
+    expect(state.players.first.crossed[ColordiceColor.red], {2});
     expect(state.pendingClosedColors, isEmpty);
     expect(state.hasRolled, isFalse);
   });

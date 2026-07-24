@@ -6,13 +6,13 @@ import 'l10n/localized_text.dart';
 import 'controllers/balut_controller.dart';
 import 'controllers/escalero_controller.dart';
 import 'controllers/game_controller.dart';
-import 'controllers/qwixx_controller.dart';
+import 'controllers/colordice_controller.dart';
 import 'controllers/ten_thousand_controller.dart';
 import 'core/app_theme.dart';
 import 'models/balut_models.dart';
 import 'models/escalero_models.dart';
 import 'models/game_models.dart';
-import 'models/qwixx_models.dart';
+import 'models/colordice_models.dart';
 import 'models/saved_game_state.dart';
 import 'models/ten_thousand_models.dart';
 import 'screens/balut_game_screen.dart';
@@ -22,8 +22,8 @@ import 'screens/digital_game_screen.dart';
 import 'screens/escalero_game_screen.dart';
 import 'screens/escalero_result_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/qwixx_game_screen.dart';
-import 'screens/qwixx_result_screen.dart';
+import 'screens/colordice_game_screen.dart';
+import 'screens/colordice_result_screen.dart';
 import 'screens/result_screen.dart';
 import 'screens/setup_screen.dart';
 import 'screens/ten_thousand_game_screen.dart';
@@ -126,10 +126,10 @@ class _HomeHostState extends State<_HomeHost> {
             : game.state.mode == GameMode.digital
             ? TenThousandDigitalGameScreen(game: game)
             : TenThousandGameScreen(game: game),
-      QwixxController game =>
+      ColordiceController game =>
         game.state.isComplete
-            ? QwixxResultScreen(game: game)
-            : QwixxGameScreen(game: game),
+            ? ColordiceResultScreen(game: game)
+            : ColordiceGameScreen(game: game),
       BalutController game =>
         game.state.isComplete
             ? BalutResultScreen(game: game)
@@ -203,10 +203,10 @@ class _HomeHostState extends State<_HomeHost> {
       onNewGame: _newGame,
       onContinue: () {
         final state = saved;
-        if (state is QwixxGameState) {
+        if (state is ColordiceGameState) {
           _openController(
             context,
-            QwixxController(state: state, repository: widget.repository),
+            ColordiceController(state: state, repository: widget.repository),
           );
         } else if (state is TenThousandGameState) {
           _openController(

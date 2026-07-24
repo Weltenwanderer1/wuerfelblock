@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
-class QwixxOrientation {
-  QwixxOrientation._();
+class ColordiceOrientation {
+  ColordiceOrientation._();
 
   static int _locks = 0;
   static Future<void> _pending = Future<void>.value();

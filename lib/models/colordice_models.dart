@@ -1,13 +1,13 @@
 import 'saved_game_state.dart';
 import 'game_models.dart';
 
-enum QwixxColor { red, yellow, green, blue }
+enum ColordiceColor { red, yellow, green, blue }
 
-enum QwixxDigitalAction { white, color }
+enum ColordiceDigitalAction { white, color }
 
-/// Authoritative board dimensions and end conditions for Qwixx.
-abstract final class QwixxRules {
-  static const rowColors = QwixxColor.values;
+/// Authoritative board dimensions and end conditions for Colordice.
+abstract final class ColordiceRules {
+  static const rowColors = ColordiceColor.values;
   static const ascendingRowNumbers = <int>[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   static const descendingRowNumbers = <int>[12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
   static const whiteDiceCount = 2;
@@ -24,40 +24,42 @@ abstract final class QwixxRules {
   static const initialDice = <int>[1, 1, 1, 1, 1, 1];
 }
 
-extension QwixxColorInfo on QwixxColor {
-  int get digitalDieIndex => index + QwixxRules.whiteDiceCount;
+extension ColordiceColorInfo on ColordiceColor {
+  int get digitalDieIndex => index + ColordiceRules.whiteDiceCount;
 
   List<int> get numbers => switch (this) {
-    QwixxColor.red || QwixxColor.yellow => QwixxRules.ascendingRowNumbers,
-    QwixxColor.green || QwixxColor.blue => QwixxRules.descendingRowNumbers,
+    ColordiceColor.red ||
+    ColordiceColor.yellow => ColordiceRules.ascendingRowNumbers,
+    ColordiceColor.green ||
+    ColordiceColor.blue => ColordiceRules.descendingRowNumbers,
   };
 
   String get label => switch (this) {
-    QwixxColor.red => 'Rot',
-    QwixxColor.yellow => 'Gelb',
-    QwixxColor.green => 'Grün',
-    QwixxColor.blue => 'Blau',
+    ColordiceColor.red => 'Rot',
+    ColordiceColor.yellow => 'Gelb',
+    ColordiceColor.green => 'Grün',
+    ColordiceColor.blue => 'Blau',
   };
 }
 
-class QwixxPlayer {
-  QwixxPlayer({
+class ColordicePlayer {
+  ColordicePlayer({
     required this.name,
-    Map<QwixxColor, Set<int>>? crossed,
-    Set<QwixxColor>? lockedColors,
+    Map<ColordiceColor, Set<int>>? crossed,
+    Set<ColordiceColor>? lockedColors,
     this.misses = 0,
   }) : crossed = {
-         for (final color in QwixxColor.values)
+         for (final color in ColordiceColor.values)
            color: Set.of(crossed?[color] ?? const {}),
        },
        lockedColors = Set.of(lockedColors ?? const {});
 
   final String name;
-  final Map<QwixxColor, Set<int>> crossed;
-  final Set<QwixxColor> lockedColors;
+  final Map<ColordiceColor, Set<int>> crossed;
+  final Set<ColordiceColor> lockedColors;
   int misses;
 
-  bool canMark(QwixxColor color, int value) {
+  bool canMark(ColordiceColor color, int value) {
     final numbers = color.numbers;
     final index = numbers.indexOf(value);
     if (index < 0 || lockedColors.contains(color)) return false;
@@ -68,10 +70,10 @@ class QwixxPlayer {
         .fold(-1, (maximum, item) => item > maximum ? item : maximum);
     if (index <= furthest) return false;
     return index != numbers.length - 1 ||
-        marks.length >= QwixxRules.marksBeforeLock;
+        marks.length >= ColordiceRules.marksBeforeLock;
   }
 
-  void mark(QwixxColor color, int value) {
+  void mark(ColordiceColor color, int value) {
     if (!canMark(color, value)) {
       throw StateError('Diese Zahl kann nicht mehr angekreuzt werden.');
     }
@@ -79,47 +81,47 @@ class QwixxPlayer {
     if (value == color.numbers.last) lockedColors.add(color);
   }
 
-  int crossCount(QwixxColor color) =>
+  int crossCount(ColordiceColor color) =>
       crossed[color]!.length + (lockedColors.contains(color) ? 1 : 0);
 
   static int scoreForCrosses(int crosses) {
-    if (crosses < 0 || crosses > QwixxRules.maximumScoredCrosses) {
+    if (crosses < 0 || crosses > ColordiceRules.maximumScoredCrosses) {
       throw RangeError.range(
         crosses,
         0,
-        QwixxRules.maximumScoredCrosses,
+        ColordiceRules.maximumScoredCrosses,
         'crosses',
       );
     }
     return crosses * (crosses + 1) ~/ 2;
   }
 
-  int rowScore(QwixxColor color) => scoreForCrosses(crossCount(color));
-  int get missPenalty => misses * -QwixxRules.missPenalty;
+  int rowScore(ColordiceColor color) => scoreForCrosses(crossCount(color));
+  int get missPenalty => misses * -ColordiceRules.missPenalty;
   int get total =>
-      QwixxColor.values.fold(0, (sum, color) => sum + rowScore(color)) +
+      ColordiceColor.values.fold(0, (sum, color) => sum + rowScore(color)) +
       missPenalty;
 
   Map<String, dynamic> toJson() => {
     'name': name,
     'crossed': {
-      for (final color in QwixxColor.values)
+      for (final color in ColordiceColor.values)
         color.name: crossed[color]!.toList()..sort(),
     },
     'lockedColors': lockedColors.map((color) => color.name).toList(),
     'misses': misses,
   };
 
-  factory QwixxPlayer.fromJson(Map<String, dynamic> json) {
+  factory ColordicePlayer.fromJson(Map<String, dynamic> json) {
     try {
       final name = json['name'] as String;
       final rawCrossed = Map<String, dynamic>.from(json['crossed'] as Map);
       final locked = (json['lockedColors'] as List)
-          .map((value) => QwixxColor.values.byName(value as String))
+          .map((value) => ColordiceColor.values.byName(value as String))
           .toSet();
       final misses = json['misses'] as int;
-      final crossed = <QwixxColor, Set<int>>{};
-      for (final color in QwixxColor.values) {
+      final crossed = <ColordiceColor, Set<int>>{};
+      for (final color in ColordiceColor.values) {
         final values = (rawCrossed[color.name] as List? ?? const [])
             .map((value) => value as int)
             .toSet();
@@ -130,8 +132,8 @@ class QwixxPlayer {
       }
       if (name.trim().isEmpty ||
           misses < 0 ||
-          misses > QwixxRules.maximumMisses) {
-        throw const FormatException('Ungültiger Qwixx-Spieler.');
+          misses > ColordiceRules.maximumMisses) {
+        throw const FormatException('Ungültiger Colordice-Spieler.');
       }
       for (final color in locked) {
         final marks = crossed[color]!;
@@ -139,7 +141,7 @@ class QwixxPlayer {
           throw const FormatException('Ungültiger Reihenverschluss.');
         }
       }
-      return QwixxPlayer(
+      return ColordicePlayer(
         name: name,
         crossed: crossed,
         lockedColors: locked,
@@ -148,17 +150,17 @@ class QwixxPlayer {
     } on FormatException {
       rethrow;
     } catch (error) {
-      throw FormatException('Ungültiger Qwixx-Spieler.', error);
+      throw FormatException('Ungültiger Colordice-Spieler.', error);
     }
   }
 }
 
-class QwixxGameState implements SavedGameState {
-  QwixxGameState({
+class ColordiceGameState implements SavedGameState {
+  ColordiceGameState({
     required this.players,
     this.mode = GameMode.block,
-    Set<QwixxColor>? closedColors,
-    Set<QwixxColor>? pendingClosedColors,
+    Set<ColordiceColor>? closedColors,
+    Set<ColordiceColor>? pendingClosedColors,
     this.activePlayerIndex = 0,
     this.isComplete = false,
     List<int>? dice,
@@ -167,33 +169,33 @@ class QwixxGameState implements SavedGameState {
     this.colorMarked = false,
   }) : closedColors = Set.of(closedColors ?? const {}),
        pendingClosedColors = Set.of(pendingClosedColors ?? const {}),
-       dice = List.of(dice ?? QwixxRules.initialDice),
+       dice = List.of(dice ?? ColordiceRules.initialDice),
        whiteMarkedPlayerIndices = Set.of(whiteMarkedPlayerIndices ?? const {});
 
-  factory QwixxGameState.newGame(
+  factory ColordiceGameState.newGame(
     List<String> names, {
     GameMode mode = GameMode.block,
   }) {
     final cleaned = names.map((name) => name.trim()).toList();
-    if (cleaned.length < QwixxRules.minimumPlayers ||
-        cleaned.length > QwixxRules.maximumPlayers) {
-      throw ArgumentError('Bei Qwixx sind 2 bis 5 Spieler erlaubt.');
+    if (cleaned.length < ColordiceRules.minimumPlayers ||
+        cleaned.length > ColordiceRules.maximumPlayers) {
+      throw ArgumentError('Bei Colordice sind 2 bis 5 Spieler erlaubt.');
     }
     if (cleaned.any((name) => name.isEmpty) ||
         cleaned.toSet().length != cleaned.length) {
       throw ArgumentError('Spielernamen müssen ausgefüllt und eindeutig sein.');
     }
-    return QwixxGameState(
-      players: cleaned.map((name) => QwixxPlayer(name: name)).toList(),
+    return ColordiceGameState(
+      players: cleaned.map((name) => ColordicePlayer(name: name)).toList(),
       mode: mode,
     );
   }
 
   @override
-  final List<QwixxPlayer> players;
+  final List<ColordicePlayer> players;
   final GameMode mode;
-  final Set<QwixxColor> closedColors;
-  final Set<QwixxColor> pendingClosedColors;
+  final Set<ColordiceColor> closedColors;
+  final Set<ColordiceColor> pendingClosedColors;
   int activePlayerIndex;
   @override
   bool isComplete;
@@ -204,16 +206,16 @@ class QwixxGameState implements SavedGameState {
 
   int get whiteSum => dice[0] + dice[1];
 
-  Map<QwixxColor, Set<int>> get coloredSums => {
-    for (final color in QwixxColor.values)
+  Map<ColordiceColor, Set<int>> get coloredSums => {
+    for (final color in ColordiceColor.values)
       color: {
         dice[0] + dice[color.digitalDieIndex],
         dice[1] + dice[color.digitalDieIndex],
       },
   };
 
-  QwixxPlayer get activePlayer => players[activePlayerIndex];
-  bool canMark(int playerIndex, QwixxColor color, int value) {
+  ColordicePlayer get activePlayer => players[activePlayerIndex];
+  bool canMark(int playerIndex, ColordiceColor color, int value) {
     if (isComplete ||
         closedColors.contains(color) ||
         playerIndex < 0 ||
@@ -226,7 +228,7 @@ class QwixxGameState implements SavedGameState {
     return players[playerIndex].canMark(color, value);
   }
 
-  void mark(int playerIndex, QwixxColor color, int value) {
+  void mark(int playerIndex, ColordiceColor color, int value) {
     if (!canMark(playerIndex, color, value)) {
       throw StateError('Dieses Feld ist nicht verfügbar.');
     }
@@ -240,11 +242,11 @@ class QwixxGameState implements SavedGameState {
     if (mode != GameMode.digital || isComplete || hasRolled) {
       throw StateError('Jetzt kann nicht gewürfelt werden.');
     }
-    if (values.length != QwixxRules.diceCount ||
+    if (values.length != ColordiceRules.diceCount ||
         values.any(
           (value) =>
-              value < QwixxRules.minimumDieValue ||
-              value > QwixxRules.maximumDieValue,
+              value < ColordiceRules.minimumDieValue ||
+              value > ColordiceRules.maximumDieValue,
         )) {
       throw ArgumentError.value(
         values,
@@ -258,9 +260,9 @@ class QwixxGameState implements SavedGameState {
 
   bool canMarkDigital(
     int playerIndex,
-    QwixxColor color,
+    ColordiceColor color,
     int value,
-    QwixxDigitalAction action,
+    ColordiceDigitalAction action,
   ) {
     if (mode != GameMode.digital ||
         !hasRolled ||
@@ -268,9 +270,9 @@ class QwixxGameState implements SavedGameState {
       return false;
     }
     return switch (action) {
-      QwixxDigitalAction.white =>
+      ColordiceDigitalAction.white =>
         value == whiteSum && !whiteMarkedPlayerIndices.contains(playerIndex),
-      QwixxDigitalAction.color =>
+      ColordiceDigitalAction.color =>
         playerIndex == activePlayerIndex &&
             !colorMarked &&
             coloredSums[color]!.contains(value),
@@ -279,15 +281,15 @@ class QwixxGameState implements SavedGameState {
 
   void markDigital(
     int playerIndex,
-    QwixxColor color,
+    ColordiceColor color,
     int value,
-    QwixxDigitalAction action,
+    ColordiceDigitalAction action,
   ) {
     if (!canMarkDigital(playerIndex, color, value, action)) {
       throw StateError('Diese Würfelaktion ist nicht verfügbar.');
     }
     mark(playerIndex, color, value);
-    if (action == QwixxDigitalAction.white) {
+    if (action == ColordiceDigitalAction.white) {
       whiteMarkedPlayerIndices.add(playerIndex);
     } else {
       colorMarked = true;
@@ -302,7 +304,7 @@ class QwixxGameState implements SavedGameState {
         whiteMarkedPlayerIndices.contains(activePlayerIndex) || colorMarked;
     if (!activeMarked) {
       final player = activePlayer;
-      if (player.misses >= QwixxRules.maximumMisses) {
+      if (player.misses >= ColordiceRules.maximumMisses) {
         throw StateError('Vier Fehlwürfe sind erreicht.');
       }
       player.misses++;
@@ -330,7 +332,7 @@ class QwixxGameState implements SavedGameState {
       throw RangeError.index(playerIndex, players);
     }
     final player = players[playerIndex];
-    if (player.misses >= QwixxRules.maximumMisses) {
+    if (player.misses >= ColordiceRules.maximumMisses) {
       throw StateError('Vier Fehlwürfe sind erreicht.');
     }
     player.misses++;
@@ -345,23 +347,23 @@ class QwixxGameState implements SavedGameState {
 
   void _updateComplete() {
     isComplete =
-        closedColors.length >= QwixxRules.rowsToCloseGame ||
-        players.any((player) => player.misses >= QwixxRules.maximumMisses);
+        closedColors.length >= ColordiceRules.rowsToCloseGame ||
+        players.any((player) => player.misses >= ColordiceRules.maximumMisses);
   }
 
-  int totalFor(QwixxPlayer player) => player.total;
+  int totalFor(ColordicePlayer player) => player.total;
 
   @override
-  String get gameLabel => 'Qwixx';
+  String get gameLabel => 'Colordice';
   @override
   String get modeLabel => mode.label;
   @override
   String get progressLabel =>
-      '${closedColors.length} von ${QwixxRules.rowsToCloseGame} Reihen geschlossen';
+      '${closedColors.length} von ${ColordiceRules.rowsToCloseGame} Reihen geschlossen';
 
   @override
   Map<String, dynamic> toJson() => {
-    'type': 'qwixx',
+    'type': 'colordice',
     'mode': mode.name,
     'players': players.map((player) => player.toJson()).toList(),
     'closedColors': closedColors.map((color) => color.name).toList(),
@@ -376,26 +378,27 @@ class QwixxGameState implements SavedGameState {
     'colorMarked': colorMarked,
   };
 
-  factory QwixxGameState.fromJson(Map<String, dynamic> json) {
+  factory ColordiceGameState.fromJson(Map<String, dynamic> json) {
     try {
       final players = (json['players'] as List)
           .map(
-            (value) =>
-                QwixxPlayer.fromJson(Map<String, dynamic>.from(value as Map)),
+            (value) => ColordicePlayer.fromJson(
+              Map<String, dynamic>.from(value as Map),
+            ),
           )
           .toList();
       final closed = (json['closedColors'] as List)
-          .map((value) => QwixxColor.values.byName(value as String))
+          .map((value) => ColordiceColor.values.byName(value as String))
           .toSet();
       final pending = (json['pendingClosedColors'] as List? ?? const [])
-          .map((value) => QwixxColor.values.byName(value as String))
+          .map((value) => ColordiceColor.values.byName(value as String))
           .toSet();
       final active = json['activePlayerIndex'] as int;
       final complete = json['isComplete'] as bool;
       final mode = GameMode.values.byName(
         json['mode'] as String? ?? GameMode.block.name,
       );
-      final dice = (json['dice'] as List? ?? QwixxRules.initialDice)
+      final dice = (json['dice'] as List? ?? ColordiceRules.initialDice)
           .map((value) => value as int)
           .toList();
       final hasRolled = json['hasRolled'] as bool? ?? false;
@@ -404,17 +407,17 @@ class QwixxGameState implements SavedGameState {
               .map((value) => value as int)
               .toSet();
       final colorMarked = json['colorMarked'] as bool? ?? false;
-      if (players.length < QwixxRules.minimumPlayers ||
-          players.length > QwixxRules.maximumPlayers ||
+      if (players.length < ColordiceRules.minimumPlayers ||
+          players.length > ColordiceRules.maximumPlayers ||
           players.map((player) => player.name).toSet().length !=
               players.length ||
           active < 0 ||
           active >= players.length ||
-          dice.length != QwixxRules.diceCount ||
+          dice.length != ColordiceRules.diceCount ||
           dice.any(
             (value) =>
-                value < QwixxRules.minimumDieValue ||
-                value > QwixxRules.maximumDieValue,
+                value < ColordiceRules.minimumDieValue ||
+                value > ColordiceRules.maximumDieValue,
           ) ||
           whiteMarkedPlayerIndices.any(
             (index) => index < 0 || index >= players.length,
@@ -425,7 +428,7 @@ class QwixxGameState implements SavedGameState {
                   colorMarked)) ||
           (!hasRolled &&
               (whiteMarkedPlayerIndices.isNotEmpty || colorMarked))) {
-        throw const FormatException('Ungültiger Qwixx-Spielstand.');
+        throw const FormatException('Ungültiger Colordice-Spielstand.');
       }
       final actualClosures = players
           .expand((player) => player.lockedColors)
@@ -437,12 +440,14 @@ class QwixxGameState implements SavedGameState {
         throw const FormatException('Ungültige geschlossene Reihen.');
       }
       final actuallyComplete =
-          closed.length >= QwixxRules.rowsToCloseGame ||
-          players.any((player) => player.misses >= QwixxRules.maximumMisses);
+          closed.length >= ColordiceRules.rowsToCloseGame ||
+          players.any(
+            (player) => player.misses >= ColordiceRules.maximumMisses,
+          );
       if (complete != actuallyComplete) {
         throw const FormatException('Ungültiger Abschlussstatus.');
       }
-      return QwixxGameState(
+      return ColordiceGameState(
         players: players,
         mode: mode,
         closedColors: closed,
@@ -457,7 +462,7 @@ class QwixxGameState implements SavedGameState {
     } on FormatException {
       rethrow;
     } catch (error) {
-      throw FormatException('Ungültiger Qwixx-Spielstand.', error);
+      throw FormatException('Ungültiger Colordice-Spielstand.', error);
     }
   }
 }

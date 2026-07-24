@@ -5,18 +5,18 @@ import '../l10n/localized_text.dart';
 import '../controllers/balut_controller.dart';
 import '../controllers/escalero_controller.dart';
 import '../controllers/game_controller.dart';
-import '../controllers/qwixx_controller.dart';
+import '../controllers/colordice_controller.dart';
 import '../controllers/ten_thousand_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../services/game_repository.dart';
 
-enum GameKind { yahtzeeKniffel, qwixx, tenThousand, balut, escalero }
+enum GameKind { yahtzeeKniffel, colordice, tenThousand, balut, escalero }
 
 extension on GameKind {
   String get label => switch (this) {
     GameKind.yahtzeeKniffel => 'Yahtzee/Kniffel',
-    GameKind.qwixx => 'Qwixx',
+    GameKind.colordice => 'Colordice',
     GameKind.tenThousand => '10.000',
     GameKind.balut => 'Balut',
     GameKind.escalero => 'Escalero',
@@ -24,7 +24,7 @@ extension on GameKind {
 
   String get detail => switch (this) {
     GameKind.yahtzeeKniffel => 'Klassischer Würfelspaß als Block oder digital',
-    GameKind.qwixx => 'Farbreihen als Block oder digital',
+    GameKind.colordice => 'Farbreihen als Block oder digital',
     GameKind.tenThousand => 'Punktejagd als Block oder digital',
     GameKind.balut => '28 Wertungen pro Spieler – Block oder digital',
     GameKind.escalero => 'Pokerwürfel · 3 Kolonnen',
@@ -33,7 +33,7 @@ extension on GameKind {
 
 const publicGameKinds = <GameKind>[
   GameKind.yahtzeeKniffel,
-  GameKind.qwixx,
+  GameKind.colordice,
   GameKind.tenThousand,
   GameKind.balut,
   GameKind.escalero,
@@ -61,13 +61,13 @@ class _SetupScreenState extends State<SetupScreen> {
   bool starting = false;
   String? startError;
 
-  bool get isQwixx => game == GameKind.qwixx;
+  bool get isColordice => game == GameKind.colordice;
   bool get isClassic => game == GameKind.yahtzeeKniffel;
   bool get isEscalero => game == GameKind.escalero;
   int get minimumPlayers => 2;
   int get maximumPlayers => isEscalero
       ? 3
-      : isQwixx
+      : isColordice
       ? 5
       : 8;
 
@@ -125,7 +125,7 @@ class _SetupScreenState extends State<SetupScreen> {
   void selectGame(GameKind selected) {
     setState(() {
       game = selected;
-      if (isQwixx || isEscalero) {
+      if (isColordice || isEscalero) {
         while (names.length > maximumPlayers) {
           names.removeLast().dispose();
           nameWasEdited.removeLast();
@@ -166,7 +166,7 @@ class _SetupScreenState extends State<SetupScreen> {
       startError = null;
     });
     final Object controller = switch (game) {
-      GameKind.qwixx => QwixxController.newGame(
+      GameKind.colordice => ColordiceController.newGame(
         names: cleanedNames,
         repository: widget.repository,
         mode: mode,
@@ -195,7 +195,7 @@ class _SetupScreenState extends State<SetupScreen> {
     };
     try {
       await widget.repository.save(switch (controller) {
-        QwixxController() => controller.state,
+        ColordiceController() => controller.state,
         TenThousandController() => controller.state,
         BalutController() => controller.state,
         EscaleroController() => controller.state,
@@ -318,8 +318,8 @@ class _SetupScreenState extends State<SetupScreen> {
             ),
           ],
         ),
-        if (isQwixx)
-          const LocalizedText('Qwixx wird mit 2 bis 5 Personen gespielt.'),
+        if (isColordice)
+          const LocalizedText('Colordice wird mit 2 bis 5 Personen gespielt.'),
         if (game == GameKind.yahtzeeKniffel)
           const LocalizedText(
             'Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.',
