@@ -61,51 +61,59 @@ class CardGameRulesScreen extends StatelessWidget {
       sections: [
         _RulesSection(
           'Ziel',
-          'Arbeitet zusammen und besiegt nacheinander alle 12 Gegner im Schloss. Ihr gewinnt gemeinsam, wenn ihr den letzten König besiegen könnt.',
+          'Ihr spielt als Team gegen das Spiel. Besiegt nacheinander alle 12 Gegner im Schloss – erst die 4 Buben, dann die 4 Damen, zuletzt die 4 Könige. Schafft ihr den letzten König, habt ihr gemeinsam gewonnen. Kann das Team einen Gegenangriff nicht bezahlen oder hat keine Karten mehr zum Ausspielen oder Passen, verliert ihr gemeinsam.',
         ),
         _RulesSection(
-          'Material & Deckanpassung',
-          'Am besten verwendet ihr ein normales 52er-Deck plus 2 Joker. Buben, Damen und Könige bilden das Schloss. Ass bis 10 bilden zusammen mit den Jokern die Taverne. Für 3 Personen braucht ihr 1 Joker, für 4 Personen beide Joker. Ohne Joker könnt ihr nur mit 1 oder 2 Personen spielen; alternativ markiert ihr Ersatzkarten eindeutig als Joker.',
+          'Material',
+          'Ein normales 52er-Kartendeck plus 2 Joker. Die 12 Bildkarten (Buben, Damen, Könige) bilden das Schloss – eure Gegner. Ass bis 10 plus Joker bilden die Taverne – euer Nachziehstapel. Solo und zu zweit spielt ihr ohne Joker. Zu dritt mischt ihr 1 Joker in die Taverne, zu viert beide Joker. Habt ihr keine Joker, markiert einfach zwei Ersatzkarten eindeutig als solche.',
         ),
         _RulesSection(
-          'Das Schloss vorbereiten',
-          'Baut einen verdeckten Schlossstapel: alle Könige nach unten, darauf alle Damen und ganz nach oben alle Buben. Mischt jede dieser drei Ranggruppen, ohne ihre Ebenen zu verändern, und deckt den obersten Gegner auf. Ein Bube hat Angriff 10 und Gesundheit 20, eine Dame 15/30 und ein König 20/40.',
+          'Das Schloss aufbauen',
+          'Trennt die 12 Bildkarten in drei Gruppen: 4 Könige, 4 Damen, 4 Buben. Mischt jede Gruppe einzeln. Baut dann einen verdeckten Stapel mit den Königen ganz unten, den Damen in der Mitte und den Buben ganz oben. Deckt den obersten Gegner (einen Buben) auf – der erste Kampf beginnt.',
         ),
         _RulesSection(
-          'Taverne & Handmaximum',
-          'In der Taverne ist ein Ass ein Tiergefährte mit Wert 1; Zahlenkarten zählen ihren aufgedruckten Wert, Joker sind Narren mit Wert 0. Das Handmaximum beträgt solo 8 Karten, zu zweit 7, zu dritt 6 und zu viert 5 Karten pro Person.',
+          'Gegner-Werte',
+          'Bube: Angriff 10, Gesundheit 20 (4 Stück). Dame: Angriff 15, Gesundheit 30 (4 Stück). König: Angriff 20, Gesundheit 40 (4 Stück). Der Angriffswert bestimmt, wie viel Schaden der Gegner bei seinem Gegenangriff verursacht. Die Gesundheit bestimmt, wie viel Schaden ihr zufügen müsst, um ihn zu besiegen.',
         ),
         _RulesSection(
-          'Ein Zug in vier Schritten',
-          '1. Spiele eine Karte oder passe („Yield“). 2. Führe die Farbkraft aus. 3. Füge dem Gegner Schaden zu und prüfe, ob er besiegt ist. 4. Überlebt er, bezahle seinen Gegenangriff durch Abwerfen eigener Handkarten.',
+          'Taverne & Handkarten',
+          'Die Taverne ist euer Nachziehstapel. Zieht nach, bis jede Person das Handmaximum erreicht hat. Solo: max. 8 Karten, zu zweit: max. 7, zu dritt: max. 6, zu viert: max. 5. Kartenwerte: Zahlenkarten zählen ihren aufgedruckten Wert, das Ass zählt als 1 (Tiergefährte), Joker zählen als 0 (Narr). Besiegte Gegner, die in der Taverne liegen, zählen als 10 (Bube), 15 (Dame) oder 20 (König), wenn ihr sie später ausspielt oder abwerft.',
         ),
         _RulesSection(
-          'Farbenkräfte',
-          'Farbenkräfte sind Pflicht. Herz und Karo werden sofort abgehandelt, dabei kommt Herz vor Karo: Mische für Herz den offenen Ablagestapel, zähle so viele Karten wie der gespielte Angriffswert ab und lege sie ungesehen unter die Taverne; danach kommt der Ablagestapel offen zurück. Bei Karo zieht die aktive Person zuerst, danach wird im Uhrzeigersinn gezogen, bis so viele Karten wie der Angriffswert gezogen wurden; das Handmaximum darf nie überschritten werden und ein leerer Tavernestapel ist kein Problem. Kreuz verdoppelt den in diesem Zug verursachten Schaden. Pik senkt den Angriff des aktuellen Gegners dauerhaft um den Wert aller Pik-Karten, die gegen ihn gespielt wurden. Ein Gegner ist gegen seine eigene Farbe immun; der Kartenwert verursacht trotzdem Schaden. Ein Joker hebt diese Immunität für den aktuellen Gegner auf. Zuvor gespielte Pik-Karten zählen dann rückwirkend als Schild, zuvor gespielte Kreuz-Karten werden aber nicht nachträglich verdoppelt.',
+          'Zugablauf – Schritt 1: Karte spielen',
+          'Spielt entweder eine einzelne Karte oder eine Kombination aus eurer Hand – oder passt (Yield). Erlaubte Kombinationen: 2 bis 4 gleiche Zahlenkarten, deren Summe höchstens 10 beträgt (z. B. zwei 5er = 10, drei 3er = 9). Tiergefährten (Asse) dürfen allein oder mit genau 1 weiteren Karte kombiniert werden. Ein Narr (Joker) wird immer allein gespielt. Wer nicht spielen kann oder will, muss passen.',
+        ),
+        _RulesSection(
+          'Zugablauf – Schritt 2: Farbkraft',
+          'Die Farbe der gespielten Karte löst eine Pflicht-Farbkraft aus. Bei mehreren Karten derselben Farbe zählt der Gesamtwert. Herz: Mischt den offenen Ablagestapel, zählt so viele Karten ab wie der Angriffswert, legt sie ungesehen unter die Taverne, dann kommt der Rest offen zurück. Karo: Zieht so viele Karten wie der Angriffswert – erst du, dann im Uhrzeigersinn; das Handmaximum darf nie überschritten werden. Kreuz: Verdoppelt den gesamten Schaden dieses Zuges. Pik: Senkt den Angriff des aktuellen Gegners dauerhaft um den Pik-Wert – das gilt auch für spätere Züge gegen denselben Gegner. Bei verschiedenen Farben: Herz und Karo werden sofort abgehandelt (Herz vor Karo), Kreuz und Pik wirken als Modifikatoren auf den Schaden.',
+        ),
+        _RulesSection(
+          'Farb-Immunität',
+          'Ein Gegner ist gegen seine eigene Farbe immun. Beispiel: Gegen den Pik-König verursachen Pik-Karten keinen Schaden – der Kartenwert zählt aber trotzdem als Angriffsbeitrag. Ein Narr (Joker) hebt die Immunität des aktuellen Gegners auf: Zuvor gespielte Pik-Karten zählen dann rückwirkend als Schild, aber zuvor gespielte Kreuz-Karten werden nicht nachträglich verdoppelt.',
+        ),
+        _RulesSection(
+          'Zugablauf – Schritt 3: Schaden prüfen',
+          'Addiert den Gesamtwert aller in diesem Zug gespielten Karten, wendet Kreuz-Verdopplung und Pik-Schild an. Erreicht der Schaden die Gesundheit des Gegners oder mehr, ist er besiegt. Exakt passender Schaden: Der Gegner kommt verdeckt auf die Taverne (ihr könnt ihn später nachziehen). Überschüssiger Schaden: Der Gegner kommt offen auf den Ablagestapel. Alle gegen ihn gespielten Karten kommen ebenfalls auf den Ablagestapel. Die Person, die den Gegner besiegt hat, beginnt sofort gegen den nächsten aufgedeckten Gegner.',
+        ),
+        _RulesSection(
+          'Zugablauf – Schritt 4: Gegenangriff',
+          'Überlebt der Gegner, greift er zurück. Wirft offen Handkarten ab, bis ihre Wertsumme mindestens dem (durch Pik reduzierten) Angriffswert entspricht. Es zählen: Zahlenkarten ihr Wert, Ass = 1, Bube = 10, Dame = 15, König = 20, Joker = 0. Eine leere Hand nach dem Bezahlen ist erlaubt. Könnt ihr den Gegenangriff nicht bezahlen, verliert das Team sofort.',
+        ),
+        _RulesSection(
+          'Yield (Passen)',
+          'Statt eine Karte zu spielen, könnt ihr passen. Das überspringt Farbkraft und Schaden und führt direkt zum Gegenangriff des Gegners. Wichtig: Ihr dürft nicht passen, wenn alle anderen Personen in ihrem jeweils letzten Zug ebenfalls gepasst haben. Das verhindert Endlosschleifen.',
         ),
         _RulesSection(
           'Karten gemeinsam spielen',
-          'Ein Angriff kann aus 1 Karte oder aus 2, 3 oder 4 gleichen Zahlenkarten bestehen, solange deren Wertsumme höchstens 10 ist. Tiergefährten dürfen allein oder zusammen mit genau 1 anderen Karte gespielt werden. Werden 2 passende Tiergefährten kombiniert, wird eine gemeinsame Farbkraft nur einmal ausgeführt. Ein Narr wird immer allein gespielt: Er hebt die Immunität auf, verursacht 0 Schaden, überspringt Schaden und Gegenangriff und bestimmt, wer als Nächstes spielt.',
-        ),
-        _RulesSection(
-          'Einen Gegner besiegen',
-          'Erreicht der Schaden mindestens die Gesundheit des Gegners, ist er besiegt. Legt alle gegen ihn gespielten Karten auf den offenen Ablagestapel. War der Schaden exakt passend, legt ihr den Gegner stattdessen verdeckt oben auf die Taverne; bei überschüssigem Schaden kommt er offen auf den Ablagestapel. Die Person, die den Gegner besiegt hat, beginnt sofort gegen den nächsten aufgedeckten Gegner.',
-        ),
-        _RulesSection(
-          'Gegnerkarten in der Taverne',
-          'Ein besiegter Bube, eine Dame oder ein König kann später aus der Taverne gezogen werden. Als Angriffskarte und beim Bezahlen eines Gegenangriffs zählen sie dann als 10, 15 beziehungsweise 20; ihre Farbkraft gilt beim Ausspielen normal.',
-        ),
-        _RulesSection(
-          'Gegenangriff & Yield',
-          'Überlebt der Gegner, wirfst du Karten offen ab, bis ihre Wertsumme mindestens seinem durch Pik veränderten Angriff entspricht. Dabei zählen Bube 10, Dame 15, König 20, Ass 1 und Joker 0. Kannst du den Gegenangriff nicht bezahlen, verliert das Team; eine leere Hand nach dem Bezahlen ist erlaubt. Yield überspringt Farbkraft und Schaden und führt direkt zum Gegenangriff. Du darfst nicht passen, wenn alle anderen Personen in ihrem jeweils letzten Zug gepasst haben.',
+          'Zwei oder mehr gleiche Zahlenkarten (Summe max. 10) bilden einen gemeinsamen Angriff. Die Farbkraft wird nur einmal mit dem Gesamtwert ausgeführt. Werden zwei passende Tiergefährten kombiniert, wird ihre Farbkraft ebenfalls nur einmal ausgeführt. Ein Narr wird immer allein gespielt: Er verursacht 0 Schaden, hebt die Immunität auf, überspringt Gegenangriff und bestimmt, wer als Nächstes spielt.',
         ),
         _RulesSection(
           'Kommunikation',
-          'Ihr dürft keine Informationen über eure Handkarten verraten oder auch nur nahelegen. Über die eigene Handgröße und alle öffentlich sichtbaren Stapelinformationen dürft ihr sprechen. Nach einem ausgespielten Joker dürft ihr bis zum Beginn des nächsten Zuges allgemein sagen, wer gern oder ungern als Nächstes dran wäre; konkrete Karten bleiben geheim.',
+          'Streng geheim: Ihr dürft keine Informationen über eure Handkarten verraten oder auch nur andeuten. Erlaubt: Über die eigene Handgröße und alle öffentlich sichtbaren Stapel sprechen. Nach einem ausgespielten Joker dürft ihr bis zum Beginn des nächsten Zuges allgemein sagen, wer gern oder ungern als Nächstes dran wäre – aber niemals konkrete Karten nennen.',
         ),
         _RulesSection(
-          'Sieg, Niederlage & Solo',
-          'Sieg: den letzten König besiegen. Niederlage: einen Gegenangriff nicht bezahlen können oder weder eine Karte spielen noch passen können. Solo spielst du mit 1 Hand und höchstens 8 Karten. Lege zu Beginn 2 Joker beiseite; jeden davon darfst du einmal einsetzen, entweder zu Beginn von Schritt 1 oder zu Beginn von Schritt 4, um deine Hand abzuwerfen und wieder auf 8 Karten aufzufüllen. Dabei wird die Immunität des Gegners nicht aufgehoben. Gewinn mit 2 eingesetzten Jokern = Bronze, mit 1 = Silber, mit 0 = Gold.',
+          'Solo-Variante',
+          'Spielt allein mit 1 Hand und höchstens 8 Karten. Legt zu Beginn beide Joker beiseite. Jeden Joker dürft ihr einmal einsetzen – entweder zu Beginn von Schritt 1 oder zu Beginn von Schritt 4: Wirft eure gesamte Hand ab und zieht wieder auf 8 Karten auf. Die Immunität des Gegners wird dabei nicht aufgehoben. Wertung: Sieg mit 2 eingesetzten Jokern = Bronze, mit 1 Joker = Silber, ohne Joker = Gold.',
         ),
       ],
     ),
