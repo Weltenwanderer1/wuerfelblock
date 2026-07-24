@@ -4,58 +4,76 @@ class TenThousandDiceTurn {
   TenThousandDiceTurn({
     required List<int> dice,
     required List<bool> selected,
+    required List<bool> locked,
     required this.hasRolled,
     required this.roundPoints,
-    required Map<int, int> paschCounts,
     required this.mustRoll,
   }) : dice = List<int>.unmodifiable(dice),
        selected = List<bool>.unmodifiable(selected),
-       paschCounts = Map<int, int>.unmodifiable(paschCounts) {
+       locked = List<bool>.unmodifiable(locked) {
     _validate();
   }
 
   factory TenThousandDiceTurn.fresh() => TenThousandDiceTurn(
     dice: TenThousandRules.initialDice,
     selected: TenThousandRules.initialSelection,
+    locked: const [false, false, false, false, false, false],
     hasRolled: false,
     roundPoints: 0,
-    paschCounts: const {},
     mustRoll: false,
   );
 
+  /// Immer 6 Würfel — gelockte behalten ihren Wert, nicht-gelockte werden
+  /// beim nächsten Wurf neu gewürfelt.
   final List<int> dice;
+
+  /// Welche nicht-gelockten Würfel in diesem Wurf zur Wertung ausgewählt sind.
   final List<bool> selected;
+
+  /// Bereits gewertete Würfel — bleiben sichtbar, werden nicht neu gewürfelt.
+  final List<bool> locked;
   final bool hasRolled;
   final int roundPoints;
-  final Map<int, int> paschCounts;
   final bool mustRoll;
 
-  int get activeDiceCount => dice.length;
+  /// Anzahl der Würfel, die beim nächsten Wurf gewürfelt werden.
+  int get activeDiceCount {
+    var count = 0;
+    for (final isLocked in locked) {
+      if (!isLocked) count++;
+    }
+    return count;
+  }
+
   bool get isFresh =>
       !hasRolled &&
       roundPoints == 0 &&
-      paschCounts.isEmpty &&
       !mustRoll &&
-      dice.length == TenThousandRules.diceCount;
+      activeDiceCount == TenThousandRules.diceCount;
+
   List<int> get selectedValues => [
     for (var index = 0; index < dice.length; index++)
-      if (selected[index]) dice[index],
+      if (!locked[index] && selected[index]) dice[index],
   ];
 
-  int? get selectedScore =>
-      _scoreWithPasches(selectedValues, paschCounts)?.score;
+  int? get selectedScore => _scoreSelection(selectedValues);
 
   bool get isMacke {
     if (!hasRolled) return false;
-    final counts = _counts(dice);
+    final activeValues = [
+      for (var index = 0; index < dice.length; index++)
+        if (!locked[index]) dice[index],
+    ];
+    if (activeValues.isEmpty) return false;
+    final counts = _counts(activeValues);
     if (counts[1] != null || counts[5] != null) return false;
-    if (counts.values.any((count) => count >= 3)) {
+    if (counts.values.any((count) => count >= 3)) return false;
+    if (activeValues.length == TenThousandRules.diceCount &&
+        _isStraight(counts)) {
       return false;
     }
-    if (dice.any(paschCounts.containsKey)) {
-      return false;
-    }
-    if (dice.length == TenThousandRules.diceCount && _isThreePairs(counts)) {
+    if (activeValues.length == TenThousandRules.diceCount &&
+        _isThreePairs(counts)) {
       return false;
     }
     return true;
@@ -63,6 +81,7 @@ class TenThousandDiceTurn {
 
   bool get canBank =>
       hasRolled && selectedValues.isNotEmpty && selectedScore != null;
+
   bool get canSecure =>
       roundPoints >= TenThousandRules.minimumBankScore &&
       !hasRolled &&
@@ -72,7 +91,8 @@ class TenThousandDiceTurn {
     if (hasRolled) {
       throw StateError('Die aktuellen Würfel müssen zuerst gewertet werden.');
     }
-    if (values.length != activeDiceCount ||
+    final activeCount = activeDiceCount;
+    if (values.length != activeCount ||
         values.any(
           (value) =>
               value < TenThousandRules.minimumDieValue ||
@@ -80,54 +100,60 @@ class TenThousandDiceTurn {
         )) {
       throw ArgumentError.value(values, 'values', 'Ungültiger Wurf.');
     }
+    final newDice = List<int>.of(dice);
+    var valueIndex = 0;
+    for (var index = 0; index < dice.length; index++) {
+      if (!locked[index]) {
+        newDice[index] = values[valueIndex++];
+      }
+    }
     return TenThousandDiceTurn(
-      dice: values,
-      selected: List<bool>.filled(values.length, false),
+      dice: newDice,
+      selected: List<bool>.filled(dice.length, false),
+      locked: locked,
       hasRolled: true,
       roundPoints: roundPoints,
-      paschCounts: paschCounts,
       mustRoll: false,
     );
   }
 
   TenThousandDiceTurn toggled(int index) {
-    if (!hasRolled || index < 0 || index >= dice.length) {
+    if (!hasRolled || locked[index] || index < 0 || index >= dice.length) {
       throw RangeError.index(index, dice, 'index');
     }
     final next = List<bool>.of(selected)..[index] = !selected[index];
     return TenThousandDiceTurn(
       dice: dice,
       selected: next,
+      locked: locked,
       hasRolled: hasRolled,
       roundPoints: roundPoints,
-      paschCounts: paschCounts,
       mustRoll: mustRoll,
     );
   }
 
   TenThousandDiceTurn banked() {
     if (!canBank) throw StateError('Die Auswahl ist keine gültige Wertung.');
-    final result = _scoreWithPasches(selectedValues, paschCounts)!;
-    final remaining = dice.length - selectedValues.length;
-    final hotDice = remaining == 0;
-    final nextCount = hotDice ? TenThousandRules.diceCount : remaining;
+    final score = _scoreSelection(selectedValues)!;
+    final newLocked = List<bool>.of(locked);
+    for (var index = 0; index < dice.length; index++) {
+      if (!locked[index] && selected[index]) newLocked[index] = true;
+    }
+    final allLocked = newLocked.every((isLocked) => isLocked);
     return TenThousandDiceTurn(
-      dice: List<int>.filled(nextCount, TenThousandRules.minimumDieValue),
-      selected: List<bool>.filled(nextCount, false),
+      dice: dice,
+      selected: List<bool>.filled(dice.length, false),
+      locked: allLocked ? List<bool>.filled(dice.length, false) : newLocked,
       hasRolled: false,
-      roundPoints: roundPoints + result.score,
-      paschCounts: result.paschCounts,
-      mustRoll: hotDice,
+      roundPoints: roundPoints + score,
+      mustRoll: allLocked,
     );
   }
 
-  static int? scoreSelection(List<int> values) =>
-      _scoreWithPasches(values, const {})?.score;
+  static int? scoreSelection(List<int> values) => _scoreSelection(values);
 
-  static ({int score, Map<int, int> paschCounts})? _scoreWithPasches(
-    List<int> values,
-    Map<int, int> existingPasches,
-  ) {
+  /// Wertet eine Auswahl — Verdopplung gilt nur innerhalb eines Wurfs.
+  static int? _scoreSelection(List<int> values) {
     if (values.isEmpty ||
         values.any(
           (value) =>
@@ -138,26 +164,18 @@ class TenThousandDiceTurn {
     }
     final counts = _counts(values);
     if (values.length == TenThousandRules.diceCount && _isStraight(counts)) {
-      return (score: 1000, paschCounts: Map<int, int>.of(existingPasches));
+      return 1000;
     }
     if (values.length == TenThousandRules.diceCount && _isThreePairs(counts)) {
-      return (score: 500, paschCounts: Map<int, int>.of(existingPasches));
+      return 500;
     }
 
     var score = 0;
-    final pasches = Map<int, int>.of(existingPasches);
     for (final entry in counts.entries) {
       final face = entry.key;
       final count = entry.value;
-      final existing = pasches[face] ?? 0;
-      if (existing >= 3) {
-        final oldValue = _paschValue(face, existing);
-        final newCount = existing + count;
-        score += _paschValue(face, newCount) - oldValue;
-        pasches[face] = newCount;
-      } else if (count >= 3) {
+      if (count >= 3) {
         score += _paschValue(face, count);
-        pasches[face] = count;
       } else if (face == 1) {
         score += count * 100;
       } else if (face == 5) {
@@ -166,7 +184,7 @@ class TenThousandDiceTurn {
         return null;
       }
     }
-    return score == 0 ? null : (score: score, paschCounts: pasches);
+    return score == 0 ? null : score;
   }
 
   static int _paschValue(int face, int count) {
@@ -191,26 +209,26 @@ class TenThousandDiceTurn {
   Map<String, dynamic> toJson() => {
     'dice': dice,
     'selected': selected,
+    'locked': locked,
     'hasRolled': hasRolled,
     'roundPoints': roundPoints,
-    'paschCounts': {
-      for (final entry in paschCounts.entries) '${entry.key}': entry.value,
-    },
     'mustRoll': mustRoll,
   };
 
   factory TenThousandDiceTurn.fromJson(Map<String, dynamic> json) {
     try {
+      final rawLocked = json['locked'] as List?;
+      final locked = rawLocked != null
+          ? rawLocked.map((value) => value as bool).toList()
+          : List<bool>.filled(TenThousandRules.diceCount, false);
       return TenThousandDiceTurn(
         dice: (json['dice'] as List).map((value) => value as int).toList(),
         selected: (json['selected'] as List)
             .map((value) => value as bool)
             .toList(),
+        locked: locked,
         hasRolled: json['hasRolled'] as bool,
         roundPoints: json['roundPoints'] as int,
-        paschCounts: Map<String, dynamic>.from(
-          json['paschCounts'] as Map,
-        ).map((key, value) => MapEntry(int.parse(key), value as int)),
         mustRoll: json['mustRoll'] as bool,
       );
     } catch (error) {
@@ -219,22 +237,16 @@ class TenThousandDiceTurn {
   }
 
   void _validate() {
-    if (dice.isEmpty ||
-        dice.length > TenThousandRules.diceCount ||
+    if (dice.length != TenThousandRules.diceCount ||
         dice.any(
           (value) =>
               value < TenThousandRules.minimumDieValue ||
               value > TenThousandRules.maximumDieValue,
         ) ||
         selected.length != dice.length ||
+        locked.length != dice.length ||
         roundPoints < 0 ||
         roundPoints % TenThousandRules.scoreIncrement != 0 ||
-        paschCounts.entries.any(
-          (entry) =>
-              entry.key < TenThousandRules.minimumDieValue ||
-              entry.key > TenThousandRules.maximumDieValue ||
-              entry.value < 3,
-        ) ||
         (!hasRolled && selected.any((value) => value)) ||
         (hasRolled && mustRoll)) {
       throw const FormatException('Ungültiger digitaler 10.000-Zug.');

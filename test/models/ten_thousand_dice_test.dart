@@ -16,25 +16,40 @@ void main() {
       expect(TenThousandDiceTurn.scoreSelection([2, 2, 2]), 200);
       expect(TenThousandDiceTurn.scoreSelection([1, 1, 1]), 1000);
       expect(TenThousandDiceTurn.scoreSelection([2, 2, 2, 2]), 400);
+      expect(TenThousandDiceTurn.scoreSelection([1, 1, 1, 1]), 2000);
       expect(TenThousandDiceTurn.scoreSelection([1, 2, 3, 4, 5, 6]), 1000);
       expect(TenThousandDiceTurn.scoreSelection([1, 1, 3, 3, 6, 6]), 500);
       expect(TenThousandDiceTurn.scoreSelection([2, 3]), isNull);
     });
 
-    test('extends a pasch over later rolls by doubling', () {
+    test('does not double a pasch extended over later rolls', () {
       var turn = TenThousandDiceTurn.fresh();
-      turn = turn.rolled([3, 3, 3, 1, 2, 4]);
+      turn = turn.rolled([5, 5, 5, 1, 2, 4]);
       turn = turn.toggled(0).toggled(1).toggled(2).banked();
-      expect(turn.roundPoints, 300);
-      expect(turn.paschCounts[3], 3);
+      expect(turn.roundPoints, 500);
 
-      turn = turn.rolled([3, 1, 2]);
-      turn = turn.toggled(0).banked();
-      expect(turn.roundPoints, 600);
-      expect(turn.paschCounts[3], 4);
+      // Neuer Wurf: 5, 1, 2 — die 5 ist an Index 3 (nicht gelockt)
+      turn = turn.rolled([5, 1, 2]);
+      turn = turn.toggled(3).banked();
+      // 3×5 = 500 + einzelne 5 = 50 → keine Verdopplung über Würfe hinweg
+      expect(turn.roundPoints, 550);
     });
 
-    test('hot dice require another valid roll and Macke is detected', () {
+    test('banked dice stay visible and locked after banking', () {
+      var turn = TenThousandDiceTurn.fresh();
+      turn = turn.rolled([5, 5, 5, 2, 4, 6]);
+      turn = turn.toggled(0).toggled(1).toggled(2).banked();
+      expect(turn.roundPoints, 500);
+      expect(turn.locked.where((value) => value).length, 3);
+      expect(turn.activeDiceCount, 3);
+      // Gelockte Würfel bleiben sichtbar
+      expect(turn.dice[0], 5);
+      expect(turn.dice[1], 5);
+      expect(turn.dice[2], 5);
+      expect(turn.canSecure, isTrue);
+    });
+
+    test('hot dice reset all locks and require another roll', () {
       var turn = TenThousandDiceTurn.fresh().rolled([1, 2, 3, 4, 5, 6]);
       for (var index = 0; index < 6; index++) {
         turn = turn.toggled(index);
@@ -49,12 +64,11 @@ void main() {
       expect(turn.isMacke, isTrue);
     });
 
-    test('a single die matching an earlier pasch prevents Macke', () {
+    test('locked dice are ignored for later rolls and Macke', () {
       var turn = TenThousandDiceTurn.fresh().rolled([3, 3, 3, 1, 2, 4]);
       turn = turn.toggled(0).toggled(1).toggled(2).banked();
-      turn = turn.rolled([3, 2, 4]);
-      expect(turn.isMacke, isFalse);
-      expect(turn.toggled(0).selectedScore, 300);
+      turn = turn.rolled([2, 4, 6]);
+      expect(turn.isMacke, isTrue);
     });
 
     test('secured score needs 350 and JSON preserves an active turn', () {
@@ -70,12 +84,15 @@ void main() {
     test('Macke matches exhaustive legal subsets up to six dice', () {
       for (var length = 1; length <= 6; length++) {
         for (final dice in _canonicalRolls(length)) {
+          final locked = [
+            for (var index = 0; index < 6; index++) index >= length,
+          ];
           final turn = TenThousandDiceTurn(
-            dice: List<int>.filled(length, 1),
-            selected: List<bool>.filled(length, false),
+            dice: List<int>.filled(6, 1),
+            selected: List<bool>.filled(6, false),
+            locked: locked,
             hasRolled: false,
             roundPoints: 0,
-            paschCounts: const {},
             mustRoll: false,
           ).rolled(dice);
           var hasLegalSubset = false;

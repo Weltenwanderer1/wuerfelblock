@@ -92,7 +92,7 @@ void main() {
       expect(game.state.activePlayer?.name, 'Bea');
     });
 
-    testWidgets('fresh dice stay hidden and dice are shown in grid', (
+    testWidgets('dice are always visible and roll button shows count', (
       tester,
     ) async {
       final values = <int>[1, 2, 3, 4, 5, 6];
@@ -106,11 +106,15 @@ void main() {
         MaterialApp(home: TenThousandDigitalGameScreen(game: game)),
       );
 
-      expect(find.byKey(const Key('tenk-die-0')), findsNothing);
-      expect(find.text('6 Würfel bereit'), findsOneWidget);
+      // Alle 6 Würfel sind VOR dem Wurf sichtbar
+      for (var i = 0; i < 6; i++) {
+        expect(find.byKey(Key('tenk-die-$i')), findsOneWidget);
+      }
+      expect(find.text('Mit 6 Würfeln würfeln'), findsOneWidget);
+
       await tester.tap(find.byKey(const Key('tenk-roll')));
       await tester.pumpAndSettle();
-      // Alle 6 Würfel im 2×3-Grid sichtbar
+      // Alle 6 Würfel im 3×2-Grid sichtbar
       for (var i = 0; i < 6; i++) {
         expect(find.byKey(Key('tenk-die-$i')), findsOneWidget);
       }

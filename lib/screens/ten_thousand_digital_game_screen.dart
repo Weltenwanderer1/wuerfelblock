@@ -267,72 +267,77 @@ class _TenThousandDigitalGameScreenState
                           ),
                         ),
                       const SizedBox(height: 12),
-                      if (turn.hasRolled) ...[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // 2×3 Würfel-Grid
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                for (
-                                  var row = 0;
-                                  row < (turn.dice.length + 1) ~/ 2;
-                                  row++
-                                )
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom:
-                                          row < (turn.dice.length + 1) ~/ 2 - 1
-                                          ? 8
-                                          : 0,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        for (var col = 0; col < 2; col++)
-                                          if (row * 2 + col < turn.dice.length)
-                                            Padding(
-                                              padding: EdgeInsets.only(
-                                                right: col == 0 ? 8 : 0,
-                                              ),
-                                              child: DieWidget(
-                                                key: Key(
-                                                  'tenk-die-${row * 2 + col}',
-                                                ),
-                                                value: turn.dice[row * 2 + col],
-                                                held: turn
-                                                    .selected[row * 2 + col],
-                                                selectable:
-                                                    !blocked &&
-                                                    !turn.selected[row * 2 +
-                                                        col],
-                                                selectedSemantic:
-                                                    'zur Wertung ausgewählt',
-                                                unselectedSemantic:
-                                                    'nicht zur Wertung ausgewählt',
-                                                index: 100 + row * 2 + col,
-                                                onTap: !blocked
-                                                    ? () => _run(
-                                                        () => game
-                                                            .toggleDigitalDie(
-                                                              row * 2 + col,
-                                                            ),
-                                                      )
-                                                    : null,
-                                              ),
-                                            ),
-                                      ],
-                                    ),
+                      // Immer 6 Würfel sichtbar (3×2-Grid) + Aktions-Button
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 3×2 Würfel-Grid (3 Spalten, 2 Zeilen)
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (var row = 0; row < 2; row++)
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: row == 0 ? 8 : 0,
                                   ),
-                              ],
-                            ),
-                            const SizedBox(width: 14),
-                            // Aktions-Button rechts neben dem Grid
-                            Expanded(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      for (var col = 0; col < 3; col++)
+                                        Padding(
+                                          padding: EdgeInsets.only(
+                                            right: col < 2 ? 8 : 0,
+                                          ),
+                                          child: DieWidget(
+                                            key: Key(
+                                              'tenk-die-${row * 3 + col}',
+                                            ),
+                                            value: turn.dice[row * 3 + col],
+                                            held:
+                                                !turn.locked[row * 3 + col] &&
+                                                turn.selected[row * 3 + col],
+                                            locked: turn.locked[row * 3 + col],
+                                            selectable:
+                                                turn.hasRolled &&
+                                                !blocked &&
+                                                !turn.locked[row * 3 + col] &&
+                                                !turn.selected[row * 3 + col],
+                                            selectedSemantic:
+                                                'zur Wertung ausgewählt',
+                                            unselectedSemantic:
+                                                'nicht zur Wertung ausgewählt',
+                                            index: 100 + row * 3 + col,
+                                            onTap:
+                                                turn.hasRolled &&
+                                                    !blocked &&
+                                                    !turn.locked[row * 3 + col]
+                                                ? () => _run(
+                                                    () => game.toggleDigitalDie(
+                                                      row * 3 + col,
+                                                    ),
+                                                  )
+                                                : null,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(width: 14),
+                          // Aktions-Button mit fester Höhe (2×2 Würfel = 132px)
+                          Expanded(
+                            child: SizedBox(
+                              height: 132,
                               child: turn.isMacke
                                   ? FilledButton.icon(
                                       key: const Key('tenk-confirm-macke'),
+                                      style: FilledButton.styleFrom(
+                                        minimumSize: const Size(
+                                          double.infinity,
+                                          double.infinity,
+                                        ),
+                                      ),
                                       onPressed: blocked
                                           ? null
                                           : () =>
@@ -340,8 +345,15 @@ class _TenThousandDigitalGameScreenState
                                       icon: const Icon(Icons.block),
                                       label: const LocalizedText('Macke · 0'),
                                     )
-                                  : FilledButton.icon(
+                                  : turn.hasRolled
+                                  ? FilledButton.icon(
                                       key: const Key('tenk-bank'),
+                                      style: FilledButton.styleFrom(
+                                        minimumSize: const Size(
+                                          double.infinity,
+                                          double.infinity,
+                                        ),
+                                      ),
                                       onPressed: turn.canBank && !blocked
                                           ? () =>
                                                 _run(game.bankDigitalSelection)
@@ -352,11 +364,31 @@ class _TenThousandDigitalGameScreenState
                                       label: const LocalizedText(
                                         'Werten &\nweiter würfeln',
                                       ),
+                                    )
+                                  : FilledButton.icon(
+                                      key: const Key('tenk-roll'),
+                                      style: FilledButton.styleFrom(
+                                        minimumSize: const Size(
+                                          double.infinity,
+                                          double.infinity,
+                                        ),
+                                      ),
+                                      onPressed: blocked
+                                          ? null
+                                          : () => _run(game.rollDigital),
+                                      icon: const Icon(Icons.casino),
+                                      label: LocalizedText(
+                                        turn.activeDiceCount == 6
+                                            ? 'Mit 6 Würfeln würfeln'
+                                            : 'Mit ${turn.activeDiceCount} Würfeln weiterwürfeln',
+                                      ),
                                     ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (turn.hasRolled)
                         LocalizedText(
                           turn.selectedValues.isEmpty
                               ? 'Tippe alle Würfel an, die du werten möchtest.'
@@ -372,27 +404,13 @@ class _TenThousandDigitalGameScreenState
                                 : tenThousandInk,
                             fontWeight: FontWeight.w700,
                           ),
-                        ),
-                      ] else ...[
+                        )
+                      else if (!turn.hasRolled)
                         LocalizedText(
                           '${turn.activeDiceCount} Würfel bereit',
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                        const SizedBox(height: 10),
-                        FilledButton.icon(
-                          key: const Key('tenk-roll'),
-                          onPressed: blocked
-                              ? null
-                              : () => _run(game.rollDigital),
-                          icon: const Icon(Icons.casino),
-                          label: LocalizedText(
-                            turn.activeDiceCount == 6
-                                ? 'Mit 6 Würfeln würfeln'
-                                : 'Mit ${turn.activeDiceCount} Würfeln weiterwürfeln',
-                          ),
-                        ),
-                      ],
                       if (turn.canSecure) ...[
                         const SizedBox(height: 8),
                         FilledButton.icon(
