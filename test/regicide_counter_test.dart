@@ -32,9 +32,8 @@ void main() {
       expect(find.byKey(const Key('regicide-enemy-card')), findsOneWidget);
       // Corner index shows rank letter B + suit ♥
       expect(find.text('B'), findsWidgets);
-      // Center stats: HP 20/20, ATK 10
+      // Center stats: HP 20, ATK 10
       expect(find.text('20'), findsWidgets);
-      expect(find.text('/ 20'), findsOneWidget);
       expect(find.text('10'), findsWidgets);
     });
 
@@ -63,9 +62,8 @@ void main() {
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
 
-      // Health should show 15/20
+      // Health should show 15
       expect(find.text('15'), findsWidgets);
-      expect(find.text('/ 20'), findsOneWidget);
     });
 
     testWidgets('Shield dialog reduces attack', (tester) async {

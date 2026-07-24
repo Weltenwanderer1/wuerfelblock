@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../core/app_theme.dart';
 import '../l10n/localized_text.dart';
@@ -64,6 +66,23 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
   static const _suits = ['♥', '♦', '♣', '♠'];
   static const _suitNames = ['Herz', 'Karo', 'Kreuz', 'Pik'];
 
+  // Keep-screen-on colours
+  static const _shieldBlue = Color(0xFF1E88E5);
+  static const _heartRed = Color(0xFFD32F2F);
+  static const _swordGrey = Color(0xFF757575);
+
+  @override
+  void initState() {
+    super.initState();
+    WakelockPlus.enable();
+  }
+
+  @override
+  void dispose() {
+    WakelockPlus.disable();
+    super.dispose();
+  }
+
   int get _currentHealth => _currentRank.baseHealth;
   int get _currentAttack =>
       (_currentRank.baseAttack - _attackReduction).clamp(0, 99);
@@ -101,7 +120,8 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
   /// Shows a dialog with a number input, calls [onSubmit] with the entered value.
   Future<void> _showNumberDialog({
     required String title,
-    required IconData icon,
+    IconData? icon,
+    String? iconText,
     required Color iconColor,
     required ValueChanged<int> onSubmit,
   }) async {
@@ -111,7 +131,13 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
       builder: (dialogContext) => AlertDialog(
         title: Row(
           children: [
-            Icon(icon, color: iconColor, size: 24),
+            if (iconText != null)
+              Text(
+                iconText,
+                style: TextStyle(fontSize: 24, color: iconColor, height: 1.0),
+              )
+            else if (icon != null)
+              Icon(icon, color: iconColor, size: 24),
             const SizedBox(width: 8),
             Expanded(child: LocalizedText(title)),
           ],
@@ -399,54 +425,25 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
                       right: 12,
                       child: _CornerIndex(label: indexLabel, color: suitColor),
                     ),
-                    // Center stats
+                    // Center stats — Attack on top, Health below
                     Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Health: ♥ + remaining/max
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.favorite,
-                                color: AppColors.rose,
-                                size: 30,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '$_remainingHealth',
-                                style: const TextStyle(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '/ $_currentHealth',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.plum.withValues(alpha: 0.5),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
                           // Attack: ⚔ + value
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
-                                Icons.gavel,
-                                color: AppColors.apricot,
-                                size: 28,
+                              Icon(
+                                MdiIcons.swordCross,
+                                color: _swordGrey,
+                                size: 36,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 '$_currentAttack',
                                 style: const TextStyle(
-                                  fontSize: 34,
+                                  fontSize: 44,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
@@ -458,20 +455,38 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.sage.withValues(
-                                      alpha: 0.3,
-                                    ),
+                                    color: _shieldBlue.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     '♠−$_attackReduction',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 12,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ),
                               ],
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          // Health: ♥ + remaining
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.favorite,
+                                color: _heartRed,
+                                size: 39,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '$_remainingHealth',
+                                style: const TextStyle(
+                                  fontSize: 44,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -497,13 +512,13 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
       Expanded(
         child: _ActionButton(
           key: const Key('regicide-attack-btn'),
-          icon: Icons.gavel,
-          iconColor: AppColors.apricot,
+          icon: MdiIcons.swordCross,
+          iconColor: _swordGrey,
           label: 'Angriff',
           onTap: () => _showNumberDialog(
             title: 'Angriff eingeben',
-            icon: Icons.gavel,
-            iconColor: AppColors.apricot,
+            icon: MdiIcons.swordCross,
+            iconColor: _swordGrey,
             onSubmit: (value) => setState(() {
               _damageDealt = (_damageDealt + value).clamp(0, _currentHealth);
             }),
@@ -516,12 +531,12 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
         child: _ActionButton(
           key: const Key('regicide-shield-btn'),
           icon: Icons.shield,
-          iconColor: AppColors.sage,
+          iconColor: _shieldBlue,
           label: 'Schild',
           onTap: () => _showNumberDialog(
             title: 'Schild eingeben',
             icon: Icons.shield,
-            iconColor: AppColors.sage,
+            iconColor: _shieldBlue,
             onSubmit: (value) => setState(() {
               _attackReduction = (_attackReduction + value).clamp(
                 0,
@@ -604,7 +619,7 @@ class _CornerIndex extends StatelessWidget {
       Text(
         label[0],
         style: TextStyle(
-          fontSize: 18,
+          fontSize: 23,
           fontWeight: FontWeight.w900,
           color: color,
           height: 1.1,
@@ -612,7 +627,7 @@ class _CornerIndex extends StatelessWidget {
       ),
       Text(
         label.substring(1),
-        style: TextStyle(fontSize: 16, color: color, height: 1.1),
+        style: TextStyle(fontSize: 21, color: color, height: 1.1),
       ),
     ],
   );
