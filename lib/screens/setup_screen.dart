@@ -10,8 +10,16 @@ import '../controllers/ten_thousand_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import '../services/game_repository.dart';
+import 'regicide_counter_screen.dart';
 
-enum GameKind { yahtzeeKniffel, colordice, tenThousand, balut, escalero }
+enum GameKind {
+  yahtzeeKniffel,
+  colordice,
+  tenThousand,
+  balut,
+  escalero,
+  regicide,
+}
 
 extension on GameKind {
   String get label => switch (this) {
@@ -20,6 +28,7 @@ extension on GameKind {
     GameKind.tenThousand => '10.000',
     GameKind.balut => 'Balut',
     GameKind.escalero => 'Escalero',
+    GameKind.regicide => 'Regicide',
   };
 
   String get detail => switch (this) {
@@ -28,6 +37,7 @@ extension on GameKind {
     GameKind.tenThousand => 'Punktejagd als Block oder digital',
     GameKind.balut => '28 Wertungen pro Spieler – Block oder digital',
     GameKind.escalero => 'Pokerwürfel · 3 Kolonnen',
+    GameKind.regicide => 'Kooperativer Gegner-Zähler fürs Kartenspiel',
   };
 }
 
@@ -37,6 +47,7 @@ const publicGameKinds = <GameKind>[
   GameKind.tenThousand,
   GameKind.balut,
   GameKind.escalero,
+  GameKind.regicide,
 ];
 
 class SetupScreen extends StatefulWidget {
@@ -64,6 +75,7 @@ class _SetupScreenState extends State<SetupScreen> {
   bool get isColordice => game == GameKind.colordice;
   bool get isClassic => game == GameKind.yahtzeeKniffel;
   bool get isEscalero => game == GameKind.escalero;
+  bool get isRegicide => game == GameKind.regicide;
   int get minimumPlayers => 2;
   int get maximumPlayers => isEscalero
       ? 3
@@ -75,10 +87,11 @@ class _SetupScreenState extends State<SetupScreen> {
       names.map((controller) => controller.text.trim()).toList();
 
   bool get valid =>
-      names.length >= minimumPlayers &&
-      names.length <= maximumPlayers &&
-      cleanedNames.every((name) => name.isNotEmpty) &&
-      cleanedNames.toSet().length == names.length;
+      isRegicide ||
+      (names.length >= minimumPlayers &&
+          names.length <= maximumPlayers &&
+          cleanedNames.every((name) => name.isNotEmpty) &&
+          cleanedNames.toSet().length == names.length);
 
   bool get duplicate {
     final values = cleanedNames.where((name) => name.isNotEmpty).toList();
@@ -160,6 +173,14 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   Future<void> start() async {
+    // Regicide is a standalone counter tool — open it directly
+    if (game == GameKind.regicide) {
+      Navigator.push<void>(
+        context,
+        MaterialPageRoute(builder: (_) => const RegicideCounterScreen()),
+      );
+      return;
+    }
     if (starting || !valid) return;
     setState(() {
       starting = true;
@@ -192,6 +213,7 @@ class _SetupScreenState extends State<SetupScreen> {
         names: cleanedNames,
         repository: widget.repository,
       ),
+      GameKind.regicide => throw StateError('Regicide is handled earlier.'),
     };
     try {
       await widget.repository.save(switch (controller) {
@@ -270,83 +292,97 @@ class _SetupScreenState extends State<SetupScreen> {
           },
         ),
         const SizedBox(height: 22),
-        LocalizedText(
-          'Spielart',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            for (final item in GameMode.values)
+        if (!isRegicide) ...[
+          LocalizedText(
+            'Spielart',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (final item in GameMode.values)
+                Expanded(
+                  child: _ChoiceCard(
+                    key: Key('game-mode-${item.name}'),
+                    label: item.label,
+                    detail: item.shortDescription,
+                    selected: mode == item,
+                    onTap: () => setState(() => mode = item),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: LocalizedText(
+              mode.longDescription,
+              key: const Key('game-mode-help'),
+              style: const TextStyle(
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: [
               Expanded(
-                child: _ChoiceCard(
-                  key: Key('game-mode-${item.name}'),
-                  label: item.label,
-                  detail: item.shortDescription,
-                  selected: mode == item,
-                  onTap: () => setState(() => mode = item),
+                child: LocalizedText(
+                  'Spieler (${names.length}/$maximumPlayers)',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: LocalizedText(
-            mode.longDescription,
-            key: const Key('game-mode-help'),
-            style: const TextStyle(
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.w500,
-            ),
+              IconButton(
+                key: const Key('add-player'),
+                tooltip: localizeText(context, 'Spieler hinzufügen'),
+                onPressed: names.length < maximumPlayers ? addPlayer : null,
+                icon: const Icon(Icons.person_add_alt_1),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 22),
-        Row(
-          children: [
-            Expanded(
-              child: LocalizedText(
-                'Spieler (${names.length}/$maximumPlayers)',
-                style: Theme.of(context).textTheme.titleLarge,
+          if (isColordice)
+            const LocalizedText(
+              'Colordice wird mit 2 bis 5 Personen gespielt.',
+            ),
+          if (game == GameKind.yahtzeeKniffel)
+            const LocalizedText(
+              'Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.',
+            ),
+          if (game == GameKind.tenThousand)
+            const LocalizedText('10.000 wird mit 2 bis 8 Personen gespielt.'),
+          if (game == GameKind.balut)
+            const LocalizedText('Balut wird mit 2 bis 8 Personen gespielt.'),
+          if (game == GameKind.escalero)
+            const LocalizedText('Escalero wird mit 2 bis 3 Personen gespielt.'),
+          for (var index = 0; index < names.length; index++)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: TextFormField(
+                controller: names[index],
+                onChanged: (_) => setState(() => nameWasEdited[index] = true),
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: localizeText(context, 'Name Spieler ${index + 1}'),
+                  prefixIcon: const Icon(Icons.person_outline),
+                  suffixIcon: names.length > minimumPlayers
+                      ? IconButton(
+                          onPressed: () => removePlayer(index),
+                          icon: const Icon(Icons.close),
+                          tooltip: localizeText(context, 'Spieler entfernen'),
+                        )
+                      : null,
+                ),
               ),
             ),
-            IconButton(
-              key: const Key('add-player'),
-              tooltip: localizeText(context, 'Spieler hinzufügen'),
-              onPressed: names.length < maximumPlayers ? addPlayer : null,
-              icon: const Icon(Icons.person_add_alt_1),
-            ),
-          ],
-        ),
-        if (isColordice)
-          const LocalizedText('Colordice wird mit 2 bis 5 Personen gespielt.'),
-        if (game == GameKind.yahtzeeKniffel)
-          const LocalizedText(
-            'Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.',
-          ),
-        if (game == GameKind.tenThousand)
-          const LocalizedText('10.000 wird mit 2 bis 8 Personen gespielt.'),
-        if (game == GameKind.balut)
-          const LocalizedText('Balut wird mit 2 bis 8 Personen gespielt.'),
-        if (game == GameKind.escalero)
-          const LocalizedText('Escalero wird mit 2 bis 3 Personen gespielt.'),
-        for (var index = 0; index < names.length; index++)
+        ] else
           Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: TextFormField(
-              controller: names[index],
-              onChanged: (_) => setState(() => nameWasEdited[index] = true),
-              textCapitalization: TextCapitalization.words,
-              decoration: InputDecoration(
-                labelText: localizeText(context, 'Name Spieler ${index + 1}'),
-                prefixIcon: const Icon(Icons.person_outline),
-                suffixIcon: names.length > minimumPlayers
-                    ? IconButton(
-                        onPressed: () => removePlayer(index),
-                        icon: const Icon(Icons.close),
-                        tooltip: localizeText(context, 'Spieler entfernen'),
-                      )
-                    : null,
+            padding: const EdgeInsets.only(top: 8),
+            child: LocalizedText(
+              'Kooperativer Gegner-Zähler für Regicide. Kein Spielstand nötig – einfach starten und die Gegner im Schloss besiegen!',
+              style: const TextStyle(
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

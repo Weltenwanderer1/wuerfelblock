@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/app_theme.dart';
 import '../l10n/localized_text.dart';
@@ -10,60 +11,36 @@ import '../l10n/localized_text.dart';
 enum RegicideRank { jack, queen, king }
 
 extension RegicideRankData on RegicideRank {
-  String get germanLabel {
-    switch (this) {
-      case RegicideRank.jack:
-        return 'Bube';
-      case RegicideRank.queen:
-        return 'Dame';
-      case RegicideRank.king:
-        return 'König';
-    }
-  }
+  String get germanLabel => switch (this) {
+    RegicideRank.jack => 'Bube',
+    RegicideRank.queen => 'Dame',
+    RegicideRank.king => 'König',
+  };
 
-  int get baseAttack {
-    switch (this) {
-      case RegicideRank.jack:
-        return 10;
-      case RegicideRank.queen:
-        return 15;
-      case RegicideRank.king:
-        return 20;
-    }
-  }
+  /// Corner index letter (German card notation)
+  String get cornerLetter => switch (this) {
+    RegicideRank.jack => 'B',
+    RegicideRank.queen => 'D',
+    RegicideRank.king => 'K',
+  };
 
-  int get baseHealth {
-    switch (this) {
-      case RegicideRank.jack:
-        return 20;
-      case RegicideRank.queen:
-        return 30;
-      case RegicideRank.king:
-        return 40;
-    }
-  }
+  int get baseAttack => switch (this) {
+    RegicideRank.jack => 10,
+    RegicideRank.queen => 15,
+    RegicideRank.king => 20,
+  };
 
-  IconData get icon {
-    switch (this) {
-      case RegicideRank.jack:
-        return Icons.cruelty_free_outlined;
-      case RegicideRank.queen:
-        return Icons.auto_awesome_outlined;
-      case RegicideRank.king:
-        return Icons.shield_outlined;
-    }
-  }
+  int get baseHealth => switch (this) {
+    RegicideRank.jack => 20,
+    RegicideRank.queen => 30,
+    RegicideRank.king => 40,
+  };
 
-  Color get color {
-    switch (this) {
-      case RegicideRank.jack:
-        return AppColors.sage;
-      case RegicideRank.queen:
-        return AppColors.lavender;
-      case RegicideRank.king:
-        return AppColors.rose;
-    }
-  }
+  Color get color => switch (this) {
+    RegicideRank.jack => AppColors.sage,
+    RegicideRank.queen => AppColors.lavender,
+    RegicideRank.king => AppColors.rose,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -78,13 +55,10 @@ class RegicideCounterScreen extends StatefulWidget {
 }
 
 class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
-  // Current enemy being fought
   RegicideRank _currentRank = RegicideRank.jack;
   int _currentSuitIndex = 0; // 0=Hearts,1=Diamonds,2=Clubs,3=Spades
   int _damageDealt = 0;
   int _attackReduction = 0; // spade shield
-
-  // Castle tracking: how many of each rank defeated (0-4)
   final List<int> _defeated = [0, 0, 0]; // jack, queen, king
 
   static const _suits = ['♥', '♦', '♣', '♠'];
@@ -95,21 +69,17 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
       (_currentRank.baseAttack - _attackReduction).clamp(0, 99);
   int get _remainingHealth =>
       (_currentHealth - _damageDealt).clamp(0, _currentHealth);
-  double get _healthFraction =>
-      _currentHealth == 0 ? 0 : _remainingHealth / _currentHealth;
+
+  bool get _gameWon => _defeated[2] >= 4;
 
   void _nextEnemy() {
     setState(() {
       final rankIndex = _currentRank.index;
       _defeated[rankIndex]++;
       if (_defeated[rankIndex] >= 4 && rankIndex < 2) {
-        // Move to next rank
         _currentRank = RegicideRank.values[rankIndex + 1];
-        _defeated[rankIndex] = 4; // cap
-      } else if (_defeated[rankIndex] >= 4 && rankIndex == 2) {
-        // All kings defeated — game won! Stay on king
-        _defeated[rankIndex] = 4;
       }
+      _defeated[rankIndex] = _defeated[rankIndex].clamp(0, 4);
       _damageDealt = 0;
       _attackReduction = 0;
       _currentSuitIndex = 0;
@@ -128,7 +98,56 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
     });
   }
 
-  bool get _gameWon => _defeated[2] >= 4;
+  /// Shows a dialog with a number input, calls [onSubmit] with the entered value.
+  Future<void> _showNumberDialog({
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required ValueChanged<int> onSubmit,
+  }) async {
+    final controller = TextEditingController();
+    final result = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 24),
+            const SizedBox(width: 8),
+            Expanded(child: LocalizedText(title)),
+          ],
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          decoration: InputDecoration(
+            hintText: '0',
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+          onSubmitted: (value) =>
+              Navigator.pop(dialogContext, int.tryParse(value) ?? 0),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const LocalizedText('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              int.tryParse(controller.text) ?? 0,
+            ),
+            child: const LocalizedText('OK'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) onSubmit(result);
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -168,22 +187,18 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
       padding: const EdgeInsets.all(16),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
+          constraints: const BoxConstraints(maxWidth: 420),
           child: Column(
             children: [
-              // Castle progress overview
               _buildCastleOverview(),
               const SizedBox(height: 16),
               if (_gameWon)
                 _buildVictoryBanner()
               else ...[
-                // Current enemy card
                 _buildEnemyCard(),
                 const SizedBox(height: 16),
-                // Damage controls
-                _buildDamageControls(),
-                const SizedBox(height: 16),
-                // Defeated button
+                _buildActionButtons(),
+                const SizedBox(height: 12),
                 _buildDefeatedButton(),
               ],
             ],
@@ -194,13 +209,13 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
   );
 
   // -------------------------------------------------------------------------
-  // Castle overview — 3 rows showing defeated enemies
+  // Castle overview
   // -------------------------------------------------------------------------
 
   Widget _buildCastleOverview() => Card(
     key: const Key('regicide-castle-overview'),
     child: Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       child: Column(
         children: [
           const LocalizedText(
@@ -208,13 +223,10 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
           ),
           const SizedBox(height: 10),
-          // Kings (bottom row)
           _buildRankRow(RegicideRank.king),
           const SizedBox(height: 6),
-          // Queens (middle row)
           _buildRankRow(RegicideRank.queen),
           const SizedBox(height: 6),
-          // Jacks (top row)
           _buildRankRow(RegicideRank.jack),
         ],
       ),
@@ -226,7 +238,7 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
     return Row(
       children: [
         SizedBox(
-          width: 56,
+          width: 52,
           child: LocalizedText(
             rank.germanLabel,
             style: TextStyle(
@@ -265,7 +277,11 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
                 child: isDefeated
                     ? Icon(Icons.check, size: 18, color: rank.color)
                     : Icon(
-                        rank.icon,
+                        rank == RegicideRank.jack
+                            ? Icons.cruelty_free_outlined
+                            : rank == RegicideRank.queen
+                            ? Icons.auto_awesome_outlined
+                            : Icons.shield_outlined,
                         size: 16,
                         color: isCurrent
                             ? rank.color
@@ -280,190 +296,190 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
   }
 
   // -------------------------------------------------------------------------
-  // Current enemy card — playing card style
+  // Enemy card — playing-card style per user's sketch
+  // Corner indices (rank+suit in all 4 corners), center stats (♥ HP, ⚔ ATK)
   // -------------------------------------------------------------------------
 
   Widget _buildEnemyCard() {
     final rank = _currentRank;
     final suit = _suits[_currentSuitIndex];
-    final suitName = _suitNames[_currentSuitIndex];
     final isRedSuit = _currentSuitIndex < 2;
+    final suitColor = isRedSuit ? AppColors.rose : AppColors.plum;
+    final indexLabel = '${rank.cornerLetter}$suit';
 
     return Card(
       key: const Key('regicide-enemy-card'),
-      elevation: 4,
+      elevation: 5,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: rank.color, width: 2),
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: rank.color, width: 2.5),
       ),
       child: Container(
+        width: double.infinity,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              rank.color.withValues(alpha: 0.15),
+              rank.color.withValues(alpha: 0.12),
               Colors.white,
-              rank.color.withValues(alpha: 0.08),
+              rank.color.withValues(alpha: 0.06),
             ],
           ),
         ),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(14),
         child: Column(
           children: [
-            // Suit selector
+            // Suit selector row
             Wrap(
               alignment: WrapAlignment.center,
+              spacing: 6,
               children: List.generate(4, (i) {
                 final selected = i == _currentSuitIndex;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: ChoiceChip(
-                    key: Key('suit-$i'),
-                    label: Text(
-                      _suits[i],
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: i < 2 ? AppColors.rose : AppColors.plum,
-                      ),
+                return ChoiceChip(
+                  key: Key('suit-$i'),
+                  label: Text(
+                    _suits[i],
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: i < 2 ? AppColors.rose : AppColors.plum,
                     ),
-                    selected: selected,
-                    selectedColor: AppColors.lavender.withValues(alpha: 0.5),
-                    onSelected: (_) => setState(() => _currentSuitIndex = i),
-                    tooltip: localizeText(context, _suitNames[i]),
                   ),
+                  selected: selected,
+                  selectedColor: AppColors.lavender.withValues(alpha: 0.5),
+                  onSelected: (_) => setState(() => _currentSuitIndex = i),
+                  tooltip: localizeText(context, _suitNames[i]),
                 );
               }),
             ),
-            const SizedBox(height: 12),
-            // Card display
-            Wrap(
-              alignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 16,
-              children: [
-                // Big suit symbol
-                Text(
-                  suit,
-                  style: TextStyle(
-                    fontSize: 48,
-                    color: isRedSuit ? AppColors.rose : AppColors.plum,
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    LocalizedText(
-                      '${rank.germanLabel} $suit',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    LocalizedText(
-                      suitName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.plum.withValues(alpha: 0.6),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Health bar
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: LocalizedText(
-                        'Gesundheit',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                          color: AppColors.plum.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '$_remainingHealth / $_currentHealth',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    key: const Key('regicide-health-bar'),
-                    value: _healthFraction,
-                    minHeight: 14,
-                    backgroundColor: AppColors.plum.withValues(alpha: 0.1),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _healthFraction > 0.5
-                          ? AppColors.sage
-                          : _healthFraction > 0.25
-                          ? AppColors.apricot
-                          : AppColors.rose,
-                    ),
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 14),
-            // Attack display
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Icon(Icons.flash_on, size: 20, color: AppColors.apricot),
-                const SizedBox(width: 6),
-                LocalizedText(
-                  'Angriff',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: AppColors.plum.withValues(alpha: 0.7),
+            // Playing card face
+            AspectRatio(
+              aspectRatio: 5 / 7,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.plum.withValues(alpha: 0.25),
+                    width: 1.5,
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '$_currentAttack',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20,
-                  ),
-                ),
-                if (_attackReduction > 0) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+                  boxShadow: [
+                    BoxShadow(
+                      color: rank.color.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
-                    decoration: BoxDecoration(
-                      color: AppColors.sage.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(8),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    // Top-left corner index
+                    Positioned(
+                      top: 10,
+                      left: 12,
+                      child: _CornerIndex(label: indexLabel, color: suitColor),
                     ),
-                    child: Text(
-                      '♠ −$_attackReduction',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                        color: AppColors.plum,
+                    // Top-right corner index
+                    Positioned(
+                      top: 10,
+                      right: 12,
+                      child: _CornerIndex(label: indexLabel, color: suitColor),
+                    ),
+                    // Bottom-left corner index
+                    Positioned(
+                      bottom: 10,
+                      left: 12,
+                      child: _CornerIndex(label: indexLabel, color: suitColor),
+                    ),
+                    // Bottom-right corner index
+                    Positioned(
+                      bottom: 10,
+                      right: 12,
+                      child: _CornerIndex(label: indexLabel, color: suitColor),
+                    ),
+                    // Center stats
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Health: ♥ + remaining/max
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.favorite,
+                                color: AppColors.rose,
+                                size: 30,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '$_remainingHealth',
+                                style: const TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '/ $_currentHealth',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.plum.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          // Attack: ⚔ + value
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.gavel,
+                                color: AppColors.apricot,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '$_currentAttack',
+                                style: const TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              if (_attackReduction > 0) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.sage.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '♠−$_attackReduction',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ],
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -472,79 +488,50 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
   }
 
   // -------------------------------------------------------------------------
-  // Damage controls
+  // Action buttons — Attack (number input) and Shield (number input)
   // -------------------------------------------------------------------------
 
-  Widget _buildDamageControls() => Card(
-    key: const Key('regicide-damage-controls'),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const LocalizedText(
-            'Schaden zufügen',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+  Widget _buildActionButtons() => Row(
+    children: [
+      // Attack button
+      Expanded(
+        child: _ActionButton(
+          key: const Key('regicide-attack-btn'),
+          icon: Icons.gavel,
+          iconColor: AppColors.apricot,
+          label: 'Angriff',
+          onTap: () => _showNumberDialog(
+            title: 'Angriff eingeben',
+            icon: Icons.gavel,
+            iconColor: AppColors.apricot,
+            onSubmit: (value) => setState(() {
+              _damageDealt = (_damageDealt + value).clamp(0, _currentHealth);
+            }),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final value in [1, 2, 3, 5, 10])
-                _DamageChip(
-                  label: '+$value',
-                  onTap: () => setState(() {
-                    _damageDealt = (_damageDealt + value).clamp(
-                      0,
-                      _currentHealth,
-                    );
-                  }),
-                ),
-              _DamageChip(
-                label: localizeText(context, '−1'),
-                onTap: () => setState(() {
-                  _damageDealt = (_damageDealt - 1).clamp(0, _currentHealth);
-                }),
-              ),
-              _DamageChip(
-                label: localizeText(context, 'Reset'),
-                onTap: () => setState(() => _damageDealt = 0),
-                isReset: true,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const LocalizedText(
-            'Pik-Schild (Angriff senken)',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final value in [1, 2, 3, 5])
-                _DamageChip(
-                  label: '♠ −$value',
-                  onTap: () => setState(() {
-                    _attackReduction = (_attackReduction + value).clamp(
-                      0,
-                      _currentRank.baseAttack,
-                    );
-                  }),
-                  isSpade: true,
-                ),
-              _DamageChip(
-                label: localizeText(context, '♠ Reset'),
-                onTap: () => setState(() => _attackReduction = 0),
-                isReset: true,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
-    ),
+      const SizedBox(width: 12),
+      // Shield button
+      Expanded(
+        child: _ActionButton(
+          key: const Key('regicide-shield-btn'),
+          icon: Icons.shield,
+          iconColor: AppColors.sage,
+          label: 'Schild',
+          onTap: () => _showNumberDialog(
+            title: 'Schild eingeben',
+            icon: Icons.shield,
+            iconColor: AppColors.sage,
+            onSubmit: (value) => setState(() {
+              _attackReduction = (_attackReduction + value).clamp(
+                0,
+                _currentRank.baseAttack,
+              );
+            }),
+          ),
+        ),
+      ),
+    ],
   );
 
   // -------------------------------------------------------------------------
@@ -553,7 +540,7 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
 
   Widget _buildDefeatedButton() => SizedBox(
     width: double.infinity,
-    height: 56,
+    height: 54,
     child: FilledButton.icon(
       key: const Key('regicide-defeated-btn'),
       onPressed: _nextEnemy,
@@ -601,46 +588,80 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Damage chip widget
+// Corner index widget (rank letter + suit symbol, like a real playing card)
 // ---------------------------------------------------------------------------
 
-class _DamageChip extends StatelessWidget {
-  const _DamageChip({
-    required this.label,
-    required this.onTap,
-    this.isReset = false,
-    this.isSpade = false,
-  });
+class _CornerIndex extends StatelessWidget {
+  const _CornerIndex({required this.label, required this.color});
 
   final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        label[0],
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w900,
+          color: color,
+          height: 1.1,
+        ),
+      ),
+      Text(
+        label.substring(1),
+        style: TextStyle(fontSize: 16, color: color, height: 1.1),
+      ),
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Action button (square icon button with label)
+// ---------------------------------------------------------------------------
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    super.key,
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String label;
   final VoidCallback onTap;
-  final bool isReset;
-  final bool isSpade;
 
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
-    borderRadius: BorderRadius.circular(20),
+    borderRadius: BorderRadius.circular(16),
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      constraints: const BoxConstraints(minHeight: 72),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: isReset
-            ? AppColors.plum.withValues(alpha: 0.08)
-            : isSpade
-            ? AppColors.lavender.withValues(alpha: 0.3)
-            : AppColors.apricot.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isReset
-              ? AppColors.plum.withValues(alpha: 0.3)
-              : isSpade
-              ? AppColors.lavender
-              : AppColors.apricot,
-        ),
+        color: iconColor.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: iconColor.withValues(alpha: 0.5), width: 1.5),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 28, color: iconColor),
+          const SizedBox(height: 4),
+          LocalizedText(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+              color: iconColor,
+            ),
+          ),
+        ],
       ),
     ),
   );
