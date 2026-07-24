@@ -82,10 +82,13 @@ class TenThousandDiceTurn {
   bool get canBank =>
       hasRolled && selectedValues.isNotEmpty && selectedScore != null;
 
+  /// Punkte die beim Sichern verbucht würden (Runde + offene Auswahl).
+  int get securePoints => roundPoints + (selectedScore ?? 0);
+
   bool get canSecure =>
-      roundPoints >= TenThousandRules.minimumBankScore &&
-      !hasRolled &&
-      !mustRoll;
+      securePoints >= TenThousandRules.minimumBankScore &&
+      !mustRoll &&
+      !isMacke;
 
   TenThousandDiceTurn rolled(List<int> values) {
     if (hasRolled) {

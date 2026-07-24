@@ -355,14 +355,13 @@ class _TenThousandDigitalGameScreenState
                                         ),
                                       ),
                                       onPressed: turn.canBank && !blocked
-                                          ? () =>
-                                                _run(game.bankDigitalSelection)
+                                          ? () => _run(game.bankAndRollDigital)
                                           : null,
                                       icon: const Icon(
                                         Icons.add_circle_outline,
                                       ),
                                       label: const LocalizedText(
-                                        'Werten &\nweiter würfeln',
+                                        'Weiter\nwürfeln',
                                       ),
                                     )
                                   : FilledButton.icon(
@@ -377,11 +376,7 @@ class _TenThousandDigitalGameScreenState
                                           ? null
                                           : () => _run(game.rollDigital),
                                       icon: const Icon(Icons.casino),
-                                      label: LocalizedText(
-                                        turn.activeDiceCount == 6
-                                            ? 'Mit 6 Würfeln würfeln'
-                                            : 'Mit ${turn.activeDiceCount} Würfeln weiterwürfeln',
-                                      ),
+                                      label: const LocalizedText('Würfeln'),
                                     ),
                             ),
                           ),
@@ -411,22 +406,20 @@ class _TenThousandDigitalGameScreenState
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                      if (turn.canSecure) ...[
-                        const SizedBox(height: 8),
-                        FilledButton.icon(
-                          key: const Key('tenk-secure'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: tenThousandAccent,
-                          ),
-                          onPressed: blocked
-                              ? null
-                              : () => _run(game.secureDigitalTurn),
-                          icon: const Icon(Icons.savings_outlined),
-                          label: LocalizedText(
-                            '${turn.roundPoints} Punkte sichern',
-                          ),
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        key: const Key('tenk-secure'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: tenThousandAccent,
                         ),
-                      ],
+                        onPressed: turn.canSecure && !blocked
+                            ? () => _run(game.secureDigitalTurn)
+                            : null,
+                        icon: const Icon(Icons.savings_outlined),
+                        label: LocalizedText(
+                          '${turn.securePoints} Punkte sichern',
+                        ),
+                      ),
                       const SizedBox(height: 14),
                     ],
                   ),

@@ -62,10 +62,11 @@ void main() {
   });
 
   group('10.000 game', () {
-    testWidgets('digital dice can be selected, banked and secured', (
+    testWidgets('digital dice can be selected, bank-and-rolled and secured', (
       tester,
     ) async {
-      final values = <int>[1, 1, 1, 2, 3, 4];
+      // 6 for first roll, 3 for auto-roll after banking 3 dice (include a 5 so it's not a Macke)
+      final values = <int>[1, 1, 1, 2, 3, 4, 2, 5, 4];
       final game = TenThousandController.newGame(
         names: ['Ada', 'Bea'],
         mode: GameMode.digital,
@@ -83,9 +84,12 @@ void main() {
         await tester.pumpAndSettle();
       }
       expect(find.text('Auswahl: 1000 Punkte'), findsOneWidget);
+      // "Weiter würfeln" bankt UND würfelt sofort
       await tester.tap(find.byKey(const Key('tenk-bank')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('tenk-secure')), findsOneWidget);
+      expect(game.state.digitalTurn!.roundPoints, 1000);
+      expect(game.state.digitalTurn!.hasRolled, isTrue);
+      // Sichern
       await tester.tap(find.byKey(const Key('tenk-secure')));
       await tester.pumpAndSettle();
       expect(game.state.turns.single.points, 1000);
@@ -110,7 +114,7 @@ void main() {
       for (var i = 0; i < 6; i++) {
         expect(find.byKey(Key('tenk-die-$i')), findsOneWidget);
       }
-      expect(find.text('Mit 6 Würfeln würfeln'), findsOneWidget);
+      expect(find.text('Würfeln'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('tenk-roll')));
       await tester.pumpAndSettle();

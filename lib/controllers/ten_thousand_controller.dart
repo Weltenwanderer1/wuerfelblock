@@ -96,9 +96,28 @@ class TenThousandController extends ChangeNotifier {
     return _mutateTransient(() => state.withDigitalTurn(turn.banked()));
   }
 
+  /// Bankt die Auswahl und würfelt sofort weiter — eine Aktion statt zwei.
+  Future<void> bankAndRollDigital() {
+    final turn = state.digitalTurn;
+    if (turn == null) throw StateError('Kein digitaler Zug.');
+    final banked = turn.banked();
+    final count = banked.mustRoll
+        ? TenThousandRules.diceCount
+        : banked.activeDiceCount;
+    if (count == 0) throw StateError('Alle Würfel gebankt — bitte sichern.');
+    return _mutateTransient(
+      () => state.withDigitalTurn(
+        banked.rolled(List.generate(count, (_) => _roller())),
+      ),
+    );
+  }
+
   Future<void> secureDigitalTurn() {
     final turn = state.digitalTurn;
-    if (turn == null || !turn.canSecure) {
+    if (turn == null) throw StateError('Kein digitaler Zug.');
+    // Offene Auswahl automatisch banken, damit die Punkte nicht verloren gehen
+    final effective = turn.canBank ? turn.banked() : turn;
+    if (!effective.canSecure) {
       throw StateError('Dieser Durchgang kann noch nicht gesichert werden.');
     }
     final undoBaseline = TenThousandGameState(
@@ -107,7 +126,7 @@ class TenThousandController extends ChangeNotifier {
       mode: state.mode,
     );
     return _mutate(
-      () => state.withTurn(turn.roundPoints),
+      () => state.withTurn(effective.roundPoints),
       undoBaseline: undoBaseline,
     );
   }
