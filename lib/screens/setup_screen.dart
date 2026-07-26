@@ -31,7 +31,7 @@ extension on GameKind {
     GameKind.balut => 'Balut',
     GameKind.escalero => 'Escalero',
     GameKind.regicide => 'Regicide',
-    GameKind.dragongold => 'Drachengold',
+    GameKind.dragongold => 'Schuppenschatz',
   };
 
   String get detail => switch (this) {
@@ -41,7 +41,7 @@ extension on GameKind {
     GameKind.balut => '28 Wertungen pro Spieler – Block oder digital',
     GameKind.escalero => 'Pokerwürfel · 3 Kolonnen',
     GameKind.regicide => 'Kooperativer Gegner-Zähler fürs Kartenspiel',
-    GameKind.dragongold => '5 Würfel · 7 Felder · 2 Karten pro Spieler',
+    GameKind.dragongold => '5 Würfel · 2–5 Felder · Risiko & Gold',
   };
 }
 
@@ -372,12 +372,15 @@ class _SetupScreenState extends State<SetupScreen> {
           if (game == GameKind.escalero)
             const LocalizedText('Escalero wird mit 2 bis 3 Personen gespielt.'),
           if (isDragonGold) ...[
-            const LocalizedText('Drachengold wird mit 2 bis 4 Personen gespielt.'),
+            const LocalizedText(
+              'Schuppenschatz wird mit 2 bis 4 Personen gespielt.',
+            ),
             CheckboxListTile(
               key: const Key('dragon-quick-game'),
               value: dragonQuickGame,
-              onChanged: (value) => setState(() => dragonQuickGame = value ?? false),
-              title: const LocalizedText('Schnelles Spiel (nur 1 Karte pro Spieler)'),
+              onChanged: (value) =>
+                  setState(() => dragonQuickGame = value ?? false),
+              title: const LocalizedText('Schnelles Spiel (20 Karten)'),
               dense: true,
               contentPadding: EdgeInsets.zero,
             ),

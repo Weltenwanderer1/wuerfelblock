@@ -13,6 +13,8 @@ class DieWidget extends StatelessWidget {
     this.unselectedSemantic = 'nicht gehalten',
     this.selectable = false,
     this.locked = false,
+    this.face,
+    this.semanticValue,
     super.key,
   });
   final int value;
@@ -27,6 +29,12 @@ class DieWidget extends StatelessWidget {
 
   /// Markiert einen bereits gewerteten Würfel, der nicht mehr gewürfelt wird.
   final bool locked;
+
+  /// Optionales spielabhängiges Würfelgesicht, z. B. eine Flamme statt sechs Augen.
+  final Widget? face;
+
+  /// Gesprochener Wert für ein benutzerdefiniertes Würfelgesicht.
+  final String? semanticValue;
 
   static const positions = <int, List<Alignment>>{
     1: [Alignment.center],
@@ -59,7 +67,7 @@ class DieWidget extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     button: onTap != null,
     label:
-        '${localizeText(context, 'Würfel')} $value, '
+        '${localizeText(context, 'Würfel')} ${semanticValue ?? value}, '
         '${localizeText(context, held ? selectedSemantic : unselectedSemantic)}',
     child: InkWell(
       key: Key('die-$index'),
@@ -100,21 +108,23 @@ class DieWidget extends StatelessWidget {
             ),
           ],
         ),
-        child: Stack(
-          children: [
-            for (final alignment in positions[value]!)
-              Align(
-                alignment: alignment,
-                child: const DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.plum,
-                    shape: BoxShape.circle,
+        child:
+            face ??
+            Stack(
+              children: [
+                for (final alignment in positions[value]!)
+                  Align(
+                    alignment: alignment,
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.plum,
+                        shape: BoxShape.circle,
+                      ),
+                      child: SizedBox.square(dimension: 9),
+                    ),
                   ),
-                  child: SizedBox.square(dimension: 9),
-                ),
-              ),
-          ],
-        ),
+              ],
+            ),
       ),
     ),
   );

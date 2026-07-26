@@ -101,7 +101,7 @@ void main() {
       await game.endTurn();
       expect(game.state.players[0].gold, 5);
       expect(game.state.cardGold, 5);
-      expect(game.state.goldPool, 38);
+      expect(game.state.goldPool, 48);
       expect(game.state.activePlayerIndex, 1);
     },
   );
@@ -132,18 +132,34 @@ void main() {
   });
 
   test(
-    'a luck roll without a fit for an open mandatory field fails immediately',
+    'a luck roll may use a matching optional field while mandatory fields remain open',
     () async {
       final game = digital(
         rolls: [1, 1, 1, 1, 1],
         cards: [DragonDeck.cards[29]],
       );
       await game.rollDigital();
-      expect(game.state.activePlayerIndex, 1);
-      expect(game.state.triedPlayerIndices, [0]);
-      expect(game.state.cardGold, 5);
+      expect(game.state.activePlayerIndex, 0);
+      expect(game.state.dice, hasLength(5));
+      await game.selectDie(0);
+      await game.placeSelectedDie(2);
+      expect(game.state.attempt!.placedValues[2], 1);
+      expect(game.canEndTurn, isFalse);
     },
   );
+
+  test('block mode can report that no die fits and pass the card', () async {
+    final game = DragonController.newGame(
+      names: ['A', 'B'],
+      mode: GameMode.block,
+      repository: TestRepository(),
+      shuffledCards: DragonDeck.cards,
+    );
+    await game.failAttempt();
+    expect(game.state.activePlayerIndex, 1);
+    expect(game.state.triedPlayerIndices, [0]);
+    expect(game.state.cardGold, 5);
+  });
 
   test('a roll with no fitting die fails immediately', () async {
     final fire = const DragonCard(
@@ -176,7 +192,7 @@ void main() {
     final game = digital(rolls: [1, 2, 3, 4, 6], cards: [fire]);
     await game.rollDigital();
     expect(game.state.cardGold, 5);
-    expect(game.state.goldPool, 43);
+    expect(game.state.goldPool, 48);
   });
 
   test('dragon escapes after all players tried', () async {
@@ -252,17 +268,26 @@ void main() {
     expect(game.state.placementsSinceRoll, 0);
   });
 
-  test('normal save failure rolls placement back', () async {
-    final repo = TestRepository()..failNextSave = true;
-    final game = DragonController.newGame(
-      names: ['A', 'B'],
-      mode: GameMode.block,
-      repository: repo,
-      shuffledCards: DragonDeck.cards,
-    );
-    await expectLater(game.placeManualDie(0, 1), throwsStateError);
-    expect(game.state.attempt!.placedValues.every((v) => v == null), isTrue);
-  });
+  test(
+    'normal save failure rolls placement and success message back',
+    () async {
+      const card = DragonCard(
+        id: 1,
+        type: DragonType.water,
+        fields: [DragonField.empty()],
+      );
+      final repo = TestRepository()..failNextSave = true;
+      final game = DragonController.newGame(
+        names: ['A', 'B'],
+        mode: GameMode.block,
+        repository: repo,
+        shuffledCards: const [card],
+      );
+      await expectLater(game.placeManualDie(0, 1), throwsStateError);
+      expect(game.state.attempt!.placedValues.every((v) => v == null), isTrue);
+      expect(game.lastMessage, isNull);
+    },
+  );
 
   test('failed digital roll stays visible and can retry exact save', () async {
     final repo = TestRepository()..failNextSave = true;
@@ -281,6 +306,55 @@ void main() {
     expect(game.needsDigitalSaveRetry, isFalse);
     expect(calls, 5);
   });
+
+  test(
+    'undo is blocked during save retry and restores the pre-roll state',
+    () async {
+      final repo = TestRepository();
+      final game = digital(
+        rolls: [1, 2, 3, 4, 5, 5, 4, 3, 2],
+        repository: repo,
+      );
+      await game.rollDigital();
+      await game.selectDie(0);
+      await game.placeSelectedDie(0);
+      repo.failNextSave = true;
+      await expectLater(game.continueRolling(), throwsStateError);
+      expect(game.state.dice, [5, 4, 3, 2]);
+      expect(game.needsDigitalSaveRetry, isTrue);
+
+      await expectLater(game.undo(), throwsStateError);
+      expect(game.state.dice, [5, 4, 3, 2]);
+      await game.retryDigitalSave();
+      await game.undo();
+      expect(game.state.dice, [2, 3, 4, 5]);
+      expect(game.state.placementsSinceRoll, 1);
+    },
+  );
+
+  test(
+    'digital scoring never truncates gold because token count is not value',
+    () async {
+      const card = DragonCard(
+        id: 1,
+        type: DragonType.water,
+        fields: [DragonField.empty(), DragonField.empty()],
+      );
+      final initial = DragonGameState.newGame(
+        ['A', 'B'],
+        mode: GameMode.block,
+        shuffledCards: const [card],
+      ).copyWith(goldPool: 1);
+      final game = DragonController(
+        state: initial,
+        repository: TestRepository(),
+      );
+      await game.placeManualDie(0, 5);
+      await game.endTurn();
+      expect(game.state.players[0].gold, 5);
+      expect(game.state.cardGold, 5);
+    },
+  );
 
   test('unique most dragons gets the twenty-gold bonus', () async {
     final cards = const [

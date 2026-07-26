@@ -58,6 +58,30 @@ void main() {
     expect(find.byType(EscaleroRulesScreen), findsOneWidget);
   });
 
+  testWidgets('rules selection opens Schuppenschatz rules', (tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(const MaterialApp(home: RulesSelectionScreen()));
+    final link = find.byKey(const Key('rules-link-schuppenschatz'));
+    await tester.scrollUntilVisible(link, 250);
+    await tester.tap(link);
+    await tester.pumpAndSettle();
+    expect(find.text('Schuppenschatz · Regeln'), findsOneWidget);
+    for (final heading in [
+      'Ziel',
+      'Die Felder',
+      'Dein Zug',
+      'Drachenarten',
+      'Gold & Spielende',
+    ]) {
+      expect(find.text(heading), findsOneWidget);
+    }
+  });
+
   testWidgets('rules page is structured and ruleset-specific', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: RulesScreen(ruleSet: RuleSet.kniffel)),

@@ -45,7 +45,6 @@ void main() {
     39: 'L:m1,m2,m3,n4,e',
     40: 'L:m2,m4,m5,n1,e',
     41: 'L:m1,m3,m5,n2,e',
-    42: 'L:m1,m2,m3,m4,n5',
   };
 
   String signature(DragonCard card) {
@@ -67,9 +66,9 @@ void main() {
     return '$type:$fields';
   }
 
-  group('the 42-card deck', () {
+  group('the 41-card Schuppenschatz deck', () {
     test('contains every id exactly once', () {
-      expect(DragonDeck.cards, hasLength(42));
+      expect(DragonDeck.cards, hasLength(41));
       expect(DragonDeck.cards.map((c) => c.id).toSet(), expected.keys.toSet());
     });
     for (final entry in expected.entries) {
@@ -78,10 +77,11 @@ void main() {
         expect(signature(card), entry.value);
       });
     }
-    test('contains fourteen cards of every dragon type', () {
-      for (final type in DragonType.values) {
-        expect(DragonDeck.cards.where((c) => c.type == type), hasLength(14));
-      }
+    test('contains all three dragon types', () {
+      expect(
+        DragonDeck.cards.map((c) => c.type).toSet(),
+        DragonType.values.toSet(),
+      );
     });
     test('fire dragons have four fields and no flame field', () {
       for (final card in DragonDeck.cards.where(
@@ -177,9 +177,9 @@ void main() {
       );
     });
     test(
-      'full and quick games contain 42 and 20 cards including current card',
+      'full and quick games contain 41 and 20 cards including current card',
       () {
-        expect(DragonGameState.newGame(['A', 'B']).cardsInGame, 42);
+        expect(DragonGameState.newGame(['A', 'B']).cardsInGame, 41);
         expect(
           DragonGameState.newGame(['A', 'B'], quickGame: true).cardsInGame,
           20,

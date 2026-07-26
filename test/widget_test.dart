@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wuerfelblock/app.dart';
+import 'package:wuerfelblock/controllers/dragon_controller.dart';
 import 'package:wuerfelblock/controllers/escalero_controller.dart';
 import 'package:wuerfelblock/controllers/game_controller.dart';
 import 'package:wuerfelblock/l10n/localized_text.dart';
 
 import 'package:wuerfelblock/models/balut_models.dart';
+import 'package:wuerfelblock/models/dragon_models.dart';
 import 'package:wuerfelblock/models/escalero_models.dart';
 import 'package:wuerfelblock/models/game_models.dart';
 import 'package:wuerfelblock/models/saved_game_state.dart';
@@ -13,6 +15,8 @@ import 'package:wuerfelblock/models/ten_thousand_models.dart';
 import 'package:wuerfelblock/screens/balut_game_screen.dart';
 import 'package:wuerfelblock/screens/block_game_screen.dart';
 import 'package:wuerfelblock/screens/digital_game_screen.dart';
+import 'package:wuerfelblock/screens/dragon_game_screen.dart';
+import 'package:wuerfelblock/screens/dragon_result_screen.dart';
 import 'package:wuerfelblock/screens/escalero_game_screen.dart';
 import 'package:wuerfelblock/screens/result_screen.dart';
 import 'package:wuerfelblock/screens/setup_screen.dart';
@@ -456,47 +460,46 @@ void main() {
     ]);
   });
 
-  testWidgets(
-    'Setup offers six public games in a responsive two-column grid',
-    (tester) async {
-      tester.view.physicalSize = const Size(360, 2000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
-      await tester.pumpWidget(
-        MaterialApp(
-          home: SetupScreen(
-            repository: MemoryGameRepository(),
-            onStarted: (_) {},
-          ),
+  testWidgets('Setup offers six public games in a responsive two-column grid', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SetupScreen(
+          repository: MemoryGameRepository(),
+          onStarted: (_) {},
         ),
-      );
-      expect(find.text('Yahtzee/Kniffel'), findsOneWidget);
-      expect(find.text('Colordice'), findsOneWidget);
-      expect(find.text('10.000'), findsOneWidget);
-      expect(find.text('Balut'), findsOneWidget);
-      expect(find.byKey(const Key('game-kind-escalero')), findsOneWidget);
-      expect(find.text('Escalero'), findsOneWidget);
-      expect(find.text('Pokerwürfel · 3 Kolonnen'), findsOneWidget);
-      expect(find.byKey(const Key('game-kind-dragongold')), findsOneWidget);
-      expect(find.text('Drachengold'), findsOneWidget);
-      expect(find.text('5 Würfel · 7 Felder · 2 Karten pro Spieler'), findsOneWidget);
-      expect(find.text('Yatzy'), findsNothing);
-      final yahtzeeX = tester.getCenter(find.text('Yahtzee/Kniffel')).dx;
-      final colordiceX = tester.getCenter(find.text('Colordice')).dx;
-      expect((yahtzeeX - colordiceX).abs(), greaterThan(50));
-      expect(find.byType(TextFormField, skipOffstage: false), findsNWidgets(2));
-      expect(
-        find.text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),
-        findsOneWidget,
-      );
-      expect(find.text('Spielart', skipOffstage: false), findsOneWidget);
-      expect(find.text('Echte Würfel', skipOffstage: false), findsWidgets);
-      expect(find.text('Digital würfeln', skipOffstage: false), findsWidgets);
-    },
-  );
+      ),
+    );
+    expect(find.text('Yahtzee/Kniffel'), findsOneWidget);
+    expect(find.text('Colordice'), findsOneWidget);
+    expect(find.text('10.000'), findsOneWidget);
+    expect(find.text('Balut'), findsOneWidget);
+    expect(find.byKey(const Key('game-kind-escalero')), findsOneWidget);
+    expect(find.text('Escalero'), findsOneWidget);
+    expect(find.text('Pokerwürfel · 3 Kolonnen'), findsOneWidget);
+    expect(find.byKey(const Key('game-kind-dragongold')), findsOneWidget);
+    expect(find.text('Schuppenschatz'), findsOneWidget);
+    expect(find.text('5 Würfel · 2–5 Felder · Risiko & Gold'), findsOneWidget);
+    expect(find.text('Yatzy'), findsNothing);
+    final yahtzeeX = tester.getCenter(find.text('Yahtzee/Kniffel')).dx;
+    final colordiceX = tester.getCenter(find.text('Colordice')).dx;
+    expect((yahtzeeX - colordiceX).abs(), greaterThan(50));
+    expect(find.byType(TextFormField, skipOffstage: false), findsNWidgets(2));
+    expect(
+      find.text('Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.'),
+      findsOneWidget,
+    );
+    expect(find.text('Spielart', skipOffstage: false), findsOneWidget);
+    expect(find.text('Echte Würfel', skipOffstage: false), findsWidgets);
+    expect(find.text('Digital würfeln', skipOffstage: false), findsWidgets);
+  });
 
   testWidgets('Escalero setup limits players to three and saves the game', (
     tester,
@@ -547,6 +550,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(EscaleroGameScreen), findsOneWidget);
   });
+
+  testWidgets(
+    'saved Schuppenschatz games resume into game and result screens',
+    (tester) async {
+      final repository = MemoryGameRepository();
+      await repository.save(
+        DragonGameState.newGame(
+          ['Ada', 'Bea'],
+          mode: GameMode.block,
+          shuffledCards: DragonDeck.cards,
+        ),
+      );
+      await tester.pumpWidget(WuerfelblockApp(repository: repository));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Partie fortsetzen'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DragonGameScreen), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      const finalCard = DragonCard(
+        id: 999,
+        type: DragonType.water,
+        fields: [DragonField.empty()],
+      );
+      final values = [1, 2, 3, 4, 5];
+      final game = DragonController.newGame(
+        names: ['Ada', 'Bea'],
+        mode: GameMode.digital,
+        repository: repository,
+        shuffledCards: const [finalCard],
+        roller: () => values.removeAt(0),
+      );
+      await game.rollDigital();
+      await game.selectDie(0);
+      await game.placeSelectedDie(0);
+      expect(game.state.isComplete, isTrue);
+
+      await tester.pumpWidget(WuerfelblockApp(repository: repository));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Partie fortsetzen'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DragonResultScreen), findsOneWidget);
+    },
+  );
 
   testWidgets('combined setup saves Kniffel and supports both modes', (
     tester,

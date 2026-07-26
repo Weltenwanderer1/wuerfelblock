@@ -1,20 +1,39 @@
 import 'package:flutter/material.dart';
 
-import '../l10n/localized_text.dart';
 import '../controllers/dragon_controller.dart';
+import '../l10n/localized_text.dart';
 import '../models/dragon_models.dart';
 import '../models/game_models.dart';
 import '../widgets/die_widget.dart';
 import 'dragon_result_screen.dart';
+import 'schuppenschatz_rules_screen.dart';
 
-const _paper = Color(0xFFFFF8E8);
-const _ink = Color(0xFF2D2923);
-const _gold = Color(0xFFB8860B);
+const _page = Color(0xFFF7F1E5);
+const _ink = Color(0xFF241C2B);
+const _muted = Color(0xFF766C78);
+const _gold = Color(0xFFC98915);
+const _deepGold = Color(0xFF7A4B00);
+const _panel = Color(0xFFFFFBF3);
+const _water = Color(0xFF176B87);
+const _fire = Color(0xFFA93A2B);
+const _luck = Color(0xFF7A4C9E);
 
 Color _typeColor(DragonType type) => switch (type) {
-  DragonType.water => const Color(0xFF1565C0),
-  DragonType.fire => const Color(0xFFC62828),
-  DragonType.luck => const Color(0xFF7B1FA2),
+  DragonType.water => _water,
+  DragonType.fire => _fire,
+  DragonType.luck => _luck,
+};
+
+Color _typeLight(DragonType type) => switch (type) {
+  DragonType.water => const Color(0xFFD8F1F6),
+  DragonType.fire => const Color(0xFFFFE0D6),
+  DragonType.luck => const Color(0xFFEEDFF8),
+};
+
+IconData _typeIcon(DragonType type) => switch (type) {
+  DragonType.water => Icons.water_drop_rounded,
+  DragonType.fire => Icons.local_fire_department_rounded,
+  DragonType.luck => Icons.auto_awesome_rounded,
 };
 
 class DragonGameScreen extends StatefulWidget {
@@ -42,8 +61,7 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
   }
 
   void _onChanged() {
-    if (!mounted) return;
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   Future<void> _run(Future<void> Function() action) async {
@@ -57,13 +75,18 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     }
   }
 
+  Future<void> _openRules() => Navigator.push<void>(
+    context,
+    MaterialPageRoute(builder: (_) => const SchuppenschatzRulesScreen()),
+  );
+
   Future<void> _abandon() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const LocalizedText('Partie beenden?'),
         content: const LocalizedText(
-          'Die aktuelle Drachengold-Partie wird verworfen.',
+          'Die aktuelle Schuppenschatz-Partie wird verworfen.',
         ),
         actions: [
           TextButton(
@@ -90,73 +113,87 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
   }
 
   Future<void> _placeManual(int fieldIndex) async {
+    final card = _state.currentCard;
+    if (card == null) return;
+    final field = card.fields[fieldIndex];
+    final validValues = [
+      for (var value = 1; value <= 6; value++)
+        if (field.accepts(value, card: card)) value,
+    ];
     final value = await showDialog<int>(
       context: context,
-      builder: (context) => const _ManualValueDialog(),
+      builder: (context) => _ManualValueDialog(validValues: validValues),
     );
-    if (value == null) return;
-    await _run(() => _game.placeManualDie(fieldIndex, value));
+    if (value != null) {
+      await _run(() => _game.placeManualDie(fieldIndex, value));
+    }
   }
 
-  Future<void> _openResult() async {
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute(builder: (_) => DragonResultScreen(game: _game)),
-    );
-  }
+  Future<void> _openResult() => Navigator.push<void>(
+    context,
+    MaterialPageRoute(builder: (_) => DragonResultScreen(game: _game)),
+  );
 
   @override
   Widget build(BuildContext context) {
+    if (_state.isComplete) return _buildCompleted();
     final state = _state;
-    if (state.isComplete) return _buildCompleted();
-    final active = state.activePlayer;
     final isDigital = state.mode == GameMode.digital;
-    final selectedDie = isDigital &&
+    final selectedDie =
+        isDigital &&
             state.selectedDieIndex != null &&
             state.selectedDieIndex! < state.dice.length
         ? state.dice[state.selectedDieIndex!]
         : null;
+    final interactionEnabled = !_game.isBusy && !_game.needsDigitalSaveRetry;
+
     return Scaffold(
-      backgroundColor: _paper,
+      backgroundColor: _page,
       appBar: AppBar(
-        title: LocalizedText('Drachengold · ${active.name} ist dran'),
+        title: const LocalizedText('Schuppenschatz'),
+        backgroundColor: _page,
+        surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
+            key: const Key('dragon-rules'),
+            tooltip: localizeText(context, 'Spielregeln'),
+            onPressed: _openRules,
+            icon: const Icon(Icons.menu_book_outlined),
+          ),
+          IconButton(
+            key: const Key('dragon-undo'),
             tooltip: localizeText(context, 'Zurück'),
-            onPressed: _game.canUndo && !_game.isBusy
+            onPressed: _game.canUndo && interactionEnabled
                 ? () => _run(_game.undo)
                 : null,
-            icon: const Icon(Icons.undo),
+            icon: const Icon(Icons.undo_rounded),
           ),
           IconButton(
             tooltip: localizeText(context, 'Partie beenden'),
             onPressed: _game.isBusy ? null : _abandon,
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close_rounded),
           ),
         ],
       ),
       body: SafeArea(
+        bottom: false,
         child: ListView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
           children: [
-            if (_game.lastMessage case final message?)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: LocalizedText(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: _gold,
-                  ),
-                ),
-              ),
-            _DragonCardView(
+            _StatusPanel(state: state),
+            if (_game.lastMessage case final message?) ...[
+              const SizedBox(height: 8),
+              _MessageBanner(message: message),
+            ],
+            const SizedBox(height: 10),
+            _DragonChallengeCard(
               key: const Key('dragon-card'),
               state: state,
               selectedDie: selectedDie,
+              manualMode: !isDigital,
+              enabled: interactionEnabled,
               onFieldTap: (index) {
-                if (_game.isBusy) return;
+                if (!interactionEnabled) return;
                 if (isDigital && selectedDie != null) {
                   _run(() => _game.placeSelectedDie(index));
                 } else if (!isDigital) {
@@ -164,51 +201,451 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
                 }
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+            _RiskPanel(state: state),
+            const SizedBox(height: 10),
             if (isDigital)
               _DigitalDiceArea(game: _game, onRun: _run)
             else
               const _BlockDiceHint(),
-            const SizedBox(height: 12),
-            _ActionButtons(game: _game, onRun: _run),
-            const SizedBox(height: 16),
-            _PlayerInfo(state: state),
-            const SizedBox(height: 12),
-            _DeckInfo(state: state),
+            const SizedBox(height: 10),
+            _PlayerStrip(state: state),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _ActionBar(game: _game, onRun: _run),
+    );
+  }
+
+  Widget _buildCompleted() => Scaffold(
+    backgroundColor: _page,
+    appBar: AppBar(
+      title: const LocalizedText('Schuppenschatz · Geschafft'),
+      automaticallyImplyLeading: false,
+    ),
+    body: SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.emoji_events_rounded, color: _gold, size: 72),
+              const SizedBox(height: 12),
+              const LocalizedText(
+                'Sieger',
+                style: TextStyle(fontWeight: FontWeight.w700, color: _muted),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _state.winners.map((p) => p.name).join(', '),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: _game.isBusy ? null : _openResult,
+                icon: const Icon(Icons.leaderboard_rounded),
+                label: const LocalizedText('Ergebnis ansehen'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _StatusPanel extends StatelessWidget {
+  const _StatusPanel({required this.state});
+  final DragonGameState state;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('schuppenschatz-status'),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: _ink,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: const BoxDecoration(color: _gold, shape: BoxShape.circle),
+          child: const Icon(Icons.person_rounded, color: Colors.white),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const LocalizedText(
+                'Am Zug',
+                style: TextStyle(color: Color(0xFFD7CED9), fontSize: 12),
+              ),
+              Text(
+                state.activePlayer.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _MiniStat(
+          icon: Icons.style_rounded,
+          label: '${state.cardsInGame}',
+          semanticLabel: '${state.cardsInGame} Karten',
+        ),
+        const SizedBox(width: 8),
+        _MiniStat(
+          icon: Icons.monetization_on_rounded,
+          label: '${state.activePlayer.totalGold}',
+          semanticLabel: '${state.activePlayer.totalGold} Gold',
+        ),
+      ],
+    ),
+  );
+}
+
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({
+    required this.icon,
+    required this.label,
+    required this.semanticLabel,
+  });
+  final IconData icon;
+  final String label;
+  final String semanticLabel;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: localizeText(context, semanticLabel),
+    excludeSemantics: true,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFFFFD77B)),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          maxLines: 1,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _MessageBanner extends StatelessWidget {
+  const _MessageBanner({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFE7B3),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFE2B557)),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.campaign_rounded, size: 20, color: _deepGold),
+        const SizedBox(width: 8),
+        Expanded(
+          child: LocalizedText(
+            message,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: _deepGold,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _DragonChallengeCard extends StatelessWidget {
+  const _DragonChallengeCard({
+    required this.state,
+    required this.selectedDie,
+    required this.manualMode,
+    required this.enabled,
+    required this.onFieldTap,
+    super.key,
+  });
+  final DragonGameState state;
+  final int? selectedDie;
+  final bool manualMode;
+  final bool enabled;
+  final ValueChanged<int> onFieldTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = state.currentCard;
+    final attempt = state.attempt;
+    if (card == null || attempt == null) return const SizedBox.shrink();
+    final color = _typeColor(card.type);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_typeLight(card.type), _panel],
+        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: color.withValues(alpha: .55), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: .16),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _typeIcon(card.type),
+                    color: Colors.white,
+                    size: 27,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      LocalizedText(
+                        card.type.label,
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                          color: color,
+                        ),
+                      ),
+                      LocalizedText(
+                        _typeHint(card.type),
+                        style: const TextStyle(fontSize: 12, color: _muted),
+                      ),
+                    ],
+                  ),
+                ),
+                if (state.cardGold > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFD77B),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      '+${state.cardGold}',
+                      style: const TextStyle(
+                        color: _deepGold,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Center(
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (var i = 0; i < card.fields.length; i++)
+                    _FieldSocket(
+                      index: i,
+                      field: card.fields[i],
+                      placedValue: attempt.placedValues[i],
+                      accent: color,
+                      acceptsSelected:
+                          selectedDie != null &&
+                          attempt.placedValues[i] == null &&
+                          card.fields[i].accepts(selectedDie!, card: card),
+                      onTap:
+                          attempt.placedValues[i] == null &&
+                              enabled &&
+                              (manualMode ||
+                                  (selectedDie != null &&
+                                      card.fields[i].accepts(
+                                        selectedDie!,
+                                        card: card,
+                                      )))
+                          ? () => onFieldTap(i)
+                          : null,
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCompleted() => Scaffold(
-    backgroundColor: _paper,
-    appBar: AppBar(title: const LocalizedText('Drachengold · Ergebnis')),
-    body: Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Card(
-            color: const Color(0xFFFDF6E3),
-            child: ListTile(
-              leading: const Icon(Icons.emoji_events, color: _gold),
-              title: LocalizedText(
-                'Sieger: ${_state.winners.map((p) => p.name).join(', ')}',
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
+  String _typeHint(DragonType type) => switch (type) {
+    DragonType.water => 'Jede passende Zahl oder Flamme zählt.',
+    DragonType.fire => 'Feuerfest: Eine 6 passt hier nie.',
+    DragonType.luck => 'Markierte Felder müssen zuerst voll sein.',
+  };
+}
+
+class _FieldSocket extends StatelessWidget {
+  const _FieldSocket({
+    required this.index,
+    required this.field,
+    required this.placedValue,
+    required this.accent,
+    required this.acceptsSelected,
+    required this.onTap,
+  });
+  final int index;
+  final DragonField field;
+  final int? placedValue;
+  final Color accent;
+  final bool acceptsSelected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFilled = placedValue != null;
+    return Semantics(
+      button: onTap != null,
+      label:
+          'Feld ${index + 1}: ${field.symbol}${isFilled ? ', belegt mit $placedValue' : ', frei'}',
+      child: InkWell(
+        key: Key('dragon-field-$index'),
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isFilled
+                ? accent
+                : acceptsSelected
+                ? const Color(0xFFFFE49E)
+                : Colors.white.withValues(alpha: .82),
+            border: Border.all(
+              color: acceptsSelected ? _gold : accent.withValues(alpha: .65),
+              width: acceptsSelected ? 3 : 1.5,
             ),
+            boxShadow: acceptsSelected
+                ? [
+                    BoxShadow(
+                      color: _gold.withValues(alpha: .35),
+                      blurRadius: 10,
+                    ),
+                  ]
+                : null,
           ),
-          const SizedBox(height: 14),
-          FilledButton.icon(
-            onPressed: _game.isBusy ? null : _openResult,
-            icon: const Icon(Icons.bar_chart),
-            label: const LocalizedText('Ergebnis anzeigen'),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Text(
+                isFilled ? _dieLabel(placedValue) : _fieldLabel(field),
+                style: TextStyle(
+                  color: isFilled ? Colors.white : _ink,
+                  fontSize: isFilled ? 24 : 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (field.mandatory && !isFilled)
+                const Positioned(
+                  right: 3,
+                  top: 2,
+                  child: Icon(Icons.star_rounded, size: 17, color: _gold),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _dieLabel(int? value) => value == 6 ? '🔥' : '$value';
+  String _fieldLabel(DragonField value) => switch (value.kind) {
+    DragonFieldKind.number => '${value.number}',
+    DragonFieldKind.flame => '🔥',
+    DragonFieldKind.empty => '✦',
+  };
+}
+
+class _RiskPanel extends StatelessWidget {
+  const _RiskPanel({required this.state});
+  final DragonGameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final secured = state.attempt?.diceGold ?? 0;
+    final filled = state.attempt?.placedCount ?? 0;
+    final total = state.currentCard?.fields.length ?? 0;
+    return Container(
+      key: const Key('schuppenschatz-risk'),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+      decoration: BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE3D7C4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.savings_rounded, color: _gold, size: 28),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LocalizedText(
+                  'Jetzt sicher: $secured Gold',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: _ink,
+                  ),
+                ),
+                LocalizedText(
+                  '$filled von $total Feldern · ${state.cardGold} Gold auf der Karte',
+                  style: const TextStyle(fontSize: 12, color: _muted),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _DigitalDiceArea extends StatelessWidget {
@@ -220,34 +657,48 @@ class _DigitalDiceArea extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = game.state;
     if (state.dice.isEmpty) {
-      return FilledButton.icon(
-        key: const Key('dragon-roll'),
-        onPressed: game.isBusy ? null : () => onRun(game.rollDigital),
-        icon: const Icon(Icons.casino),
-        label: const LocalizedText('Würfeln'),
+      return const LocalizedText(
+        'Bereit? Würfle und wähle danach einen passenden Würfel.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
       );
     }
     return Column(
       children: [
+        const LocalizedText(
+          'Würfel wählen, dann auf ein leuchtendes Feld tippen',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, color: _muted),
+        ),
+        const SizedBox(height: 7),
         Wrap(
           alignment: WrapAlignment.center,
-          spacing: 6,
-          runSpacing: 6,
+          spacing: 7,
+          runSpacing: 7,
           children: [
             for (var i = 0; i < state.dice.length; i++)
               DieWidget(
                 key: Key('dragon-die-$i'),
                 value: state.dice[i],
                 held: state.selectedDieIndex == i,
-                onTap:
-                    game.isBusy ? null : () => onRun(() => game.selectDie(i)),
+                selectable: true,
+                face: state.dice[i] == 6
+                    ? const Icon(
+                        Icons.local_fire_department_rounded,
+                        color: _fire,
+                        size: 32,
+                      )
+                    : null,
+                semanticValue: state.dice[i] == 6 ? 'Flamme' : null,
+                onTap: game.isBusy || game.needsDigitalSaveRetry
+                    ? null
+                    : () => onRun(() => game.selectDie(i)),
                 index: 300 + i,
                 selectedSemantic: 'ausgewählt',
                 unselectedSemantic: 'nicht ausgewählt',
               ),
           ],
         ),
-        const SizedBox(height: 8),
       ],
     );
   }
@@ -257,276 +708,198 @@ class _BlockDiceHint extends StatelessWidget {
   const _BlockDiceHint();
 
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 8),
-    child: LocalizedText(
-      'Blockmodus: Mit echten Würfeln spielen und Werte auf die Felder tippen.',
-      textAlign: TextAlign.center,
-      style: TextStyle(fontWeight: FontWeight.w700, color: _ink),
-    ),
-  );
-}
-
-class _DragonCardView extends StatelessWidget {
-  const _DragonCardView({
-    required this.state,
-    required this.selectedDie,
-    required this.onFieldTap,
-    super.key,
-  });
-  final DragonGameState state;
-  final int? selectedDie;
-  final ValueChanged<int> onFieldTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final card = state.currentCard;
-    final attempt = state.attempt;
-    if (card == null || attempt == null) return const SizedBox.shrink();
-    final color = _typeColor(card.type);
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(card.type.icon, style: const TextStyle(fontSize: 24)),
-                const SizedBox(width: 8),
-                LocalizedText(
-                  card.type.label,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: color,
-                    fontSize: 18,
-                  ),
-                ),
-                const Spacer(),
-                if (state.cardGold > 0)
-                  LocalizedText(
-                    '🪙 ${state.cardGold}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: _gold,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (var i = 0; i < card.fields.length; i++)
-                  _FieldChip(
-                    index: i,
-                    field: card.fields[i],
-                    placedValue: attempt.placedValues[i],
-                    acceptsSelected: selectedDie != null &&
-                        attempt.placedValues[i] == null &&
-                        card.fields[i].accepts(selectedDie!, card: card),
-                    onTap: attempt.placedValues[i] == null
-                        ? () => onFieldTap(i)
-                        : null,
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FieldChip extends StatelessWidget {
-  const _FieldChip({
-    required this.index,
-    required this.field,
-    required this.placedValue,
-    required this.acceptsSelected,
-    required this.onTap,
-  });
-  final int index;
-  final DragonField field;
-  final int? placedValue;
-  final bool acceptsSelected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: onTap != null,
-    label:
-        'Feld ${index + 1}: ${field.symbol}'
-        '${placedValue != null ? ', belegt mit $placedValue' : ', frei'}',
-    child: InkWell(
-      key: Key('dragon-field-$index'),
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: placedValue != null
-              ? const Color(0xFFE8F5E9)
-              : acceptsSelected
-              ? const Color(0xFFE3F2FD)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: acceptsSelected
-                ? const Color(0xFF1565C0)
-                : const Color(0xFFD4C4CF),
-            width: acceptsSelected ? 2.5 : 1.5,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              field.symbol,
-              style: const TextStyle(fontSize: 13, color: _ink),
-            ),
-            if (placedValue != null)
-              Text(
-                '$placedValue',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: _gold,
-                ),
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _ActionButtons extends StatelessWidget {
-  const _ActionButtons({required this.game, required this.onRun});
-  final DragonController game;
-  final Future<void> Function(Future<void> Function()) onRun;
-
-  @override
-  Widget build(BuildContext context) {
-    if (game.needsDigitalSaveRetry) {
-      return FilledButton.icon(
-        key: const Key('dragon-retry-save'),
-        onPressed: game.isBusy ? null : () => onRun(game.retryDigitalSave),
-        icon: const Icon(Icons.save_outlined, size: 18),
-        label: const LocalizedText('Erneut speichern'),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (game.canContinue)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: FilledButton.icon(
-              key: const Key('dragon-continue'),
-              onPressed:
-                  game.isBusy ? null : () => onRun(game.continueRolling),
-              icon: const Icon(Icons.casino, size: 18),
-              label: const LocalizedText('Weiter würfeln'),
-            ),
-          ),
-        if (game.canEndTurn)
-          FilledButton.icon(
-            key: const Key('dragon-end-turn'),
-            onPressed: game.isBusy ? null : () => onRun(game.endTurn),
-            icon: const Icon(Icons.check_circle_outline, size: 18),
-            label: const LocalizedText('Zug beenden'),
-          ),
-      ],
-    );
-  }
-}
-
-class _PlayerInfo extends StatelessWidget {
-  const _PlayerInfo({required this.state});
-  final DragonGameState state;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    margin: EdgeInsets.zero,
-    child: Padding(
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < state.players.length; i++) ...[
-            if (i > 0) const Divider(height: 12),
-            Row(
-              children: [
-                if (i == state.activePlayerIndex)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 6),
-                    child: Icon(Icons.arrow_right, color: _gold, size: 20),
-                  ),
-                Expanded(
-                  child: LocalizedText(
-                    state.players[i].name,
-                    style: TextStyle(
-                      fontWeight: i == state.activePlayerIndex
-                          ? FontWeight.w900
-                          : FontWeight.w500,
-                      color: _ink,
-                    ),
-                  ),
-                ),
-                LocalizedText('🪙 ${state.players[i].gold}'),
-                const SizedBox(width: 12),
-                LocalizedText('🐉 ${state.players[i].tamedCount}'),
-              ],
-            ),
-          ],
-        ],
-      ),
-    ),
-  );
-}
-
-class _DeckInfo extends StatelessWidget {
-  const _DeckInfo({required this.state});
-  final DragonGameState state;
-
-  @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => const Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      LocalizedText(
-        '${state.cardsInGame} Karten',
-        style: const TextStyle(fontWeight: FontWeight.w700, color: _ink),
-      ),
-      const SizedBox(width: 16),
-      LocalizedText(
-        'Goldtopf: ${state.goldPool}',
-        style: const TextStyle(fontWeight: FontWeight.w700, color: _ink),
+      Icon(Icons.touch_app_rounded, color: _deepGold),
+      SizedBox(width: 8),
+      Flexible(
+        child: LocalizedText(
+          'Passendes Feld antippen und den echten Würfelwert wählen.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w700, color: _ink),
+        ),
       ),
     ],
   );
 }
 
+class _PlayerStrip extends StatelessWidget {
+  const _PlayerStrip({required this.state});
+  final DragonGameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    return SizedBox(
+      height: 74 + (textScale - 1).clamp(0, 1) * 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: state.players.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final player = state.players[index];
+          final active = index == state.activePlayerIndex;
+          return Container(
+            width: 142,
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+            decoration: BoxDecoration(
+              color: active ? const Color(0xFFFFE7B3) : _panel,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: active ? _gold : const Color(0xFFE3D7C4),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  player.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: _ink,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${player.gold} Gold  ·  ${player.tamedCount} 🐉',
+                  style: const TextStyle(fontSize: 12, color: _muted),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ActionBar extends StatelessWidget {
+  const _ActionBar({required this.game, required this.onRun});
+  final DragonController game;
+  final Future<void> Function(Future<void> Function()) onRun;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = game.state;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final stack = textScale > 1.35;
+    final actions = <Widget>[];
+
+    if (game.needsDigitalSaveRetry) {
+      actions.add(
+        FilledButton.icon(
+          key: const Key('dragon-retry-save'),
+          onPressed: game.isBusy ? null : () => onRun(game.retryDigitalSave),
+          icon: const Icon(Icons.save_outlined),
+          label: const LocalizedText('Erneut speichern'),
+        ),
+      );
+    } else {
+      if (state.mode == GameMode.digital &&
+          state.dice.isEmpty &&
+          state.placementsSinceRoll == 0) {
+        actions.add(
+          FilledButton.icon(
+            key: const Key('dragon-roll'),
+            onPressed: game.isBusy ? null : () => onRun(game.rollDigital),
+            icon: const Icon(Icons.casino_rounded),
+            label: const LocalizedText('Würfeln'),
+          ),
+        );
+      }
+      if (state.mode == GameMode.block && state.placementsSinceRoll == 0) {
+        actions.add(
+          OutlinedButton.icon(
+            key: const Key('dragon-fail-attempt'),
+            onPressed: game.isBusy ? null : () => onRun(game.failAttempt),
+            icon: const Icon(Icons.block_rounded),
+            label: const LocalizedText('Kein Würfel passt'),
+          ),
+        );
+      }
+      if (game.canContinue) {
+        actions.add(
+          FilledButton.icon(
+            key: const Key('dragon-continue'),
+            onPressed: game.isBusy ? null : () => onRun(game.continueRolling),
+            icon: const Icon(Icons.casino_rounded),
+            label: const LocalizedText('Weiter würfeln'),
+          ),
+        );
+      }
+      if (game.canEndTurn) {
+        actions.add(
+          OutlinedButton.icon(
+            key: const Key('dragon-end-turn'),
+            onPressed: game.isBusy ? null : () => onRun(game.endTurn),
+            icon: const Icon(Icons.savings_outlined),
+            label: LocalizedText(
+              '${state.attempt?.diceGold ?? 0} Gold sichern',
+            ),
+          ),
+        );
+      }
+    }
+
+    return Material(
+      key: const Key('dragon-action-bar'),
+      color: _panel,
+      elevation: 12,
+      child: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+        child: actions.isEmpty
+            ? const LocalizedText(
+                'Wähle mindestens einen passenden Würfel.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
+              )
+            : stack
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < actions.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 8),
+                    actions[i],
+                  ],
+                ],
+              )
+            : Row(
+                children: [
+                  for (var i = 0; i < actions.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    Expanded(child: actions[i]),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
+}
+
 class _ManualValueDialog extends StatelessWidget {
-  const _ManualValueDialog();
+  const _ManualValueDialog({required this.validValues});
+  final List<int> validValues;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const LocalizedText('Würfelwert wählen'),
+    title: const LocalizedText('Passenden Würfel wählen'),
     content: Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (var value = 1; value <= 6; value++)
+        for (final value in validValues)
           FilledButton(
             key: Key('dragon-manual-value-$value'),
             onPressed: () => Navigator.pop(context, value),
-            style: FilledButton.styleFrom(minimumSize: const Size(52, 52)),
-            child: Text('$value', style: const TextStyle(fontSize: 20)),
+            style: FilledButton.styleFrom(minimumSize: const Size(54, 54)),
+            child: Text(
+              value == 6 ? '🔥' : '$value',
+              style: const TextStyle(fontSize: 20),
+            ),
           ),
       ],
     ),

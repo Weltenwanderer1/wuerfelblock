@@ -11,6 +11,7 @@ import 'controllers/colordice_controller.dart';
 import 'controllers/ten_thousand_controller.dart';
 import 'core/app_theme.dart';
 import 'models/balut_models.dart';
+import 'models/dragon_models.dart';
 import 'models/escalero_models.dart';
 import 'models/game_models.dart';
 import 'models/colordice_models.dart';
@@ -229,6 +230,11 @@ class _HomeHostState extends State<_HomeHost> {
           _openController(
             context,
             EscaleroController(state: state, repository: widget.repository),
+          );
+        } else if (state is DragonGameState) {
+          _openController(
+            context,
+            DragonController(state: state, repository: widget.repository),
           );
         } else if (state is GameState) {
           _openController(

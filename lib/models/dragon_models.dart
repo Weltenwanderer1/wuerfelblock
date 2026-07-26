@@ -162,7 +162,6 @@ abstract final class DragonDeck {
     DragonCard(id: 39, type: DragonType.luck, fields: [m1, m2, m3, n4, e]),
     DragonCard(id: 40, type: DragonType.luck, fields: [m2, m4, m5, n1, e]),
     DragonCard(id: 41, type: DragonType.luck, fields: [m1, m3, m5, n2, e]),
-    DragonCard(id: 42, type: DragonType.luck, fields: [m1, m2, m3, m4, n5]),
   ];
 }
 
@@ -315,7 +314,7 @@ class DragonGameState implements SavedGameState {
         activePlayerIndex >= _players.length ||
         goldPool < 0 ||
         cardGold < 0) {
-      throw ArgumentError('Ungültiger Drachengold-Spielstand.');
+      throw ArgumentError('Ungültiger Schuppenschatz-Spielstand.');
     }
   }
   factory DragonGameState.newGame(
@@ -330,11 +329,11 @@ class DragonGameState implements SavedGameState {
         cleaned.length > 4 ||
         cleaned.any((e) => e.isEmpty) ||
         cleaned.toSet().length != cleaned.length) {
-      throw ArgumentError('Drachengold braucht 2 bis 4 eindeutige Spieler.');
+      throw ArgumentError('Schuppenschatz braucht 2 bis 4 eindeutige Spieler.');
     }
     final cards = List<DragonCard>.of(shuffledCards ?? DragonDeck.cards);
     if (shuffledCards == null) cards.shuffle(random);
-    final chosen = cards.take(quickGame ? 20 : 42).toList();
+    final chosen = cards.take(quickGame ? 20 : cards.length).toList();
     if (chosen.isEmpty) {
       throw ArgumentError('Mindestens eine Drachenkarte ist nötig.');
     }
@@ -426,7 +425,7 @@ class DragonGameState implements SavedGameState {
   );
   DragonGameState copy() => DragonGameState.fromJson(toJson());
   @override
-  String get gameLabel => 'Drachengold';
+  String get gameLabel => 'Schuppenschatz';
   @override
   String get modeLabel => mode.label;
   @override
@@ -474,7 +473,7 @@ class DragonGameState implements SavedGameState {
       });
       if (json['type'] != 'dragongold' ||
           json['schemaVersion'] != schemaVersion) {
-        throw const FormatException('Ungültiger Drachengold-Spielstand.');
+        throw const FormatException('Ungültiger Schuppenschatz-Spielstand.');
       }
       List<T> list<T>(String key, T Function(Map<String, dynamic>) parse) {
         final raw = json[key];
@@ -510,7 +509,7 @@ class DragonGameState implements SavedGameState {
     } on FormatException {
       rethrow;
     } catch (e) {
-      throw FormatException('Ungültiger Drachengold-Spielstand.', e);
+      throw FormatException('Ungültiger Schuppenschatz-Spielstand.', e);
     }
   }
 }

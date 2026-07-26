@@ -8,6 +8,8 @@ import '../services/game_repository.dart';
 import '../services/persistence_messages.dart';
 import 'controller_transactions.dart';
 
+typedef _DragonSnapshot = ({DragonGameState state, String? message});
+
 class DragonController extends ChangeNotifier {
   DragonController({
     required DragonGameState state,
@@ -15,9 +17,9 @@ class DragonController extends ChangeNotifier {
     int Function()? roller,
   }) : _state = state,
        _roller = roller ?? (() => Random().nextInt(6) + 1) {
-    _transactions = ControllerTransactions<DragonGameState, DragonGameState>(
-      capture: () => _state.copy(),
-      restore: (snapshot) => _state = snapshot.copy(),
+    _transactions = ControllerTransactions<_DragonSnapshot, _DragonSnapshot>(
+      capture: () => (state: _state.copy(), message: lastMessage),
+      restore: _restoreSnapshot,
       save: () => repository.save(_state),
       clear: repository.clear,
       notifyListeners: notifyListeners,
@@ -46,9 +48,14 @@ class DragonController extends ChangeNotifier {
   DragonGameState get state => _state;
   final GameRepository repository;
   final int Function() _roller;
-  late final ControllerTransactions<DragonGameState, DragonGameState>
+  late final ControllerTransactions<_DragonSnapshot, _DragonSnapshot>
   _transactions;
   String? lastMessage;
+
+  void _restoreSnapshot(_DragonSnapshot snapshot) {
+    _state = snapshot.state.copy();
+    lastMessage = snapshot.message;
+  }
 
   bool get isBusy => _transactions.isBusy;
   bool get canUndo => _transactions.canUndo;
@@ -211,14 +218,11 @@ class DragonController extends ChangeNotifier {
     await _transactions.mutate(
       change: () {
         var changed = state;
-        final reward = min(changed.goldPool, changed.attempt!.diceGold);
+        final reward = changed.attempt!.diceGold;
         final players = List<DragonPlayer>.of(changed.players);
         players[changed.activePlayerIndex] = players[changed.activePlayerIndex]
             .copyWith(gold: players[changed.activePlayerIndex].gold + reward);
-        changed = changed.copyWith(
-          players: players,
-          goldPool: changed.goldPool - reward,
-        );
+        changed = changed.copyWith(players: players);
         _state = _failedAttempt(changed);
         lastMessage = '$reward Gold erhalten. Der Drache zieht weiter.';
       },
@@ -227,14 +231,33 @@ class DragonController extends ChangeNotifier {
     );
   }
 
+  Future<void> failAttempt() async {
+    _ensureReady();
+    if (_transactions.isBusy) return;
+    if (state.mode != GameMode.block || state.isComplete) {
+      throw StateError('Nur ein physischer Wurf kann so beendet werden.');
+    }
+    if (state.placementsSinceRoll > 0) {
+      throw StateError('Nach einer Ablage muss zuerst weitergewürfelt werden.');
+    }
+    await _transactions.mutate(
+      change: () {
+        final escapes =
+            state.triedPlayerIndices.length + 1 >= state.players.length;
+        _state = _failedAttempt(state);
+        lastMessage = escapes
+            ? 'Der Drache ist entkommen.'
+            : 'Kein Würfel passt. Der Drache zieht weiter.';
+      },
+      undoFromSnapshot: (snapshot) => snapshot,
+      pendingSaveMessage: PersistenceMessages.pendingDigitalDiceSave,
+    );
+  }
+
   bool _hasRequiredFit(DragonGameState state, List<int> dice) {
     final attempt = state.attempt!;
-    final mandatory = attempt.openFieldIndices
-        .where((i) => attempt.card.fields[i].mandatory)
-        .toList();
-    final targets = mandatory.isNotEmpty ? mandatory : attempt.openFieldIndices;
     return dice.any(
-      (die) => targets.any(
+      (die) => attempt.openFieldIndices.any(
         (i) => attempt.card.fields[i].accepts(die, card: attempt.card),
       ),
     );
@@ -245,12 +268,10 @@ class DragonController extends ChangeNotifier {
     final nextPlayer = (source.activePlayerIndex + 1) % source.players.length;
     if (tried.length >= source.players.length) {
       final escaped = [...source.escapedDragonIds, source.currentCard!.id];
-      final returnedPool = source.goldPool + source.cardGold;
       lastMessage = 'Der Drache ist entkommen.';
       return _drawNext(
         source.copyWith(
           activePlayerIndex: nextPlayer,
-          goldPool: returnedPool,
           cardGold: 0,
           triedPlayerIndices: const [],
           dice: const [],
@@ -260,11 +281,9 @@ class DragonController extends ChangeNotifier {
         ),
       );
     }
-    final coin = min(5, source.goldPool);
     return source.copyWith(
       activePlayerIndex: nextPlayer,
-      cardGold: source.cardGold + coin,
-      goldPool: source.goldPool - coin,
+      cardGold: source.cardGold + 5,
       triedPlayerIndices: tried,
       attempt: DragonAttempt.empty(source.currentCard!),
       dice: const [],
@@ -274,7 +293,7 @@ class DragonController extends ChangeNotifier {
   }
 
   DragonGameState _tamed(DragonGameState source) {
-    final diceReward = min(source.goldPool, source.attempt!.diceGold);
+    final diceReward = source.attempt!.diceGold;
     final players = List<DragonPlayer>.of(source.players);
     final player = players[source.activePlayerIndex];
     players[source.activePlayerIndex] = player.copyWith(
@@ -284,7 +303,6 @@ class DragonController extends ChangeNotifier {
     return _drawNext(
       source.copyWith(
         players: players,
-        goldPool: source.goldPool - diceReward,
         activePlayerIndex:
             (source.activePlayerIndex + 1) % source.players.length,
         cardGold: 0,
@@ -333,7 +351,10 @@ class DragonController extends ChangeNotifier {
     PersistenceMessages.pendingDigitalDiceSave,
   );
   Future<void> retryDigitalSave() => _transactions.retryDigitalSave();
-  Future<void> undo() =>
-      _transactions.undo(restoreUndo: (previous) => _state = previous.copy());
+  Future<void> undo() async {
+    _ensureReady();
+    await _transactions.undo(restoreUndo: _restoreSnapshot);
+  }
+
   Future<void> abandon() => _transactions.abandon();
 }
