@@ -72,12 +72,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Schuppenschatz · Regeln'), findsOneWidget);
     for (final heading in [
-      'Ziel',
-      'Die Felder',
+      'Spielidee',
+      'Die Felder auf der Karte',
       'Dein Zug',
-      'Drachenarten',
-      'Gold & Spielende',
+      'Die drei Drachenarten',
+      'Spielende & Sieg',
     ]) {
+      await tester.scrollUntilVisible(
+        find.text(heading),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text(heading), findsOneWidget);
     }
   });
