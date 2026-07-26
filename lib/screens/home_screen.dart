@@ -52,7 +52,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 LocalizedText(
-                  'Der schöne Wertungsblock für Yahtzee/Kniffel, Colordice, 10.000, Balut und Escalero',
+                  'Der schöne Wertungsblock für Yahtzee/Kniffel, Colordice, 10.000, Balut, Escalero und Drachengold',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/localized_text.dart';
 
 import '../controllers/balut_controller.dart';
+import '../controllers/dragon_controller.dart';
 import '../controllers/escalero_controller.dart';
 import '../controllers/game_controller.dart';
 import '../controllers/colordice_controller.dart';
@@ -18,6 +19,7 @@ enum GameKind {
   tenThousand,
   balut,
   escalero,
+  dragongold,
   regicide,
 }
 
@@ -29,6 +31,7 @@ extension on GameKind {
     GameKind.balut => 'Balut',
     GameKind.escalero => 'Escalero',
     GameKind.regicide => 'Regicide',
+    GameKind.dragongold => 'Drachengold',
   };
 
   String get detail => switch (this) {
@@ -38,6 +41,7 @@ extension on GameKind {
     GameKind.balut => '28 Wertungen pro Spieler – Block oder digital',
     GameKind.escalero => 'Pokerwürfel · 3 Kolonnen',
     GameKind.regicide => 'Kooperativer Gegner-Zähler fürs Kartenspiel',
+    GameKind.dragongold => '5 Würfel · 7 Felder · 2 Karten pro Spieler',
   };
 }
 
@@ -48,6 +52,7 @@ const publicGameKinds = <GameKind>[
   GameKind.balut,
   GameKind.escalero,
   GameKind.regicide,
+  GameKind.dragongold,
 ];
 
 class SetupScreen extends StatefulWidget {
@@ -71,16 +76,20 @@ class _SetupScreenState extends State<SetupScreen> {
   String? _defaultPlayerPrefix;
   bool starting = false;
   String? startError;
+  bool dragonQuickGame = false;
 
   bool get isColordice => game == GameKind.colordice;
   bool get isClassic => game == GameKind.yahtzeeKniffel;
   bool get isEscalero => game == GameKind.escalero;
   bool get isRegicide => game == GameKind.regicide;
+  bool get isDragonGold => game == GameKind.dragongold;
   int get minimumPlayers => 2;
   int get maximumPlayers => isEscalero
       ? 3
       : isColordice
       ? 5
+      : isDragonGold
+      ? 4
       : 8;
 
   List<String> get cleanedNames =>
@@ -138,7 +147,7 @@ class _SetupScreenState extends State<SetupScreen> {
   void selectGame(GameKind selected) {
     setState(() {
       game = selected;
-      if (isColordice || isEscalero) {
+      if (isColordice || isEscalero || isDragonGold) {
         while (names.length > maximumPlayers) {
           names.removeLast().dispose();
           nameWasEdited.removeLast();
@@ -214,6 +223,12 @@ class _SetupScreenState extends State<SetupScreen> {
         repository: widget.repository,
       ),
       GameKind.regicide => throw StateError('Regicide is handled earlier.'),
+      GameKind.dragongold => DragonController.newGame(
+        names: cleanedNames,
+        repository: widget.repository,
+        mode: mode,
+        quickGame: dragonQuickGame,
+      ),
     };
     try {
       await widget.repository.save(switch (controller) {
@@ -222,6 +237,7 @@ class _SetupScreenState extends State<SetupScreen> {
         BalutController() => controller.state,
         EscaleroController() => controller.state,
         GameController() => controller.state,
+        DragonController() => controller.state,
         _ => throw StateError('Unbekannter Controller.'),
       });
       if (mounted) widget.onStarted(controller);
@@ -355,6 +371,17 @@ class _SetupScreenState extends State<SetupScreen> {
             const LocalizedText('Balut wird mit 2 bis 8 Personen gespielt.'),
           if (game == GameKind.escalero)
             const LocalizedText('Escalero wird mit 2 bis 3 Personen gespielt.'),
+          if (isDragonGold) ...[
+            const LocalizedText('Drachengold wird mit 2 bis 4 Personen gespielt.'),
+            CheckboxListTile(
+              key: const Key('dragon-quick-game'),
+              value: dragonQuickGame,
+              onChanged: (value) => setState(() => dragonQuickGame = value ?? false),
+              title: const LocalizedText('Schnelles Spiel (nur 1 Karte pro Spieler)'),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ],
           for (var index = 0; index < names.length; index++)
             Padding(
               padding: const EdgeInsets.only(top: 10),

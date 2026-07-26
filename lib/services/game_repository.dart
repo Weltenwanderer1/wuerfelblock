@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/balut_models.dart';
+import '../models/dragon_models.dart';
 import '../models/escalero_models.dart';
 import '../models/game_models.dart';
 import '../models/colordice_models.dart';
@@ -114,5 +115,6 @@ SavedGameState decodeSavedGameState(Map<String, dynamic> json) =>
       'tenThousand' => TenThousandGameState.fromJson(json),
       'balut' => BalutGameState.fromJson(json),
       'escalero' => EscaleroGameState.fromJson(json),
+      'dragongold' => DragonGameState.fromJson(json),
       _ => throw FormatException('Unbekannter Spieltyp: ${json['type']}'),
     };

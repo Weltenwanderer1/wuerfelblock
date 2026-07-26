@@ -4,6 +4,7 @@ import 'l10n/app_localizations.dart';
 import 'l10n/localized_text.dart';
 
 import 'controllers/balut_controller.dart';
+import 'controllers/dragon_controller.dart';
 import 'controllers/escalero_controller.dart';
 import 'controllers/game_controller.dart';
 import 'controllers/colordice_controller.dart';
@@ -19,6 +20,8 @@ import 'screens/balut_game_screen.dart';
 import 'screens/balut_result_screen.dart';
 import 'screens/block_game_screen.dart';
 import 'screens/digital_game_screen.dart';
+import 'screens/dragon_game_screen.dart';
+import 'screens/dragon_result_screen.dart';
 import 'screens/escalero_game_screen.dart';
 import 'screens/escalero_result_screen.dart';
 import 'screens/home_screen.dart';
@@ -138,6 +141,10 @@ class _HomeHostState extends State<_HomeHost> {
         game.state.isComplete
             ? EscaleroResultScreen(game: game)
             : EscaleroGameScreen(game: game),
+      DragonController game =>
+        game.state.isComplete
+            ? DragonResultScreen(game: game)
+            : DragonGameScreen(game: game),
       GameController game =>
         game.state.isComplete
             ? ResultScreen(game: game)

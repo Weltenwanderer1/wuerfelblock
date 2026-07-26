@@ -136,7 +136,7 @@ void main() {
     expect(find.byKey(const Key('rules-action')), findsOneWidget);
     expect(
       find.textContaining(
-        'Yahtzee/Kniffel, Colordice, 10.000, Balut und Escalero',
+        'Yahtzee/Kniffel, Colordice, 10.000, Balut, Escalero und Drachengold',
       ),
       findsOneWidget,
     );

@@ -41,6 +41,12 @@ void main() {
   });
 
   testWidgets('Setup verlangt eindeutige, nicht leere Namen', (tester) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     await tester.pumpWidget(
       WuerfelblockApp(repository: MemoryGameRepository()),
     );
@@ -451,9 +457,9 @@ void main() {
   });
 
   testWidgets(
-    'Setup offers five public games in a responsive two-column grid',
+    'Setup offers six public games in a responsive two-column grid',
     (tester) async {
-      tester.view.physicalSize = const Size(360, 1200);
+      tester.view.physicalSize = const Size(360, 2000);
       tester.view.devicePixelRatio = 1;
       addTearDown(() {
         tester.view.resetPhysicalSize();
@@ -474,6 +480,9 @@ void main() {
       expect(find.byKey(const Key('game-kind-escalero')), findsOneWidget);
       expect(find.text('Escalero'), findsOneWidget);
       expect(find.text('Pokerwürfel · 3 Kolonnen'), findsOneWidget);
+      expect(find.byKey(const Key('game-kind-dragongold')), findsOneWidget);
+      expect(find.text('Drachengold'), findsOneWidget);
+      expect(find.text('5 Würfel · 7 Felder · 2 Karten pro Spieler'), findsOneWidget);
       expect(find.text('Yatzy'), findsNothing);
       final yahtzeeX = tester.getCenter(find.text('Yahtzee/Kniffel')).dx;
       final colordiceX = tester.getCenter(find.text('Colordice')).dx;
@@ -572,6 +581,12 @@ void main() {
   testWidgets('setup explains the selected game mode in plain German', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     await tester.pumpWidget(
       WuerfelblockApp(repository: MemoryGameRepository()),
     );
