@@ -6,47 +6,47 @@ import 'package:wuerfelblock/models/game_models.dart';
 
 void main() {
   const expected = <int, String>{
-    1: 'W:b3,e',
-    2: 'W:n2,b4',
-    3: 'W:b2,e,n5',
-    4: 'W:n3,b5,e',
-    5: 'W:f,b1',
-    6: 'W:b3,n4,e',
-    7: 'W:n1,b5,n2',
-    8: 'W:f,b4,n3',
-    9: 'W:b2,n5,e,n3',
-    10: 'F:s8/2-3,n2,e',
-    11: 'F:n3,s10/2-3,e',
-    12: 'F:s7/2-3,n4,n1',
-    13: 'F:n2,n5,s12/2-3',
-    14: 'F:s9/2-3,n3,n4',
-    15: 'F:n1,s11/2-3,n5',
-    16: 'F:s13/2-3,n2,n3',
-    17: 'F:n4,s14/2-3,n1',
-    18: 'F:s15/2-3,n5,n3',
+    1: 'W:b2,e',
+    2: 'W:n3,b2',
+    3: 'W:b1,e,n4',
+    4: 'W:n2,b3,e',
+    5: 'W:n5,b2',
+    6: 'W:b3,e,n3',
+    7: 'W:n4,b1,n2',
+    8: 'W:n4,b3,e',
+    9: 'W:b1,n4,e,n3',
+    10: 'F:s6/2-3,n3,e',
+    11: 'F:n2,s7/2-3,e',
+    12: 'F:s8/2-3,n4,n1',
+    13: 'F:n2,n4,s8/2-3',
+    14: 'F:s9/2-3,n2,n3',
+    15: 'F:n1,s10/2-3,n4',
+    16: 'F:s10/2-3,n3,n3',
+    17: 'F:n3,s11/2-3,n2',
+    18: 'F:s12/2-3,n4,n2',
     19: 'L:g2,m1,e',
-    20: 'L:m3,g4,e',
-    21: 'L:g1,m2,n5',
-    22: 'L:m4,g3,m1',
-    23: 'L:g5,m2,e',
-    24: 'L:m1,g4,m3',
-    25: 'L:g2,m5,n3,e',
-    26: 'L:m3,g1,m4',
-    27: 'L:g5,m2,m3,e',
-    28: 'G:k3,s10/2-4,e+5',
-    29: 'G:k5,s12/2-4,n2+6',
-    30: 'G:k1,s14/2-4,e+7',
-    31: 'G:k4,s16/2-4,n3+8',
-    32: 'G:k2,s18/2-4,e+9',
-    33: 'G:k6,s20/2-4,n1+10',
-    34: 'G:k3,s15/2-4,n5,e+7',
-    35: 'G:k5,s17/2-4,n2+8',
-    36: 'G:k4,s19/2-4,e,n1+10',
-    37: 'B:h12,h18,h8',
-    38: 'B:h15,h20,h10',
-    39: 'B:h10,h16,h22,h6',
-    40: 'B:h18,h24,h12',
-    41: 'B:h20,h25,h15,h8',
+    20: 'L:m2,g3,e',
+    21: 'L:g1,m3,n3',
+    22: 'L:m3,g3,m1',
+    23: 'L:g4,m2,e',
+    24: 'L:m1,g3,m3',
+    25: 'L:g2,m4,n3,e',
+    26: 'L:m2,g2,m3',
+    27: 'L:g4,m2,m3,e',
+    28: 'G:k2,s10/2-4,e+5',
+    29: 'G:k4,s10/2-4,n2+6',
+    30: 'G:k1,s11/2-4,e+7',
+    31: 'G:k3,s12/2-4,n2+8',
+    32: 'G:k2,s12/2-4,e+9',
+    33: 'G:k5,s12/2-4,n1+10',
+    34: 'G:k3,s10/2-4,n3,e+7',
+    35: 'G:k4,s12/2-4,n3+8',
+    36: 'G:k3,s14/2-4,e,n2+10',
+    37: 'B:h12,h16,h8',
+    38: 'B:h14,h18,h10',
+    39: 'B:h10,h14,h18,h6',
+    40: 'B:h16,h22,h10',
+    41: 'B:h18,h22,h14,h8',
   };
 
   String signature(DragonCard card) {
@@ -103,15 +103,13 @@ void main() {
       ]);
     });
 
-    test('DieRoll exposes value, color, equality, flame, and text', () {
-      const flame = DieRoll(6, DieColor.white);
-      expect(flame.value, 6);
-      expect(flame.color, DieColor.white);
-      expect(flame.isFlame, isTrue);
-      expect(const DieRoll(6, DieColor.blue).isFlame, isFalse);
-      expect(flame, const DieRoll(6, DieColor.white));
-      expect(flame, isNot(const DieRoll(5, DieColor.white)));
-      expect(flame.toString(), 'white:6');
+    test('DieRoll exposes a normal six, color, equality, and text', () {
+      const six = DieRoll(6, DieColor.white);
+      expect(six.value, 6);
+      expect(six.color, DieColor.white);
+      expect(six, const DieRoll(6, DieColor.white));
+      expect(six, isNot(const DieRoll(5, DieColor.white)));
+      expect(six.toString(), 'white:6');
     });
 
     test('DieRoll JSON roundtrip preserves value and color', () {
@@ -139,6 +137,20 @@ void main() {
     }
     test('contains all five dragon types', () {
       expect(deck.map((card) => card.type).toSet(), DragonType.values.toSet());
+    });
+    test('contains colored six fields and no flame fields', () {
+      final fields = deck.expand((card) => card.fields).toList();
+      expect(
+        fields.any((field) => field.kind == DragonFieldKind.flame),
+        isFalse,
+      );
+    });
+    test('colored fields are never mandatory star fields', () {
+      final coloredFields = deck
+          .expand((card) => card.fields)
+          .where((field) => field.kind == DragonFieldKind.coloredDie);
+      expect(coloredFields, isNotEmpty);
+      expect(coloredFields.every((field) => !field.mandatory), isTrue);
     });
     test('places a boss on every seventh position', () {
       expect(
@@ -184,7 +196,7 @@ void main() {
     const boss = DragonCard(id: 97, type: DragonType.boss, fields: []);
 
     test(
-      'number fields accept exact white values and a white six wildcard',
+      'number fields accept only their exact white value including six',
       () {
         expect(
           const DragonField.number(
@@ -196,7 +208,7 @@ void main() {
           const DragonField.number(
             3,
           ).acceptsDie(const DieRoll(6, DieColor.white), card: normal),
-          isTrue,
+          isFalse,
         );
         expect(
           const DragonField.number(
@@ -212,28 +224,21 @@ void main() {
         );
       },
     );
-    test('flame fields accept only a white six', () {
-      expect(
-        const DragonField.flame().acceptsDie(
-          const DieRoll(6, DieColor.white),
-          card: normal,
-        ),
-        isTrue,
-      );
-      expect(
-        const DragonField.flame().acceptsDie(
-          const DieRoll(6, DieColor.blue),
-          card: normal,
-        ),
-        isFalse,
-      );
-      expect(
-        const DragonField.flame().acceptsDie(
-          const DieRoll(5, DieColor.white),
-          card: normal,
-        ),
-        isFalse,
-      );
+    test('joker fields use the flame symbol and accept every die', () {
+      const field = DragonField.empty();
+      expect(field.symbol, '🔥');
+      for (final color in DieColor.values) {
+        expect(
+          field.acceptsDie(DieRoll(6, color), card: normal),
+          isTrue,
+        );
+      }
+    });
+    test('legacy flame fields migrate to normal six fields', () {
+      final migrated = DragonField.fromJson(const DragonField.flame().toJson());
+      expect(migrated.kind, DragonFieldKind.number);
+      expect(migrated.number, 6);
+      expect(migrated.symbol, '6');
     });
     test('empty fields accept every standard die color', () {
       for (final color in DieColor.values) {
@@ -248,7 +253,7 @@ void main() {
       expect(field.kind, DragonFieldKind.coloredDie);
       expect(field.dieColor, DieColor.green);
       expect(field.number, 4);
-      expect(field.mandatory, isTrue);
+      expect(field.mandatory, isFalse);
       expect(
         field.acceptsDie(const DieRoll(4, DieColor.green), card: normal),
         isTrue,
@@ -273,7 +278,7 @@ void main() {
           DieRoll(4, DieColor.white),
           DieRoll(6, DieColor.blue),
         ], card: normal),
-        isTrue,
+        isFalse,
       );
       expect(
         field.acceptsSum(const [DieRoll(4, DieColor.white)], card: normal),
@@ -288,11 +293,13 @@ void main() {
         isTrue,
       );
       expect(
-        field.acceptsSum(const [
-          DieRoll(4, DieColor.white),
-          DieRoll(5, DieColor.blue),
-        ], card: normal),
-        isTrue, // partial sums are allowed (9 <= 10)
+        field.acceptsSum(
+          const [DieRoll(5, DieColor.blue)],
+          card: normal,
+          existingSum: 4,
+          existingCount: 1,
+        ),
+        isTrue, // the next roll may reduce the remaining target
       );
       expect(
         field.isSumComplete(9, 2),
@@ -310,19 +317,21 @@ void main() {
         isFalse,
       );
     });
-    test('fire dragons reject six on number and sum fields', () {
+    test('fire dragons treat six like every other number', () {
       expect(
         const DragonField.number(
-          3,
+          6,
         ).acceptsDie(const DieRoll(6, DieColor.white), card: fire),
-        isFalse,
+        isTrue,
       );
       expect(
-        const DragonField.sum(8).acceptsSum(const [
-          DieRoll(2, DieColor.white),
-          DieRoll(6, DieColor.blue),
-        ], card: fire),
-        isFalse,
+        const DragonField.sum(8).acceptsSum(
+          const [DieRoll(6, DieColor.blue)],
+          card: fire,
+          existingSum: 2,
+          existingCount: 1,
+        ),
+        isTrue,
       );
     });
     test('boss HP fields expose HP and respect effective remaining HP', () {
@@ -407,24 +416,31 @@ void main() {
         throwsUnsupportedError,
       );
     });
-    test('placeSum records every die and contributes their gold', () {
+    test('placeSum accumulates exactly one die from each roll', () {
       const card = DragonCard(
         id: 95,
         type: DragonType.ghost,
         fields: [DragonField.sum(10)],
       );
-      final attempt = DragonAttempt.empty(card).placeSum(0, const [
-        DieRoll(4, DieColor.white),
-        DieRoll(6, DieColor.black),
-      ]);
+      final first = DragonAttempt.empty(
+        card,
+      ).placeSum(0, const [DieRoll(4, DieColor.white)]);
+      expect(
+        () => first.placeSum(0, const [
+          DieRoll(1, DieColor.blue),
+          DieRoll(5, DieColor.black),
+        ]),
+        throwsArgumentError,
+      );
+      final attempt = first.placeSum(0, const [DieRoll(6, DieColor.black)]);
       expect(attempt.placed[0]!.values, [4, 6]);
       expect(attempt.placed[0]!.colors, [DieColor.white, DieColor.black]);
       expect(attempt.placed[0]!.sum, 10);
-      expect(attempt.placed[0]!.gold, 4);
-      expect(attempt.diceGold, 4);
+      expect(attempt.placed[0]!.gold, 10);
+      expect(attempt.diceGold, 10);
       expect(attempt.isTamed, isTrue);
     });
-    test('a six contributes zero gold', () {
+    test('a six contributes six gold', () {
       const card = DragonCard(
         id: 94,
         type: DragonType.water,
@@ -433,7 +449,7 @@ void main() {
       final attempt = DragonAttempt.empty(card)
           .placeSingle(0, const DieRoll(6, DieColor.white))
           .placeSingle(1, const DieRoll(5, DieColor.blue));
-      expect(attempt.diceGold, 5);
+      expect(attempt.diceGold, 11);
     });
     test('occupied and mismatching placements are rejected', () {
       final attempt = DragonAttempt.empty(
@@ -468,10 +484,8 @@ void main() {
       );
       final attempt = DragonAttempt.empty(card)
           .placeSingle(0, const DieRoll(5, DieColor.black))
-          .placeSum(1, const [
-            DieRoll(3, DieColor.white),
-            DieRoll(4, DieColor.green),
-          ]);
+          .placeSum(1, const [DieRoll(3, DieColor.white)])
+          .placeSum(1, const [DieRoll(4, DieColor.green)]);
       expect(
         DragonAttempt.fromJson(attempt.toJson()).toJson(),
         attempt.toJson(),
@@ -567,7 +581,7 @@ void main() {
       );
       expect(state.isBossCard, isTrue);
       expect(state.attempt, isNull);
-      expect(state.bossRemainingHp, [12, 18, 8]);
+      expect(state.bossRemainingHp, [12, 16, 8]);
       expect(state.bossDefeated, isFalse);
       final defeated = state.copyWith(bossRemainingHp: [0, -2, 0]);
       expect(defeated.bossDefeated, isTrue);

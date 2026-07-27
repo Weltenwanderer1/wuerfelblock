@@ -107,6 +107,7 @@ class DragonController extends ChangeNotifier {
       dice: values,
       selectedDieIndices: const [],
       placementsSinceRoll: 0,
+      sumFieldsReducedThisRoll: const [],
     );
     String? message;
     if (!state.isBossCard && !_hasAnyFit(changed)) {
@@ -196,6 +197,12 @@ class DragonController extends ChangeNotifier {
   }
 
   Future<void> _placeSumField(int fieldIndex, List<int> dieIndices) async {
+    if (dieIndices.length != 1) {
+      throw StateError('Pro Wurf darf genau ein Würfel auf ein Summenfeld.');
+    }
+    if (state.sumFieldsReducedThisRoll.contains(fieldIndex)) {
+      throw StateError('Dieses Summenfeld wurde in diesem Wurf bereits reduziert.');
+    }
     final dice = [for (final i in dieIndices) state.dice[i]];
     await _transactions.mutate(
       change: () {
@@ -209,6 +216,10 @@ class DragonController extends ChangeNotifier {
           dice: remaining,
           selectedDieIndices: const [],
           placementsSinceRoll: state.placementsSinceRoll + 1,
+          sumFieldsReducedThisRoll: [
+            ...state.sumFieldsReducedThisRoll,
+            fieldIndex,
+          ],
         );
         if (placed.isTamed) {
           changed = _tamed(changed);
@@ -304,6 +315,12 @@ class DragonController extends ChangeNotifier {
     _ensureReady();
     if (_transactions.isBusy) return;
     if (state.mode != GameMode.block) throw StateError('Nur im Blockmodus verfügbar.');
+    if (dice.length != 1) {
+      throw StateError('Pro Wurf darf genau ein Würfel auf ein Summenfeld.');
+    }
+    if (state.sumFieldsReducedThisRoll.contains(fieldIndex)) {
+      throw StateError('Dieses Summenfeld wurde in diesem Wurf bereits reduziert.');
+    }
     final rolls = dice.map((d) => DieRoll(d.$1, d.$2)).toList();
     await _transactions.mutate(
       change: () {
@@ -311,6 +328,10 @@ class DragonController extends ChangeNotifier {
         var changed = state.copyWith(
           attempt: placed,
           placementsSinceRoll: state.placementsSinceRoll + 1,
+          sumFieldsReducedThisRoll: [
+            ...state.sumFieldsReducedThisRoll,
+            fieldIndex,
+          ],
         );
         if (placed.isTamed) {
           changed = _tamed(changed);
@@ -337,6 +358,7 @@ class DragonController extends ChangeNotifier {
           dice: const [],
           selectedDieIndices: const [],
           placementsSinceRoll: 0,
+          sumFieldsReducedThisRoll: const [],
         ),
         undoFromSnapshot: (snapshot) => snapshot,
         pendingSaveMessage: PersistenceMessages.pendingDigitalDiceSave,
@@ -349,6 +371,7 @@ class DragonController extends ChangeNotifier {
       dice: values,
       selectedDieIndices: const [],
       placementsSinceRoll: 0,
+      sumFieldsReducedThisRoll: const [],
     );
     String? message;
     if (!_hasAnyFit(changed)) {
@@ -503,29 +526,18 @@ class DragonController extends ChangeNotifier {
       final existing = attempt.placed[i];
       final existingSum = existing?.sum ?? 0;
       final existingCount = existing?.values.length ?? 0;
-      final remainingTarget = field.remainingTarget(existingSum);
-      final maxDice = field.sumMaxDice - existingCount;
-      if (maxDice <= 0) continue;
-      // Prüfe ob irgendeine Kombination von 1..maxDice Würfeln <= remainingTarget
-      if (_anySubsetSums(st.dice, remainingTarget, 1, maxDice, card)) {
+      if (st.dice.any(
+        (die) => field.acceptsSum(
+          [die],
+          card: card,
+          existingSum: existingSum,
+          existingCount: existingCount,
+        ),
+      )) {
         return true;
       }
     }
     return false;
-  }
-
-  bool _anySubsetSums(List<DieRoll> dice, int target, int minN, int maxN, DragonCard card) {
-    bool rec(int idx, int remaining, int sum, int count) {
-      if (sum <= target && count >= minN) return true;
-      if (idx >= dice.length || count >= maxN || sum > target) return false;
-      final d = dice[idx];
-      if (card.type == DragonType.fire && d.value == 6) {
-        return rec(idx + 1, remaining, sum, count);
-      }
-      return rec(idx + 1, remaining - 1, sum + d.value, count + 1) ||
-          rec(idx + 1, remaining, sum, count);
-    }
-    return rec(0, maxN, 0, 0);
   }
 
   DragonGameState _failedNormalAttempt(DragonGameState source) {
@@ -542,6 +554,7 @@ class DragonController extends ChangeNotifier {
           dice: const [],
           selectedDieIndices: const [],
           placementsSinceRoll: 0,
+          sumFieldsReducedThisRoll: const [],
           escapedDragonIds: escaped,
           handicapDice: 0,
         ),
@@ -555,6 +568,7 @@ class DragonController extends ChangeNotifier {
       dice: const [],
       selectedDieIndices: const [],
       placementsSinceRoll: 0,
+      sumFieldsReducedThisRoll: const [],
       handicapDice: 0,
     );
   }
@@ -577,6 +591,7 @@ class DragonController extends ChangeNotifier {
         dice: const [],
         selectedDieIndices: const [],
         placementsSinceRoll: 0,
+        sumFieldsReducedThisRoll: const [],
         handicapDice: 0,
       ),
     );
@@ -597,6 +612,7 @@ class DragonController extends ChangeNotifier {
         dice: const [],
         selectedDieIndices: const [],
         placementsSinceRoll: 0,
+        sumFieldsReducedThisRoll: const [],
         handicapDice: 0,
       ),
     );
@@ -609,6 +625,7 @@ class DragonController extends ChangeNotifier {
       dice: const [],
       selectedDieIndices: const [],
       placementsSinceRoll: 0,
+      sumFieldsReducedThisRoll: const [],
       handicapDice: 0,
     );
   }

@@ -150,23 +150,52 @@ void main() {
     },
   );
 
-  test('placeSumField consumes every selected die whose sum matches', () async {
+  test('sum field accepts one die per roll and accumulates across rolls', () async {
     const card = DragonCard(
       id: 10,
       type: DragonType.fire,
       fields: [DragonField.sum(3), DragonField.empty()],
     );
-    final game = digital(rolls: [1, 2, 4, 5, 3], cards: const [card]);
+    final game = digital(
+      rolls: [1, 4, 4, 5, 3, 2, 4, 4, 5, 3],
+      cards: const [card],
+    );
     await game.rollDigital();
     await game.toggleDie(0);
-    await game.toggleDie(1);
+    await game.placeSelectedOnField(0);
+    expect(game.state.attempt!.placed[0]!.values, [1]);
+    expect(game.state.dice, hasLength(4));
 
+    await game.toggleDie(0);
+    expect(() => game.placeSelectedOnField(0), throwsStateError);
+
+    await game.continueRolling();
+    await game.toggleDie(0);
     await game.placeSelectedOnField(0);
 
     expect(game.state.attempt!.placed[0]!.values, [1, 2]);
     expect(game.state.attempt!.placed[0]!.sum, 3);
-    expect(game.state.dice.map((die) => die.value), [4, 5, 3]);
     expect(game.state.selectedDieIndices, isEmpty);
+  });
+
+  test('block sum field also accepts one die per physical roll', () async {
+    const card = DragonCard(
+      id: 10,
+      type: DragonType.fire,
+      fields: [DragonField.sum(3), DragonField.empty()],
+    );
+    final game = block(cards: const [card]);
+
+    await game.placeManualSum(0, const [(1, DieColor.white)]);
+    expect(game.state.attempt!.placed[0]!.values, [1]);
+    expect(
+      () => game.placeManualSum(0, const [(2, DieColor.white)]),
+      throwsStateError,
+    );
+
+    await game.continueRolling();
+    await game.placeManualSum(0, const [(2, DieColor.white)]);
+    expect(game.state.attempt!.placed[0]!.values, [1, 2]);
   });
 
   group('boss cards', () {
@@ -352,7 +381,7 @@ void main() {
     },
   );
 
-  test('JSON round-trip preserves schemaVersion 2 controller state', () async {
+  test('JSON round-trip preserves schemaVersion 3 controller state', () async {
     const card = DragonCard(
       id: 29,
       type: DragonType.ghost,
@@ -368,12 +397,20 @@ void main() {
     final json = game.state.toJson();
     final restored = DragonGameState.fromJson(json);
 
-    expect(json['schemaVersion'], 2);
+    expect(json['schemaVersion'], 3);
     expect(restored.toJson(), json);
     expect(restored.dice, game.state.dice);
     expect(restored.selectedDieIndices, [0, 4]);
     expect(restored.fieldReductions, [0, 1]);
     expect(restored.players[0].usedAbilities, [DragonAbility.reduce]);
+
+    final version2 = Map<String, dynamic>.of(json)
+      ..['schemaVersion'] = 2
+      ..remove('sumFieldsReducedThisRoll');
+    expect(
+      DragonGameState.fromJson(version2).sumFieldsReducedThisRoll,
+      isEmpty,
+    );
   });
 
   test('abandon clears the repository', () async {

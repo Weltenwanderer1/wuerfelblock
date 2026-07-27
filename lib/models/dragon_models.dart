@@ -22,7 +22,6 @@ class DieRoll {
   final int value;
   final DieColor color;
 
-  bool get isFlame => value == 6 && color == DieColor.white;
 
   Map<String, dynamic> toJson() => {'value': value, 'color': color.name};
   factory DieRoll.fromJson(Map<String, dynamic> json) {
@@ -108,7 +107,7 @@ class DragonField {
   /// Farbwürfel-Feld: braucht exakt diesen Würfel mit dieser Augenzahl.
   const DragonField.coloredDie(this.dieColor, this.number)
       : kind = DragonFieldKind.coloredDie,
-        mandatory = true,
+        mandatory = false,
         sumTarget = null,
         sumMinDice = 0,
         sumMaxDice = 0,
@@ -145,14 +144,10 @@ class DragonField {
   /// Für Summenfelder immer false (die werden separat geprüft).
   bool acceptsDie(DieRoll die, {required DragonCard card, int effectiveBossHp = 0}) {
     if (die.value < 1 || die.value > 6) throw ArgumentError.value(die, 'die');
-    // Feuerdrache: keine 6 auf normalen Feldern
-    if (card.type == DragonType.fire && die.value == 6 && kind == DragonFieldKind.number) {
-      return false;
-    }
     return switch (kind) {
       DragonFieldKind.number =>
         die.color == DieColor.white &&
-        (die.value == number || die.value == 6),
+        die.value == number,
       DragonFieldKind.flame => die.color == DieColor.white && die.value == 6,
       DragonFieldKind.empty => die.color == DieColor.white || die.color == DieColor.blue ||
           die.color == DieColor.green || die.color == DieColor.black,
@@ -166,12 +161,11 @@ class DragonField {
   /// existingSum = bereits auf dem Feld liegende Summe, existingCount = bereits liegende Würfel.
   bool acceptsSum(List<DieRoll> dice, {required DragonCard card, int existingSum = 0, int existingCount = 0}) {
     if (kind != DragonFieldKind.sum) return false;
+    if (dice.length != 1) return false;
     final totalCount = existingCount + dice.length;
     if (totalCount > sumMaxDice) return false;
     final totalSum = existingSum + dice.fold(0, (a, d) => a + d.value);
     if (totalSum > (sumTarget ?? 0)) return false;
-    // Feuerdrache: keine 6 erlaubt
-    if (card.type == DragonType.fire && dice.any((d) => d.value == 6)) return false;
     return true;
   }
 
@@ -193,8 +187,8 @@ class DragonField {
 
   String get symbol => switch (kind) {
     DragonFieldKind.number => '${mandatory ? '★' : ''}$number',
-    DragonFieldKind.flame => '🔥',
-    DragonFieldKind.empty => '◇',
+    DragonFieldKind.flame => '6',
+    DragonFieldKind.empty => '🔥',
     DragonFieldKind.coloredDie => '${_colorDot(dieColor!)}$number',
     DragonFieldKind.sum => 'Σ$sumTarget',
     DragonFieldKind.bossHp => '♥$bossHp',
@@ -233,7 +227,7 @@ class DragonField {
     final dieColor = dieColorRaw == null ? null : DieColor.values.byName(dieColorRaw as String);
     return switch (kind) {
       DragonFieldKind.number => DragonField.number(number as int, mandatory: mandatory),
-      DragonFieldKind.flame => const DragonField.flame(),
+      DragonFieldKind.flame => const DragonField.number(6),
       DragonFieldKind.empty => const DragonField.empty(),
       DragonFieldKind.coloredDie => DragonField.coloredDie(dieColor!, number as int),
       DragonFieldKind.sum => DragonField.sum(
@@ -291,82 +285,77 @@ abstract final class DragonDeck {
   // Shorthand
   static const _n1 = DragonField.number(1), _n2 = DragonField.number(2),
       _n3 = DragonField.number(3), _n4 = DragonField.number(4),
-      _n5 = DragonField.number(5);
-  static const _f = DragonField.flame(), _e = DragonField.empty();
+       _n5 = DragonField.number(5);
+  static const _e = DragonField.empty();
   static const _m1 = DragonField.number(1, mandatory: true),
       _m2 = DragonField.number(2, mandatory: true),
       _m3 = DragonField.number(3, mandatory: true),
-      _m4 = DragonField.number(4, mandatory: true),
-      _m5 = DragonField.number(5, mandatory: true);
+      _m4 = DragonField.number(4, mandatory: true);
   static const _b1 = DragonField.coloredDie(DieColor.blue, 1),
-      _b2 = DragonField.coloredDie(DieColor.blue, 2),
-      _b3 = DragonField.coloredDie(DieColor.blue, 3),
-      _b4 = DragonField.coloredDie(DieColor.blue, 4),
-      _b5 = DragonField.coloredDie(DieColor.blue, 5);
+     _b2 = DragonField.coloredDie(DieColor.blue, 2),
+      _b3 = DragonField.coloredDie(DieColor.blue, 3);
   static const _g1 = DragonField.coloredDie(DieColor.green, 1),
-      _g2 = DragonField.coloredDie(DieColor.green, 2),
+     _g2 = DragonField.coloredDie(DieColor.green, 2),
       _g3 = DragonField.coloredDie(DieColor.green, 3),
-      _g4 = DragonField.coloredDie(DieColor.green, 4),
-      _g5 = DragonField.coloredDie(DieColor.green, 5);
+      _g4 = DragonField.coloredDie(DieColor.green, 4);
   static const _k1 = DragonField.coloredDie(DieColor.black, 1),
-      _k2 = DragonField.coloredDie(DieColor.black, 2),
+     _k2 = DragonField.coloredDie(DieColor.black, 2),
       _k3 = DragonField.coloredDie(DieColor.black, 3),
       _k4 = DragonField.coloredDie(DieColor.black, 4),
-      _k5 = DragonField.coloredDie(DieColor.black, 5),
-      _k6 = DragonField.coloredDie(DieColor.black, 6);
+      _k5 = DragonField.coloredDie(DieColor.black, 5);
 
   static const normalCards = <DragonCard>[
-    // ── Wasserdrachen (1–9): Zahlen + Leer + Flamme + 1 blaues Pflichtfeld
-    DragonCard(id: 1, type: DragonType.water, fields: [_b3, _e]),
-    DragonCard(id: 2, type: DragonType.water, fields: [_n2, _b4]),
-    DragonCard(id: 3, type: DragonType.water, fields: [_b2, _e, _n5]),
-    DragonCard(id: 4, type: DragonType.water, fields: [_n3, _b5, _e]),
-    DragonCard(id: 5, type: DragonType.water, fields: [_f, _b1]),
-    DragonCard(id: 6, type: DragonType.water, fields: [_b3, _n4, _e]),
-    DragonCard(id: 7, type: DragonType.water, fields: [_n1, _b5, _n2]),
-    DragonCard(id: 8, type: DragonType.water, fields: [_f, _b4, _n3]),
-    DragonCard(id: 9, type: DragonType.water, fields: [_b2, _n5, _e, _n3]),
+    // ── Wasserdrachen (1–9): Einfach, 2–3 Felder, max ~8–12 Gold
+    DragonCard(id: 1, type: DragonType.water, fields: [_b2, _e]),
+    DragonCard(id: 2, type: DragonType.water, fields: [_n3, _b2]),
+    DragonCard(id: 3, type: DragonType.water, fields: [_b1, _e, _n4]),
+    DragonCard(id: 4, type: DragonType.water, fields: [_n2, _b3, _e]),
+    DragonCard(id: 5, type: DragonType.water, fields: [_n5, _b2]),
+    DragonCard(id: 6, type: DragonType.water, fields: [_b3, _e, _n3]),
+    DragonCard(id: 7, type: DragonType.water, fields: [_n4, _b1, _n2]),
+    DragonCard(id: 8, type: DragonType.water, fields: [_n4, _b3, _e]),
+    DragonCard(id: 9, type: DragonType.water, fields: [_b1, _n4, _e, _n3]),
 
-    // ── Feuerdrachen (10–18): keine 6, Zahlen + 1 Summenfeld (2–3 Würfel)
-    DragonCard(id: 10, type: DragonType.fire, fields: [DragonField.sum(8, sumMaxDice: 3), _n2, _e]),
-    DragonCard(id: 11, type: DragonType.fire, fields: [_n3, DragonField.sum(10, sumMaxDice: 3), _e]),
-    DragonCard(id: 12, type: DragonType.fire, fields: [DragonField.sum(7, sumMaxDice: 3), _n4, _n1]),
-    DragonCard(id: 13, type: DragonType.fire, fields: [_n2, _n5, DragonField.sum(12, sumMaxDice: 3)]),
-    DragonCard(id: 14, type: DragonType.fire, fields: [DragonField.sum(9, sumMaxDice: 3), _n3, _n4]),
-    DragonCard(id: 15, type: DragonType.fire, fields: [_n1, DragonField.sum(11, sumMaxDice: 3), _n5]),
-    DragonCard(id: 16, type: DragonType.fire, fields: [DragonField.sum(13, sumMaxDice: 3), _n2, _n3]),
-    DragonCard(id: 17, type: DragonType.fire, fields: [_n4, DragonField.sum(14, sumMaxDice: 3), _n1]),
-    DragonCard(id: 18, type: DragonType.fire, fields: [DragonField.sum(15, sumMaxDice: 3), _n5, _n3]),
+    // ── Feuerdrachen (10–18): Mittelschwer, Summenfeld 6–12 + 1–2 Zahlen, max ~10–16
+    DragonCard(id: 10, type: DragonType.fire, fields: [DragonField.sum(6, sumMaxDice: 3), _n3, _e]),
+    DragonCard(id: 11, type: DragonType.fire, fields: [_n2, DragonField.sum(7, sumMaxDice: 3), _e]),
+    DragonCard(id: 12, type: DragonType.fire, fields: [DragonField.sum(8, sumMaxDice: 3), _n4, _n1]),
+    DragonCard(id: 13, type: DragonType.fire, fields: [_n2, _n4, DragonField.sum(8, sumMaxDice: 3)]),
+    DragonCard(id: 14, type: DragonType.fire, fields: [DragonField.sum(9, sumMaxDice: 3), _n2, _n3]),
+    DragonCard(id: 15, type: DragonType.fire, fields: [_n1, DragonField.sum(10, sumMaxDice: 3), _n4]),
+    DragonCard(id: 16, type: DragonType.fire, fields: [DragonField.sum(10, sumMaxDice: 3), _n3, _n3]),
+    DragonCard(id: 17, type: DragonType.fire, fields: [_n3, DragonField.sum(11, sumMaxDice: 3), _n2]),
+    DragonCard(id: 18, type: DragonType.fire, fields: [DragonField.sum(12, sumMaxDice: 3), _n4, _n2]),
 
-    // ── Glücksdrachen (19–27): Pflichtfelder + 1 grünes Pflichtfeld
+    // ── Glücksdrachen (19–27): Mittel–schwer, Pflichtfelder + grün, max ~10–16
     DragonCard(id: 19, type: DragonType.luck, fields: [_g2, _m1, _e]),
-    DragonCard(id: 20, type: DragonType.luck, fields: [_m3, _g4, _e]),
-    DragonCard(id: 21, type: DragonType.luck, fields: [_g1, _m2, _n5]),
-    DragonCard(id: 22, type: DragonType.luck, fields: [_m4, _g3, _m1]),
-    DragonCard(id: 23, type: DragonType.luck, fields: [_g5, _m2, _e]),
-    DragonCard(id: 24, type: DragonType.luck, fields: [_m1, _g4, _m3]),
-    DragonCard(id: 25, type: DragonType.luck, fields: [_g2, _m5, _n3, _e]),
-    DragonCard(id: 26, type: DragonType.luck, fields: [_m3, _g1, _m4]),
-    DragonCard(id: 27, type: DragonType.luck, fields: [_g5, _m2, _m3, _e]),
+    DragonCard(id: 20, type: DragonType.luck, fields: [_m2, _g3, _e]),
+    DragonCard(id: 21, type: DragonType.luck, fields: [_g1, _m3, _n3]),
+    DragonCard(id: 22, type: DragonType.luck, fields: [_m3, _g3, _m1]),
+    DragonCard(id: 23, type: DragonType.luck, fields: [_g4, _m2, _e]),
+    DragonCard(id: 24, type: DragonType.luck, fields: [_m1, _g3, _m3]),
+    DragonCard(id: 25, type: DragonType.luck, fields: [_g2, _m4, _n3, _e]),
+    DragonCard(id: 26, type: DragonType.luck, fields: [_m2, _g2, _m3]),
+    DragonCard(id: 27, type: DragonType.luck, fields: [_g4, _m2, _m3, _e]),
 
-    // ── Geisterdrachen (28–36): 1 schwarzes Pflichtfeld + 1 Summenfeld (2–4) + Bonus
-    DragonCard(id: 28, type: DragonType.ghost, fields: [_k3, DragonField.sum(10), _e], bonusPoints: 5),
-    DragonCard(id: 29, type: DragonType.ghost, fields: [_k5, DragonField.sum(12), _n2], bonusPoints: 6),
-    DragonCard(id: 30, type: DragonType.ghost, fields: [_k1, DragonField.sum(14), _e], bonusPoints: 7),
-    DragonCard(id: 31, type: DragonType.ghost, fields: [_k4, DragonField.sum(16), _n3], bonusPoints: 8),
-    DragonCard(id: 32, type: DragonType.ghost, fields: [_k2, DragonField.sum(18), _e], bonusPoints: 9),
-    DragonCard(id: 33, type: DragonType.ghost, fields: [_k6, DragonField.sum(20), _n1], bonusPoints: 10),
-    DragonCard(id: 34, type: DragonType.ghost, fields: [_k3, DragonField.sum(15), _n5, _e], bonusPoints: 7),
-    DragonCard(id: 35, type: DragonType.ghost, fields: [_k5, DragonField.sum(17), _n2], bonusPoints: 8),
-    DragonCard(id: 36, type: DragonType.ghost, fields: [_k4, DragonField.sum(19), _e, _n1], bonusPoints: 10),
+    // ── Geisterdrachen (28–36): Schwer, Farbwürfel + Summe 10–14 + Bonus, max ~16–22
+    DragonCard(id: 28, type: DragonType.ghost, fields: [_k2, DragonField.sum(10), _e], bonusPoints: 5),
+    DragonCard(id: 29, type: DragonType.ghost, fields: [_k4, DragonField.sum(10), _n2], bonusPoints: 6),
+    DragonCard(id: 30, type: DragonType.ghost, fields: [_k1, DragonField.sum(11), _e], bonusPoints: 7),
+    DragonCard(id: 31, type: DragonType.ghost, fields: [_k3, DragonField.sum(12), _n2], bonusPoints: 8),
+    DragonCard(id: 32, type: DragonType.ghost, fields: [_k2, DragonField.sum(12), _e], bonusPoints: 9),
+    DragonCard(id: 33, type: DragonType.ghost, fields: [_k5, DragonField.sum(12), _n1], bonusPoints: 10),
+    DragonCard(id: 34, type: DragonType.ghost, fields: [_k3, DragonField.sum(10), _n3, _e], bonusPoints: 7),
+    DragonCard(id: 35, type: DragonType.ghost, fields: [_k4, DragonField.sum(12), _n3], bonusPoints: 8),
+    DragonCard(id: 36, type: DragonType.ghost, fields: [_k3, DragonField.sum(14), _e, _n2], bonusPoints: 10),
   ];
 
   static const bossCards = <DragonCard>[
-    DragonCard(id: 37, type: DragonType.boss, fields: [DragonField.bossHp(12), DragonField.bossHp(18), DragonField.bossHp(8)]),
-    DragonCard(id: 38, type: DragonType.boss, fields: [DragonField.bossHp(15), DragonField.bossHp(20), DragonField.bossHp(10)]),
-    DragonCard(id: 39, type: DragonType.boss, fields: [DragonField.bossHp(10), DragonField.bossHp(16), DragonField.bossHp(22), DragonField.bossHp(6)]),
-    DragonCard(id: 40, type: DragonType.boss, fields: [DragonField.bossHp(18), DragonField.bossHp(24), DragonField.bossHp(12)]),
-    DragonCard(id: 41, type: DragonType.boss, fields: [DragonField.bossHp(20), DragonField.bossHp(25), DragonField.bossHp(15), DragonField.bossHp(8)]),
+    DragonCard(id: 37, type: DragonType.boss, fields: [DragonField.bossHp(12), DragonField.bossHp(16), DragonField.bossHp(8)]),
+    DragonCard(id: 38, type: DragonType.boss, fields: [DragonField.bossHp(14), DragonField.bossHp(18), DragonField.bossHp(10)]),
+    DragonCard(id: 39, type: DragonType.boss, fields: [DragonField.bossHp(10), DragonField.bossHp(14), DragonField.bossHp(18), DragonField.bossHp(6)]),
+    DragonCard(id: 40, type: DragonType.boss, fields: [DragonField.bossHp(16), DragonField.bossHp(22), DragonField.bossHp(10)]),
+    DragonCard(id: 41, type: DragonType.boss, fields: [DragonField.bossHp(18), DragonField.bossHp(22), DragonField.bossHp(14), DragonField.bossHp(8)]),
   ];
 
   /// Baut das 41-Karten-Deck: 36 normale gemischt, jeder 7. Platz ein Boss.
@@ -416,7 +405,7 @@ class PlacedField {
   final List<DieColor> colors;
 
   int get sum => values.fold(0, (a, b) => a + b);
-  int get gold => values.where((v) => v != 6).fold(0, (a, b) => a + b);
+  int get gold => values.fold(0, (a, b) => a + b);
 
   PlacedField addDice(List<DieRoll> dice) => PlacedField(
     values: [...values, ...dice.map((d) => d.value)],
@@ -636,6 +625,7 @@ class DragonGameState implements SavedGameState {
     List<int> bossRemainingHp = const [],
     this.handicapDice = 0,
     List<int> fieldReductions = const [],
+    List<int> sumFieldsReducedThisRoll = const [],
   })  : _players = List.unmodifiable(players),
         _deck = List.unmodifiable(deck),
         _tried = List.unmodifiable(triedPlayerIndices),
@@ -643,7 +633,8 @@ class DragonGameState implements SavedGameState {
         _selected = List.unmodifiable(selectedDieIndices),
         _escaped = List.unmodifiable(escapedDragonIds),
         _bossHp = List.unmodifiable(bossRemainingHp),
-        _reductions = List.unmodifiable(fieldReductions) {
+        _reductions = List.unmodifiable(fieldReductions),
+        _sumFieldsReduced = List.unmodifiable(sumFieldsReducedThisRoll) {
     if (_players.length < 2 || _players.length > 4 ||
         activePlayerIndex < 0 || activePlayerIndex >= _players.length ||
         goldPool < 0 || cardGold < 0) {
@@ -682,7 +673,7 @@ class DragonGameState implements SavedGameState {
     );
   }
 
-  static const schemaVersion = 2;
+  static const schemaVersion = 3;
   final List<DragonPlayer> _players;
   final GameMode mode;
   final List<DragonCard> _deck;
@@ -701,6 +692,7 @@ class DragonGameState implements SavedGameState {
   final List<int> _bossHp;
   final int handicapDice;
   final List<int> _reductions;
+  final List<int> _sumFieldsReduced;
 
   @override
   List<DragonPlayer> get players => UnmodifiableListView(_players);
@@ -711,6 +703,7 @@ class DragonGameState implements SavedGameState {
   List<int> get escapedDragonIds => UnmodifiableListView(_escaped);
   List<int> get bossRemainingHp => UnmodifiableListView(_bossHp);
   List<int> get fieldReductions => UnmodifiableListView(_reductions);
+  List<int> get sumFieldsReducedThisRoll => UnmodifiableListView(_sumFieldsReduced);
 
   DragonPlayer get activePlayer => _players[activePlayerIndex];
   int get cardsRemaining => _deck.length + (currentCard == null ? 0 : 1);
@@ -754,6 +747,7 @@ class DragonGameState implements SavedGameState {
     List<int>? bossRemainingHp,
     int? handicapDice,
     List<int>? fieldReductions,
+    List<int>? sumFieldsReducedThisRoll,
   }) =>
       DragonGameState(
         players: players ?? _players,
@@ -774,6 +768,7 @@ class DragonGameState implements SavedGameState {
         bossRemainingHp: bossRemainingHp ?? _bossHp,
         handicapDice: handicapDice ?? this.handicapDice,
         fieldReductions: fieldReductions ?? _reductions,
+        sumFieldsReducedThisRoll: sumFieldsReducedThisRoll ?? _sumFieldsReduced,
       );
 
   DragonGameState copy() => DragonGameState.fromJson(toJson());
@@ -807,21 +802,25 @@ class DragonGameState implements SavedGameState {
     'bossRemainingHp': _bossHp,
     'handicapDice': handicapDice,
     'fieldReductions': _reductions,
+    'sumFieldsReducedThisRoll': _sumFieldsReduced,
   };
 
   factory DragonGameState.fromJson(Map<String, dynamic> json) {
     try {
-      _requireExactKeys(json, const {
+      final version = json['schemaVersion'];
+      if (json['type'] != 'dragongold' || (version != 2 && version != schemaVersion)) {
+        throw const FormatException('Ungültiger Schuppenschatz-Spielstand.');
+      }
+      final expectedKeys = <String>{
         'type', 'schemaVersion', 'mode', 'players', 'deck',
         'currentCard', 'attempt', 'cardsInGame', 'goldPool',
         'activePlayerIndex', 'cardGold', 'triedPlayerIndices',
         'dice', 'selectedDieIndices', 'placementsSinceRoll',
         'escapedDragonIds', 'bonusWinnerIndex', 'bossRemainingHp',
         'handicapDice', 'fieldReductions',
-      });
-      if (json['type'] != 'dragongold' || json['schemaVersion'] != schemaVersion) {
-        throw const FormatException('Ungültiger Schuppenschatz-Spielstand.');
-      }
+      };
+      if (version == schemaVersion) expectedKeys.add('sumFieldsReducedThisRoll');
+      _requireExactKeys(json, expectedKeys);
       List<T> list<T>(String key, T Function(Map<String, dynamic>) parse) {
         final raw = json[key];
         if (raw is! List) throw const FormatException('Ungültige Liste.');
@@ -849,6 +848,9 @@ class DragonGameState implements SavedGameState {
         bossRemainingHp: (json['bossRemainingHp'] as List).cast<int>(),
         handicapDice: (json['handicapDice'] as int?) ?? 0,
         fieldReductions: (json['fieldReductions'] as List).cast<int>(),
+        sumFieldsReducedThisRoll: version == schemaVersion
+            ? (json['sumFieldsReducedThisRoll'] as List).cast<int>()
+            : const [],
       );
     } on FormatException {
       rethrow;

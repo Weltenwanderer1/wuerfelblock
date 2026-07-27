@@ -25,7 +25,7 @@ class SchuppenschatzRulesScreen extends StatelessWidget {
     ),
     (
       'Die Würfel',
-      '⚪ Weiß (×2): Normale Zahlen 1–5, Flamme bei 6.\n'
+      '⚪ Weiß (×2): Normale Zahlen 1–6.\n'
           '🔵 Blau (×1): Für blaue Felder (Wasserdrachen).\n'
           '🟢 Grün (×1): Für grüne Felder (Glücksdrachen).\n'
           '⚫ Schwarz (×1): Für schwarze Felder (Geisterdrachen).\n\n'
@@ -34,22 +34,20 @@ class SchuppenschatzRulesScreen extends StatelessWidget {
     ),
     (
       'Die Felder auf der Karte',
-      'Zahlenfeld: braucht denselben Würfelwert oder eine Flamme (6).\n'
+      'Zahlenfeld: braucht exakt denselben Würfelwert von 1–6.\n'
           '🔵/🟢/⚫ Farbfeld: braucht genau diesen Farbwürfel mit dieser Zahl.\n'
-          '🔥 Flammenfeld: nur eine weiße 6.\n'
-          '◇ Leeres Feld: jeder Würfel passt.\n'
-          'Σ Summenfeld: 2–4 Würfel müssen exakt die Zielsumme ergeben.\n'
+          '🔥 Jokerfeld: jeder Würfel passt.\n'
+          'Σ Summenfeld: Lege pro Wurf genau einen Würfel darauf. Sein Wert reduziert die Restsumme; in späteren Würfen reduzierst du weiter, bis 0 erreicht ist.\n'
           '★ Pflichtfeld: muss belegt werden, bevor der Zug endet.',
       Icons.grid_view_rounded,
     ),
     (
       'Die vier Drachenarten',
-      '💧 Wasserdrache (blau): Hat ein blaues Pflichtfeld – die Zahl muss mit dem blauen Würfel getroffen werden.\n\n'
-          '🔥 Feuerdrache (rot): Immun gegen Flammen (keine 6 auf Zahlenfeldern). '
-          'Hat ein Summenfeld aus 2–3 Würfeln.\n\n'
-          '★ Glücksdrache (lila): Pflichtfelder + ein grünes Würfelfeld. '
+      '💧 Wasserdrache (blau): Hat ein blaues Würfelfeld – die Zahl muss mit dem blauen Würfel getroffen werden. Das Farbfeld ist kein Pflichtfeld.\n\n'
+          '🔥 Feuerdrache (rot): Hat ein Summenfeld, das über 2–3 Würfe reduziert wird.\n\n'
+          '★ Glücksdrache (lila): Separate Pflichtfelder + ein grünes Würfelfeld. '
           'Pflichtfelder müssen zuerst voll sein.\n\n'
-          '👻 Geisterdrache (schwarz): Ein schwarzes Pflichtfeld + ein Summenfeld (2–4 Würfel). '
+          '👻 Geisterdrache (schwarz): Ein schwarzes Würfelfeld + ein Summenfeld über 2–4 Würfe. '
           'Zusätzlich 5–10 Bonuspunkte je nach Schwierigkeit.',
       Icons.auto_awesome,
     ),
@@ -60,8 +58,7 @@ class SchuppenschatzRulesScreen extends StatelessWidget {
           '3. Entscheide: Weiterwürfeln oder Zug beenden?\n\n'
           'Weiterwürfeln: Wirf die übrigen Würfel erneut. '
           'Passt kein einziger Würfel → Zug sofort erfolglos beendet.\n\n'
-          'Zug beenden: Du sicherst die Summe der gelegten Würfelaugen als Gold. '
-          'Flammen zählen 0.',
+          'Zug beenden: Du sicherst die Summe der gelegten Würfelaugen als Gold. Auch eine 6 zählt 6 Gold.',
       Icons.touch_app_outlined,
     ),
     (

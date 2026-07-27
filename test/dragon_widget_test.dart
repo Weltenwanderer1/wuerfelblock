@@ -157,7 +157,7 @@ void main() {
     },
   );
 
-  testWidgets('digital UI multi-selects dice and places them on a sum field', (
+  testWidgets('digital UI reduces a sum field by one die per roll', (
     tester,
   ) async {
     _useTallViewport(tester);
@@ -169,7 +169,7 @@ void main() {
         DragonField.empty(),
       ],
     );
-    final values = [1, 2, 3, 4, 5];
+    final values = [1, 4, 3, 4, 5, 2, 4, 3, 4, 5];
     final game = DragonController.newGame(
       names: ['Ada', 'Bob'],
       mode: GameMode.digital,
@@ -184,11 +184,22 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('dragon-die-0')));
     await tester.tap(find.byKey(const Key('dragon-die-0')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('dragon-die-1')));
-    await tester.pumpAndSettle();
-    expect(game.state.selectedDieIndices, [0, 1]);
-
     await tester.ensureVisible(find.byKey(const Key('dragon-field-0')));
+    await tester.tap(find.byKey(const Key('dragon-field-0')));
+    await tester.pumpAndSettle();
+    expect(game.state.attempt!.placed[0]!.values, [1]);
+    expect(find.text('↗2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('dragon-die-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dragon-field-0')));
+    await tester.pumpAndSettle();
+    expect(game.state.attempt!.placed[0]!.values, [1]);
+
+    await tester.tap(find.byKey(const Key('dragon-continue')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dragon-die-0')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('dragon-field-0')));
     await tester.pumpAndSettle();
 
@@ -198,7 +209,7 @@ void main() {
       DieColor.white,
       DieColor.white,
     ]);
-    expect(game.state.dice, hasLength(3));
+    expect(game.state.dice, hasLength(4));
   });
 
   testWidgets('block screen records the color of a physical die', (
@@ -253,6 +264,36 @@ void main() {
     expect(find.text('/18'), findsOneWidget);
     expect(find.text('8'), findsOneWidget);
     expect(find.text('/8'), findsOneWidget);
+  });
+
+  testWidgets('block mode can tap a boss HP field and enter damage', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    const card = DragonCard(
+      id: 37,
+      type: DragonType.boss,
+      fields: [
+        DragonField.bossHp(12),
+        DragonField.bossHp(18),
+        DragonField.bossHp(8),
+      ],
+    );
+    final game = DragonController.newGame(
+      names: ['Ada', 'Bob'],
+      repository: MemoryGameRepository(),
+      shuffledCards: const [card],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
+    await tester.tap(find.text('12'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('dragon-manual-value-4')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('dragon-manual-value-4')));
+    await tester.pumpAndSettle();
+
+    expect(game.state.bossRemainingHp, [8, 18, 8]);
   });
 
   testWidgets('game screen exposes risk, rules and fixed actions', (
@@ -481,11 +522,13 @@ void main() {
     },
   );
 
-  testWidgets('a white six is rendered as a flame', (tester) async {
+  testWidgets('a white six stays numeric while the joker uses a flame', (
+    tester,
+  ) async {
     const card = DragonCard(
       id: 1,
       type: DragonType.water,
-      fields: [DragonField.empty(), DragonField.empty()],
+      fields: [DragonField.empty(), DragonField.number(1)],
     );
     final values = [6, 1, 2, 3, 4];
     final game = DragonController.newGame(
@@ -499,6 +542,7 @@ void main() {
     await tester.tap(find.byKey(const Key('dragon-roll')));
     await tester.pumpAndSettle();
 
+    expect(find.text('6'), findsOneWidget);
     expect(find.text('🔥'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('Weißer Würfel: 6')), findsOneWidget);
   });
