@@ -590,8 +590,9 @@ class PlacedField {
     _requireExactKeys(json, const {'values', 'colors'});
     final vals = json['values'];
     final cols = json['colors'];
-    if (vals is! List || cols is! List)
+    if (vals is! List || cols is! List) {
       throw const FormatException('Ungültiges belegtes Feld.');
+    }
     return PlacedField(
       values: vals.cast<int>(),
       colors: (cols.cast<String>()).map(DieColor.values.byName).toList(),
@@ -663,8 +664,9 @@ class DragonAttempt {
   /// Legt einen einzelnen Würfel auf ein Feld (number/flame/empty/coloredDie/bossHp).
   DragonAttempt placeSingle(int fieldIndex, DieRoll die, {int reduction = 0}) {
     _checkFieldIndex(fieldIndex);
-    if (_placed[fieldIndex] != null)
+    if (_placed[fieldIndex] != null) {
       throw StateError('Feld ist bereits belegt.');
+    }
     if (!card.fields[fieldIndex].acceptsDie(
       die,
       card: card,
@@ -714,8 +716,9 @@ class DragonAttempt {
   }
 
   void _checkFieldIndex(int i) {
-    if (i < 0 || i >= card.fields.length)
+    if (i < 0 || i >= card.fields.length) {
       throw RangeError.index(i, card.fields);
+    }
   }
 
   DragonAttempt _withPlaced(int index, PlacedField pf) {
@@ -880,8 +883,9 @@ class DragonGameState implements SavedGameState {
     }
     final cards = shuffledCards ?? DragonDeck.buildDeck(random: random);
     final chosen = cards.take(quickGame ? 20 : cards.length).toList();
-    if (chosen.isEmpty)
+    if (chosen.isEmpty) {
       throw ArgumentError('Mindestens eine Drachenkarte ist nötig.');
+    }
     final current = chosen.removeAt(0);
     return DragonGameState(
       players: cleaned.map((e) => DragonPlayer(name: e)).toList(),
@@ -1066,8 +1070,9 @@ class DragonGameState implements SavedGameState {
         'handicapDice',
         'fieldReductions',
       };
-      if (version == schemaVersion)
+      if (version == schemaVersion) {
         expectedKeys.add('sumFieldsReducedThisRoll');
+      }
       _requireExactKeys(json, expectedKeys);
       List<T> list<T>(String key, T Function(Map<String, dynamic>) parse) {
         final raw = json[key];

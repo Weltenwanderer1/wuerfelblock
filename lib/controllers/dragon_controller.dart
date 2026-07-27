@@ -294,8 +294,9 @@ class DragonController extends ChangeNotifier {
   }) async {
     _ensureReady();
     if (_transactions.isBusy) return;
-    if (state.mode != GameMode.block)
+    if (state.mode != GameMode.block) {
       throw StateError('Nur im Blockmodus verfügbar.');
+    }
     if (value < 1 || value > 6) throw ArgumentError.value(value, 'value');
     final die = DieRoll(value, color);
 
@@ -352,8 +353,9 @@ class DragonController extends ChangeNotifier {
   ) async {
     _ensureReady();
     if (_transactions.isBusy) return;
-    if (state.mode != GameMode.block)
+    if (state.mode != GameMode.block) {
       throw StateError('Nur im Blockmodus verfügbar.');
+    }
     if (dice.length != 1) {
       throw StateError('Pro Wurf darf genau ein Würfel auf ein Summenfeld.');
     }
@@ -397,8 +399,9 @@ class DragonController extends ChangeNotifier {
   Future<void> continueRolling() async {
     _ensureReady();
     if (_transactions.isBusy) return;
-    if (!canContinue)
+    if (!canContinue) {
       throw StateError('Mindestens ein Würfel muss gelegt werden.');
+    }
     if (state.isBossCard) throw StateError('Boss-Karten: kein Weiterwürfeln.');
 
     if (state.mode == GameMode.block) {
@@ -452,8 +455,9 @@ class DragonController extends ChangeNotifier {
       return;
     }
 
-    if (!canEndTurn)
+    if (!canEndTurn) {
       throw StateError('Pflichtfelder müssen zuerst belegt werden.');
+    }
     await _transactions.mutate(
       change: () {
         var changed = state;
@@ -471,8 +475,9 @@ class DragonController extends ChangeNotifier {
   }
 
   Future<void> _bossEndTurn() async {
-    if (!canBossEndTurn)
+    if (!canBossEndTurn) {
       throw StateError('Mindestens ein Würfel muss gelegt werden.');
+    }
     await _transactions.mutate(
       change: () {
         _state = _passBoss(state);
@@ -523,8 +528,9 @@ class DragonController extends ChangeNotifier {
     _ensureReady();
     if (_transactions.isBusy) return;
     final player = state.activePlayer;
-    if (!player.canUse(ability))
+    if (!player.canUse(ability)) {
       throw StateError('Fähigkeit bereits verbraucht.');
+    }
 
     await _transactions.mutate(
       change: () {
@@ -537,8 +543,9 @@ class DragonController extends ChangeNotifier {
 
         switch (ability) {
           case DragonAbility.reroll:
-            if (state.dice.isEmpty)
+            if (state.dice.isEmpty) {
               throw StateError('Kein Wurf zum Neuwerfen.');
+            }
             changed = changed.copyWith(
               dice: _rollDice(),
               selectedDieIndices: const [],
@@ -548,8 +555,9 @@ class DragonController extends ChangeNotifier {
             if (fieldIndex == null || reduction == null) {
               throw ArgumentError('Feld und Reduktion nötig.');
             }
-            if (reduction < 1 || reduction > 3)
+            if (reduction < 1 || reduction > 3) {
               throw ArgumentError('Reduktion: 1–3.');
+            }
             final reds = List<int>.of(state.fieldReductions);
             reds[fieldIndex] += reduction;
             changed = changed.copyWith(fieldReductions: reds);
