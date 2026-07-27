@@ -162,15 +162,27 @@ class DragonField {
     };
   }
 
-  /// Prüft, ob eine Gruppe von Würfeln das Summenfeld erfüllt.
-  bool acceptsSum(List<DieRoll> dice, {required DragonCard card}) {
+  /// Prüft, ob eine Gruppe von Würfeln das Summenfeld erfüllt (oder teilweise erfüllt).
+  /// existingSum = bereits auf dem Feld liegende Summe, existingCount = bereits liegende Würfel.
+  bool acceptsSum(List<DieRoll> dice, {required DragonCard card, int existingSum = 0, int existingCount = 0}) {
     if (kind != DragonFieldKind.sum) return false;
-    if (dice.length < sumMinDice || dice.length > sumMaxDice) return false;
+    final totalCount = existingCount + dice.length;
+    if (totalCount > sumMaxDice) return false;
+    final totalSum = existingSum + dice.fold(0, (a, d) => a + d.value);
+    if (totalSum > (sumTarget ?? 0)) return false;
     // Feuerdrache: keine 6 erlaubt
     if (card.type == DragonType.fire && dice.any((d) => d.value == 6)) return false;
-    final sum = dice.fold(0, (a, d) => a + d.value);
-    return sum == sumTarget;
+    return true;
   }
+
+  /// Prüft, ob ein Summenfeld mit der aktuellen Belegung vollständig ist.
+  bool isSumComplete(int currentSum, int currentCount) {
+    if (kind != DragonFieldKind.sum) return false;
+    return currentCount >= sumMinDice && currentCount <= sumMaxDice && currentSum == (sumTarget ?? 0);
+  }
+
+  /// Restliche Zielsumme für dieses Feld.
+  int remainingTarget(int currentSum) => kind == DragonFieldKind.sum ? (sumTarget ?? 0) - currentSum : 0;
 
   /// Effektiver Wert unter Berücksichtigung von Reduktionen.
   int effectiveNumber(int reduction) => switch (kind) {
@@ -406,6 +418,11 @@ class PlacedField {
   int get sum => values.fold(0, (a, b) => a + b);
   int get gold => values.where((v) => v != 6).fold(0, (a, b) => a + b);
 
+  PlacedField addDice(List<DieRoll> dice) => PlacedField(
+    values: [...values, ...dice.map((d) => d.value)],
+    colors: [...colors, ...dice.map((d) => d.color)],
+  );
+
   Map<String, dynamic> toJson() => {
     'values': values,
     'colors': colors.map((c) => c.name).toList(),
@@ -441,7 +458,17 @@ class DragonAttempt {
   int get placedCount => _placed.whereType<PlacedField>().length;
   int get diceGold => _placed.whereType<PlacedField>().fold(0, (a, p) => a + p.gold);
 
-  bool get isTamed => placedCount == card.fields.length;
+  bool get isTamed {
+    if (placedCount != card.fields.length) return false;
+    for (var i = 0; i < card.fields.length; i++) {
+      final field = card.fields[i];
+      final pf = _placed[i]!;
+      if (field.kind == DragonFieldKind.sum && !field.isSumComplete(pf.sum, pf.values.length)) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   bool get allMandatoryCovered {
     for (var i = 0; i < card.fields.length; i++) {
@@ -450,10 +477,21 @@ class DragonAttempt {
     return true;
   }
 
+  /// Offene Felder: null (noch nichts) ODER Summenfeld das noch nicht vollständig ist.
   List<int> get openFieldIndices => [
         for (var i = 0; i < _placed.length; i++)
-          if (_placed[i] == null) i,
+          if (_isFieldOpen(i)) i,
       ];
+
+  bool _isFieldOpen(int i) {
+    final pf = _placed[i];
+    if (pf == null) return true;
+    final field = card.fields[i];
+    if (field.kind == DragonFieldKind.sum && !field.isSumComplete(pf.sum, pf.values.length)) {
+      return true;
+    }
+    return false;
+  }
 
   /// Legt einen einzelnen Würfel auf ein Feld (number/flame/empty/coloredDie/bossHp).
   DragonAttempt placeSingle(int fieldIndex, DieRoll die) {
@@ -465,17 +503,27 @@ class DragonAttempt {
     return _withPlaced(fieldIndex, PlacedField(values: [die.value], colors: [die.color]));
   }
 
-  /// Legt mehrere Würfel auf ein Summenfeld.
+  /// Legt mehrere Würfel auf ein Summenfeld. Akkumuliert bei bereits liegenden Würfeln.
   DragonAttempt placeSum(int fieldIndex, List<DieRoll> dice) {
     _checkFieldIndex(fieldIndex);
-    if (_placed[fieldIndex] != null) throw StateError('Feld ist bereits belegt.');
-    if (!card.fields[fieldIndex].acceptsSum(dice, card: card)) {
+    final existing = _placed[fieldIndex];
+    final field = card.fields[fieldIndex];
+    final existingSum = existing?.sum ?? 0;
+    final existingCount = existing?.values.length ?? 0;
+    if (field.kind != DragonFieldKind.sum) {
+      throw ArgumentError('Nur Summenfelder akzeptieren mehrere Würfel.');
+    }
+    if (field.isSumComplete(existingSum, existingCount)) {
+      throw StateError('Summenfeld ist bereits vollständig.');
+    }
+    if (!field.acceptsSum(dice, card: card, existingSum: existingSum, existingCount: existingCount)) {
       throw ArgumentError('Würfelsumme passt nicht.');
     }
-    return _withPlaced(
-      fieldIndex,
-      PlacedField(values: dice.map((d) => d.value).toList(), colors: dice.map((d) => d.color).toList()),
+    final merged = existing != null ? existing.addDice(dice) : PlacedField(
+      values: dice.map((d) => d.value).toList(),
+      colors: dice.map((d) => d.color).toList(),
     );
+    return _withPlaced(fieldIndex, merged);
   }
 
   void _checkFieldIndex(int i) {

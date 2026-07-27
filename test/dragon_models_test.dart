@@ -277,14 +277,33 @@ void main() {
       );
       expect(
         field.acceptsSum(const [DieRoll(4, DieColor.white)], card: normal),
-        isFalse,
+        isTrue, // partial sums are allowed; completeness checked by isSumComplete
+      );
+      expect(
+        field.isSumComplete(4, 1),
+        isFalse, // 1 die, sum=4 — not complete yet
+      );
+      expect(
+        field.isSumComplete(10, 2),
+        isTrue,
       );
       expect(
         field.acceptsSum(const [
           DieRoll(4, DieColor.white),
           DieRoll(5, DieColor.blue),
         ], card: normal),
-        isFalse,
+        isTrue, // partial sums are allowed (9 <= 10)
+      );
+      expect(
+        field.isSumComplete(9, 2),
+        isFalse, // 9 != 10
+      );
+      expect(
+        field.acceptsSum(const [
+          DieRoll(6, DieColor.white),
+          DieRoll(5, DieColor.blue),
+        ], card: normal),
+        isFalse, // exceeds target (11 > 10)
       );
       expect(
         field.acceptsDie(const DieRoll(5, DieColor.white), card: normal),

@@ -500,9 +500,14 @@ class DragonController extends ChangeNotifier {
     for (final i in attempt.openFieldIndices) {
       final field = card.fields[i];
       if (field.kind != DragonFieldKind.sum) continue;
-      // Prüfe ob irgendeine Kombination von 2-4 Würfeln die Summe trifft
-      final target = field.effectiveNumber(st.fieldReductions.length > i ? st.fieldReductions[i] : 0);
-      if (_anySubsetSums(st.dice, target, field.sumMinDice, field.sumMaxDice, card)) {
+      final existing = attempt.placed[i];
+      final existingSum = existing?.sum ?? 0;
+      final existingCount = existing?.values.length ?? 0;
+      final remainingTarget = field.remainingTarget(existingSum);
+      final maxDice = field.sumMaxDice - existingCount;
+      if (maxDice <= 0) continue;
+      // Prüfe ob irgendeine Kombination von 1..maxDice Würfeln <= remainingTarget
+      if (_anySubsetSums(st.dice, remainingTarget, 1, maxDice, card)) {
         return true;
       }
     }
@@ -511,9 +516,8 @@ class DragonController extends ChangeNotifier {
 
   bool _anySubsetSums(List<DieRoll> dice, int target, int minN, int maxN, DragonCard card) {
     bool rec(int idx, int remaining, int sum, int count) {
-      if (sum == target && count >= minN) return true;
+      if (sum <= target && count >= minN) return true;
       if (idx >= dice.length || count >= maxN || sum > target) return false;
-      // Nimm aktuellen Würfel
       final d = dice[idx];
       if (card.type == DragonType.fire && d.value == 6) {
         return rec(idx + 1, remaining, sum, count);

@@ -133,12 +133,13 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     final field = card.fields[fieldIndex];
 
     if (field.kind == DragonFieldKind.sum) {
-      final result = await showDialog<List<(int, DieColor)>>(
+      final result = await showDialog<List<int>>(
         context: context,
-        builder: (context) => _SumInputDialog(field: field),
+        builder: (context) => _SumInputDialog(field: field, card: card),
       );
       if (result != null) {
-        await _run(() => _game.placeManualSum(fieldIndex, result));
+        final dice = result.map((v) => (v, DieColor.white)).toList();
+        await _run(() => _game.placeManualSum(fieldIndex, dice));
       }
       return;
     }
@@ -238,6 +239,7 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
               _BossCard(
                 key: const Key('dragon-boss-card'),
                 state: state,
+                game: _game,
                 onRun: _run,
               )
             else
@@ -460,6 +462,13 @@ class _DragonChallengeCard extends StatelessWidget {
       for (final i in state.selectedDieIndices) state.dice[i],
     ];
 
+    bool fieldIsOpen(int i) {
+      final pf = attempt.placed[i];
+      if (pf == null) return true;
+      return card.fields[i].kind == DragonFieldKind.sum &&
+          !card.fields[i].isSumComplete(pf.sum, pf.values.length);
+    }
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -569,20 +578,22 @@ class _DragonChallengeCard extends StatelessWidget {
                       index: i,
                       field: card.fields[i],
                       placed: attempt.placed[i],
+                      isOpen: fieldIsOpen(i),
                       accent: color,
                       reduction: state.fieldReductions.length > i
                           ? state.fieldReductions[i]
                           : 0,
                       acceptsSelected:
                           hasSelection &&
-                          attempt.placed[i] == null &&
+                          fieldIsOpen(i) &&
                           _fieldAcceptsSelection(
                             card.fields[i],
                             selectedDice,
                             card,
+                            attempt.placed[i],
                           ),
                       onTap:
-                          attempt.placed[i] == null &&
+                          fieldIsOpen(i) &&
                               enabled &&
                               (manualMode ||
                                   (hasSelection &&
@@ -590,6 +601,7 @@ class _DragonChallengeCard extends StatelessWidget {
                                         card.fields[i],
                                         selectedDice,
                                         card,
+                                        attempt.placed[i],
                                       )))
                           ? () => onFieldTap(i)
                           : null,
@@ -607,10 +619,13 @@ class _DragonChallengeCard extends StatelessWidget {
     DragonField field,
     List<DieRoll> dice,
     DragonCard card,
+    PlacedField? existing,
   ) {
     if (dice.isEmpty) return false;
     if (field.kind == DragonFieldKind.sum) {
-      return field.acceptsSum(dice, card: card);
+      final existingSum = existing?.sum ?? 0;
+      final existingCount = existing?.values.length ?? 0;
+      return field.acceptsSum(dice, card: card, existingSum: existingSum, existingCount: existingCount);
     }
     if (dice.length == 1) {
       return field.acceptsDie(dice.single, card: card);
@@ -630,8 +645,9 @@ class _DragonChallengeCard extends StatelessWidget {
 // ─── Boss-Karte ───────────────────────────────────────────────────────────────
 
 class _BossCard extends StatelessWidget {
-  const _BossCard({required this.state, required this.onRun, super.key});
+  const _BossCard({required this.state, required this.game, required this.onRun, super.key});
   final DragonGameState state;
+  final DragonController game;
   final Future<void> Function(Future<void> Function()) onRun;
 
   @override
@@ -733,9 +749,10 @@ class _BossCard extends StatelessWidget {
                         selectedValue <= state.bossRemainingHp[i],
                     onTap:
                         selectedValue != null &&
-                            selectedValue <= state.bossRemainingHp[i]
+                            selectedValue <= state.bossRemainingHp[i] &&
+                            !game.isBusy
                         ? () => onRun(() async {
-                            // Boss: single die placement via controller
+                            await game.placeSelectedOnField(i);
                           })
                         : null,
                   ),
@@ -839,6 +856,7 @@ class _FieldSocket extends StatelessWidget {
     required this.index,
     required this.field,
     required this.placed,
+    required this.isOpen,
     required this.accent,
     required this.acceptsSelected,
     required this.onTap,
@@ -847,6 +865,7 @@ class _FieldSocket extends StatelessWidget {
   final int index;
   final DragonField field;
   final PlacedField? placed;
+  final bool isOpen;
   final Color accent;
   final bool acceptsSelected;
   final VoidCallback? onTap;
@@ -855,6 +874,9 @@ class _FieldSocket extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFilled = placed != null;
+    final isPartial = isFilled && isOpen; // Summenfeld mit Zwischenstand
+    final isComplete = isFilled && !isOpen; // alle anderen Felder oder vollständiges Summenfeld
+
     return Semantics(
       button: onTap != null,
       label: 'Feld ${index + 1}: $_label${isFilled ? ', belegt' : ', frei'}',
@@ -866,18 +888,31 @@ class _FieldSocket extends StatelessWidget {
           duration: const Duration(milliseconds: 160),
           width: 64,
           height: 64,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isFilled
+          decoration: ShapeDecoration(
+            shape: field.mandatory && !isFilled
+                ? StarBorder(
+                    points: 5,
+                    rotation: 0,
+                    innerRadiusRatio: 0.45,
+                    side: BorderSide(
+                      color: acceptsSelected ? _gold : accent.withValues(alpha: .65),
+                      width: acceptsSelected ? 3 : 1.5,
+                    ),
+                  )
+                : CircleBorder(
+                    side: BorderSide(
+                      color: acceptsSelected ? _gold : accent.withValues(alpha: .65),
+                      width: acceptsSelected ? 3 : 1.5,
+                    ),
+                  ),
+            color: isComplete
                 ? accent
+                : isPartial
+                ? accent.withValues(alpha: .5)
                 : acceptsSelected
                 ? const Color(0xFFFFE49E)
-                : Colors.white.withValues(alpha: .82),
-            border: Border.all(
-              color: acceptsSelected ? _gold : accent.withValues(alpha: .65),
-              width: acceptsSelected ? 3 : 1.5,
-            ),
-            boxShadow: acceptsSelected
+                : _fieldBgColor(field),
+            shadows: acceptsSelected
                 ? [
                     BoxShadow(
                       color: _gold.withValues(alpha: .35),
@@ -892,17 +927,11 @@ class _FieldSocket extends StatelessWidget {
               Text(
                 isFilled ? _placedLabel : _label,
                 style: TextStyle(
-                  color: isFilled ? Colors.white : _ink,
+                  color: isComplete ? Colors.white : _ink,
                   fontSize: isFilled ? 18 : 16,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              if (field.mandatory && !isFilled)
-                const Positioned(
-                  right: 3,
-                  top: 2,
-                  child: Icon(Icons.star_rounded, size: 17, color: _gold),
-                ),
             ],
           ),
         ),
@@ -930,29 +959,25 @@ class _FieldSocket extends StatelessWidget {
           ? (field.sumTarget ?? 0)
           : (field.number ?? 0);
       final effective = orig - reduction;
-      final prefix = field.kind == DragonFieldKind.sum ? 'Σ' : '';
-      final colorPrefix = field.kind == DragonFieldKind.coloredDie
-          ? _colorEmoji(field.dieColor!)
-          : '';
-      return '$prefix$colorPrefix$effective';
+      final prefix = field.kind == DragonFieldKind.sum ? '↗' : '';
+      return '$prefix$effective';
     }
     return switch (field.kind) {
-      DragonFieldKind.number => '${field.mandatory ? '★' : ''}${field.number}',
+      DragonFieldKind.number => '${field.number}',
       DragonFieldKind.flame => '🔥',
       DragonFieldKind.empty => '✦',
-      DragonFieldKind.coloredDie =>
-        '${_colorEmoji(field.dieColor!)}${field.number}',
-      DragonFieldKind.sum => 'Σ${field.sumTarget}',
+      DragonFieldKind.coloredDie => '${field.number}',
+      DragonFieldKind.sum => '↗${field.sumTarget}',
       DragonFieldKind.bossHp => '♥${field.bossHp}',
     };
   }
 
-  String _colorEmoji(DieColor c) => switch (c) {
-    DieColor.blue => '🔵',
-    DieColor.green => '🟢',
-    DieColor.black => '⚫',
-    DieColor.white => '⚪',
-  };
+  Color _fieldBgColor(DragonField field) {
+    if (field.kind == DragonFieldKind.coloredDie && field.dieColor != null) {
+      return _dieColor(field.dieColor!).withValues(alpha: .35);
+    }
+    return Colors.white.withValues(alpha: .82);
+  }
 }
 
 // ─── Risk Panel ───────────────────────────────────────────────────────────────
@@ -1484,21 +1509,23 @@ class _ManualValueDialog extends StatelessWidget {
 }
 
 class _SumInputDialog extends StatefulWidget {
-  const _SumInputDialog({required this.field});
+  const _SumInputDialog({required this.field, required this.card});
   final DragonField field;
+  final DragonCard card;
 
   @override
   State<_SumInputDialog> createState() => _SumInputDialogState();
 }
 
 class _SumInputDialogState extends State<_SumInputDialog> {
-  final List<(int, DieColor)> _dice = [];
+  final List<int> _values = [];
 
-  int get _sum => _dice.fold(0, (a, d) => a + d.$1);
+  int get _sum => _values.fold(0, (a, v) => a + v);
   bool get _isValid =>
-      _dice.length >= widget.field.sumMinDice &&
-      _dice.length <= widget.field.sumMaxDice &&
+      _values.length >= widget.field.sumMinDice &&
+      _values.length <= widget.field.sumMaxDice &&
       _sum == (widget.field.sumTarget ?? 0);
+  bool get _canAdd => _values.length < widget.field.sumMaxDice && _sum < (widget.field.sumTarget ?? 0);
 
   @override
   Widget build(BuildContext context) => AlertDialog(
@@ -1509,7 +1536,7 @@ class _SumInputDialogState extends State<_SumInputDialog> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Aktuell: ${_dice.isEmpty ? "–" : _dice.map((d) => '${d.$1}').join(" + ")} = $_sum',
+          'Aktuell: ${_values.isEmpty ? "–" : _values.join(" + ")} = $_sum',
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -1517,25 +1544,24 @@ class _SumInputDialogState extends State<_SumInputDialog> {
           runSpacing: 6,
           children: [
             for (var v = 1; v <= 6; v++)
-              for (final c in DieColor.values)
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(44, 44),
-                    foregroundColor: _dieColor(c) == Colors.white
-                        ? _ink
-                        : _dieColor(c),
-                  ),
-                  onPressed: _dice.length < widget.field.sumMaxDice
-                      ? () => setState(() => _dice.add((v, c)))
-                      : null,
-                  child: Text('$v', style: const TextStyle(fontSize: 16)),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(48, 48),
                 ),
+                onPressed: _canAdd && _sum + v <= (widget.field.sumTarget ?? 0)
+                    ? () => setState(() => _values.add(v))
+                    : null,
+                child: Text(
+                  v == 6 ? '🔥' : '$v',
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 8),
-        if (_dice.isNotEmpty)
+        if (_values.isNotEmpty)
           TextButton(
-            onPressed: () => setState(() => _dice.removeLast()),
+            onPressed: () => setState(() => _values.removeLast()),
             child: const LocalizedText('Letzten Würfel entfernen'),
           ),
       ],
@@ -1546,7 +1572,7 @@ class _SumInputDialogState extends State<_SumInputDialog> {
         child: const LocalizedText('Abbrechen'),
       ),
       FilledButton(
-        onPressed: _isValid ? () => Navigator.pop(context, _dice) : null,
+        onPressed: _isValid ? () => Navigator.pop(context, _values) : null,
         child: const LocalizedText('Bestätigen'),
       ),
     ],
