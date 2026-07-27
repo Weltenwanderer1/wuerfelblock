@@ -134,11 +134,16 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
 
     if (field.kind == DragonFieldKind.sum) {
       final placed = _state.attempt?.placed[fieldIndex];
-      final remaining = field.remainingTarget(placed?.sum ?? 0);
+      final reduction = _state.fieldReductions.length > fieldIndex
+          ? _state.fieldReductions[fieldIndex]
+          : 0;
+      final remaining = field.remainingTarget(
+        placed?.sum ?? 0,
+        reduction: reduction,
+      );
       final maxValue = remaining < 6 ? remaining : 6;
       final validValues = [
-        for (var value = 1; value <= maxValue; value++)
-          value,
+        for (var value = 1; value <= maxValue; value++) value,
       ];
       final value = await showDialog<int>(
         context: context,
@@ -168,11 +173,15 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     }
 
     // Farbwürfel-Felder: nur passender Würfel wählbar
+    final reduction = _state.fieldReductions.length > fieldIndex
+        ? _state.fieldReductions[fieldIndex]
+        : 0;
     final validValues = [
       for (var value = 1; value <= 6; value++)
         if (field.acceptsDie(
           DieRoll(value, field.dieColor ?? DieColor.white),
           card: card,
+          reduction: reduction,
         ))
           value,
     ];
@@ -612,10 +621,13 @@ class _DragonChallengeCard extends StatelessWidget {
                             selectedDice,
                             card,
                             attempt.placed[i],
+                            state.fieldReductions.length > i
+                                ? state.fieldReductions[i]
+                                : 0,
                           ),
                       onTap:
                           fieldCanUseThisRoll(i) &&
-                          enabled &&
+                              enabled &&
                               (manualMode ||
                                   (hasSelection &&
                                       _fieldAcceptsSelection(
@@ -623,6 +635,9 @@ class _DragonChallengeCard extends StatelessWidget {
                                         selectedDice,
                                         card,
                                         attempt.placed[i],
+                                        state.fieldReductions.length > i
+                                            ? state.fieldReductions[i]
+                                            : 0,
                                       )))
                           ? () => onFieldTap(i)
                           : null,
@@ -641,16 +656,23 @@ class _DragonChallengeCard extends StatelessWidget {
     List<DieRoll> dice,
     DragonCard card,
     PlacedField? existing,
+    int reduction,
   ) {
     if (dice.isEmpty) return false;
     if (field.kind == DragonFieldKind.sum) {
       if (dice.length != 1) return false;
       final existingSum = existing?.sum ?? 0;
       final existingCount = existing?.values.length ?? 0;
-      return field.acceptsSum(dice, card: card, existingSum: existingSum, existingCount: existingCount);
+      return field.acceptsSum(
+        dice,
+        card: card,
+        existingSum: existingSum,
+        existingCount: existingCount,
+        reduction: reduction,
+      );
     }
     if (dice.length == 1) {
-      return field.acceptsDie(dice.single, card: card);
+      return field.acceptsDie(dice.single, card: card, reduction: reduction);
     }
     return false;
   }
@@ -777,7 +799,8 @@ class _BossCard extends StatelessWidget {
                     acceptsSelected:
                         selectedValue != null &&
                         selectedValue <= state.bossRemainingHp[i],
-                    onTap: enabled &&
+                    onTap:
+                        enabled &&
                             state.bossRemainingHp[i] > 0 &&
                             (manualMode ||
                                 (selectedValue != null &&
@@ -905,7 +928,9 @@ class _FieldSocket extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFilled = placed != null;
     final isPartial = isFilled && isOpen; // Summenfeld mit Zwischenstand
-    final isComplete = isFilled && !isOpen; // alle anderen Felder oder vollständiges Summenfeld
+    final isComplete =
+        isFilled &&
+        !isOpen; // alle anderen Felder oder vollständiges Summenfeld
 
     return Semantics(
       button: onTap != null,
@@ -925,13 +950,17 @@ class _FieldSocket extends StatelessWidget {
                     rotation: 0,
                     innerRadiusRatio: 0.45,
                     side: BorderSide(
-                      color: acceptsSelected ? _gold : accent.withValues(alpha: .65),
+                      color: acceptsSelected
+                          ? _gold
+                          : accent.withValues(alpha: .65),
                       width: acceptsSelected ? 3 : 1.5,
                     ),
                   )
                 : CircleBorder(
                     side: BorderSide(
-                      color: acceptsSelected ? _gold : accent.withValues(alpha: .65),
+                      color: acceptsSelected
+                          ? _gold
+                          : accent.withValues(alpha: .65),
                       width: acceptsSelected ? 3 : 1.5,
                     ),
                   ),
@@ -973,7 +1002,7 @@ class _FieldSocket extends StatelessWidget {
     if (placed == null) return '';
     final p = placed!;
     if (field.kind == DragonFieldKind.sum) {
-      return '↗${field.remainingTarget(p.sum)}';
+      return '↗${field.remainingTarget(p.sum, reduction: reduction)}';
     }
     if (p.values.length == 1) {
       return '${p.values.single}';
@@ -1529,10 +1558,7 @@ class _ManualValueDialog extends StatelessWidget {
             key: Key('dragon-manual-value-$value'),
             onPressed: () => Navigator.pop(context, value),
             style: FilledButton.styleFrom(minimumSize: const Size(54, 54)),
-            child: Text(
-              '$value',
-              style: const TextStyle(fontSize: 20),
-            ),
+            child: Text('$value', style: const TextStyle(fontSize: 20)),
           ),
       ],
     ),

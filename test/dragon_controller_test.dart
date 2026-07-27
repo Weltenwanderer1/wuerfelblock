@@ -150,33 +150,36 @@ void main() {
     },
   );
 
-  test('sum field accepts one die per roll and accumulates across rolls', () async {
-    const card = DragonCard(
-      id: 10,
-      type: DragonType.fire,
-      fields: [DragonField.sum(3), DragonField.empty()],
-    );
-    final game = digital(
-      rolls: [1, 4, 4, 5, 3, 2, 4, 4, 5, 3],
-      cards: const [card],
-    );
-    await game.rollDigital();
-    await game.toggleDie(0);
-    await game.placeSelectedOnField(0);
-    expect(game.state.attempt!.placed[0]!.values, [1]);
-    expect(game.state.dice, hasLength(4));
+  test(
+    'sum field accepts one die per roll and accumulates across rolls',
+    () async {
+      const card = DragonCard(
+        id: 10,
+        type: DragonType.fire,
+        fields: [DragonField.sum(3), DragonField.empty()],
+      );
+      final game = digital(
+        rolls: [1, 4, 4, 5, 3, 2, 4, 4, 5, 3],
+        cards: const [card],
+      );
+      await game.rollDigital();
+      await game.toggleDie(0);
+      await game.placeSelectedOnField(0);
+      expect(game.state.attempt!.placed[0]!.values, [1]);
+      expect(game.state.dice, hasLength(4));
 
-    await game.toggleDie(0);
-    expect(() => game.placeSelectedOnField(0), throwsStateError);
+      await game.toggleDie(0);
+      expect(() => game.placeSelectedOnField(0), throwsStateError);
 
-    await game.continueRolling();
-    await game.toggleDie(0);
-    await game.placeSelectedOnField(0);
+      await game.continueRolling();
+      await game.toggleDie(0);
+      await game.placeSelectedOnField(0);
 
-    expect(game.state.attempt!.placed[0]!.values, [1, 2]);
-    expect(game.state.attempt!.placed[0]!.sum, 3);
-    expect(game.state.selectedDieIndices, isEmpty);
-  });
+      expect(game.state.attempt!.placed[0]!.values, [1, 2]);
+      expect(game.state.attempt!.placed[0]!.sum, 3);
+      expect(game.state.selectedDieIndices, isEmpty);
+    },
+  );
 
   test('block sum field also accepts one die per physical roll', () async {
     const card = DragonCard(
@@ -288,6 +291,60 @@ void main() {
       expect(game.state.fieldReductions, [2, 0]);
       expect(game.state.effectiveFieldValue(0), 3);
       expect(game.state.activePlayer.usedAbilities, [DragonAbility.reduce]);
+    });
+
+    test('reduce lets a die match the lowered value', () async {
+      const card = DragonCard(
+        id: 3,
+        type: DragonType.water,
+        fields: [DragonField.number(5), DragonField.empty()],
+      );
+      final game = digital(rolls: [3, 2, 4, 5, 1], cards: const [card]);
+
+      await game.useAbility(DragonAbility.reduce, fieldIndex: 0, reduction: 2);
+      await game.rollDigital();
+      await game.toggleDie(0); // 3
+
+      await game.placeSelectedOnField(0);
+
+      expect(game.state.attempt!.placed[0]!.values, [3]);
+      expect(game.state.attempt!.placedCount, 1);
+    });
+
+    test('reduce on a sum field lowers the target', () async {
+      const card = DragonCard(
+        id: 10,
+        type: DragonType.fire,
+        fields: [DragonField.sum(8, sumMaxDice: 3), DragonField.empty()],
+      );
+      const nextCard = DragonCard(
+        id: 2,
+        type: DragonType.water,
+        fields: [DragonField.empty()],
+      );
+      final game = digital(
+        rolls: [3, 2, 4, 5, 1, 2, 4, 4, 5, 3],
+        cards: const [card, nextCard],
+      );
+
+      await game.useAbility(DragonAbility.reduce, fieldIndex: 0, reduction: 3);
+      await game.rollDigital();
+      await game.toggleDie(0); // 3
+      await game.placeSelectedOnField(0);
+      expect(game.state.attempt!.placed[0]!.values, [3]);
+      expect(game.state.attempt!.placed[0]!.sum, 3);
+
+      await game.continueRolling();
+      await game.toggleDie(0); // 2
+      await game.placeSelectedOnField(0);
+
+      expect(game.state.attempt!.placed[0]!.values, [3, 2]);
+      expect(game.state.attempt!.placed[0]!.sum, 5);
+      // both fields filled: sum is complete
+      await game.toggleDie(0); // 4
+      await game.placeSelectedOnField(1); // empty field
+      // after taming, a new card is drawn — check the player got gold
+      expect(game.state.players[0].gold, 9); // 3+2+4 dice gold
     });
 
     test('handicapDice removes two dice from the next digital roll', () async {

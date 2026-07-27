@@ -195,43 +195,37 @@ void main() {
     const fire = DragonCard(id: 98, type: DragonType.fire, fields: []);
     const boss = DragonCard(id: 97, type: DragonType.boss, fields: []);
 
-    test(
-      'number fields accept only their exact white value including six',
-      () {
-        expect(
-          const DragonField.number(
-            3,
-          ).acceptsDie(const DieRoll(3, DieColor.white), card: normal),
-          isTrue,
-        );
-        expect(
-          const DragonField.number(
-            3,
-          ).acceptsDie(const DieRoll(6, DieColor.white), card: normal),
-          isFalse,
-        );
-        expect(
-          const DragonField.number(
-            3,
-          ).acceptsDie(const DieRoll(3, DieColor.blue), card: normal),
-          isFalse,
-        );
-        expect(
-          const DragonField.number(
-            3,
-          ).acceptsDie(const DieRoll(2, DieColor.white), card: normal),
-          isFalse,
-        );
-      },
-    );
+    test('number fields accept only their exact white value including six', () {
+      expect(
+        const DragonField.number(
+          3,
+        ).acceptsDie(const DieRoll(3, DieColor.white), card: normal),
+        isTrue,
+      );
+      expect(
+        const DragonField.number(
+          3,
+        ).acceptsDie(const DieRoll(6, DieColor.white), card: normal),
+        isFalse,
+      );
+      expect(
+        const DragonField.number(
+          3,
+        ).acceptsDie(const DieRoll(3, DieColor.blue), card: normal),
+        isFalse,
+      );
+      expect(
+        const DragonField.number(
+          3,
+        ).acceptsDie(const DieRoll(2, DieColor.white), card: normal),
+        isFalse,
+      );
+    });
     test('joker fields use the flame symbol and accept every die', () {
       const field = DragonField.empty();
       expect(field.symbol, '🔥');
       for (final color in DieColor.values) {
-        expect(
-          field.acceptsDie(DieRoll(6, color), card: normal),
-          isTrue,
-        );
+        expect(field.acceptsDie(DieRoll(6, color), card: normal), isTrue);
       }
     });
     test('legacy flame fields migrate to normal six fields', () {
@@ -288,10 +282,7 @@ void main() {
         field.isSumComplete(4, 1),
         isFalse, // 1 die, sum=4 — not complete yet
       );
-      expect(
-        field.isSumComplete(10, 2),
-        isTrue,
-      );
+      expect(field.isSumComplete(10, 2), isTrue);
       expect(
         field.acceptsSum(
           const [DieRoll(5, DieColor.blue)],
@@ -438,7 +429,7 @@ void main() {
       expect(attempt.placed[0]!.sum, 10);
       expect(attempt.placed[0]!.gold, 10);
       expect(attempt.diceGold, 10);
-      expect(attempt.isTamed, isTrue);
+      expect(attempt.isTamed(const []), isTrue);
     });
     test('a six contributes six gold', () {
       const card = DragonCard(

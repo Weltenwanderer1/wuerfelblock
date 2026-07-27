@@ -15,8 +15,8 @@ class DragonController extends ChangeNotifier {
     required DragonGameState state,
     required this.repository,
     int Function()? roller,
-  })  : _state = state,
-        _roller = roller ?? (() => Random().nextInt(6) + 1) {
+  }) : _state = state,
+       _roller = roller ?? (() => Random().nextInt(6) + 1) {
     _transactions = ControllerTransactions<_DragonSnapshot, _DragonSnapshot>(
       capture: () => (state: _state.copy(), message: lastMessage),
       restore: _restoreSnapshot,
@@ -33,23 +33,23 @@ class DragonController extends ChangeNotifier {
     bool quickGame = false,
     List<DragonCard>? shuffledCards,
     int Function()? roller,
-  }) =>
-      DragonController(
-        state: DragonGameState.newGame(
-          names,
-          mode: mode,
-          quickGame: quickGame,
-          shuffledCards: shuffledCards,
-        ),
-        repository: repository,
-        roller: roller,
-      );
+  }) => DragonController(
+    state: DragonGameState.newGame(
+      names,
+      mode: mode,
+      quickGame: quickGame,
+      shuffledCards: shuffledCards,
+    ),
+    repository: repository,
+    roller: roller,
+  );
 
   DragonGameState _state;
   DragonGameState get state => _state;
   final GameRepository repository;
   final int Function() _roller;
-  late final ControllerTransactions<_DragonSnapshot, _DragonSnapshot> _transactions;
+  late final ControllerTransactions<_DragonSnapshot, _DragonSnapshot>
+  _transactions;
   String? lastMessage;
 
   void _restoreSnapshot(_DragonSnapshot snapshot) {
@@ -73,17 +73,19 @@ class DragonController extends ChangeNotifier {
       !state.isComplete &&
       !state.isBossCard &&
       state.placementsSinceRoll > 0 &&
-      (state.attempt?.placedCount ?? 0) < 5;
+      (state.attempt?.placedCount ?? 0) <
+          (state.currentCard?.fields.length ?? 0);
 
   bool get canBossEndTurn =>
-      !state.isComplete &&
-      state.isBossCard &&
-      state.placementsSinceRoll > 0;
+      !state.isComplete && state.isBossCard && state.placementsSinceRoll > 0;
 
   /// Würfel die noch nicht platziert wurden.
   List<int> get unplacedDieIndices {
     final placed = state.selectedDieIndices.toSet();
-    return [for (var i = 0; i < state.dice.length; i++) if (!placed.contains(i)) i];
+    return [
+      for (var i = 0; i < state.dice.length; i++)
+        if (!placed.contains(i)) i,
+    ];
   }
 
   // ── Würfeln ────────────────────────────────────────────────────────────────
@@ -99,7 +101,9 @@ class DragonController extends ChangeNotifier {
   Future<void> rollDigital() async {
     _ensureReady();
     if (_transactions.isBusy) return;
-    if (state.mode != GameMode.digital || state.isComplete || state.dice.isNotEmpty) {
+    if (state.mode != GameMode.digital ||
+        state.isComplete ||
+        state.dice.isNotEmpty) {
       throw StateError('Jetzt kann nicht gewürfelt werden.');
     }
     final values = _rollDice();
@@ -111,9 +115,12 @@ class DragonController extends ChangeNotifier {
     );
     String? message;
     if (!state.isBossCard && !_hasAnyFit(changed)) {
-      final escapes = changed.triedPlayerIndices.length + 1 >= changed.players.length;
+      final escapes =
+          changed.triedPlayerIndices.length + 1 >= changed.players.length;
       changed = _failedNormalAttempt(changed);
-      message = escapes ? 'Der Drache ist entkommen.' : 'Kein passender Würfel! Zug beendet.';
+      message = escapes
+          ? 'Der Drache ist entkommen.'
+          : 'Kein passender Würfel! Zug beendet.';
     }
     await _transactions.mutateTransient(
       change: () {
@@ -177,7 +184,14 @@ class DragonController extends ChangeNotifier {
 
     await _transactions.mutate(
       change: () {
-        final placed = state.attempt!.placeSingle(fieldIndex, die);
+        final reduction = state.fieldReductions.length > fieldIndex
+            ? state.fieldReductions[fieldIndex]
+            : 0;
+        final placed = state.attempt!.placeSingle(
+          fieldIndex,
+          die,
+          reduction: reduction,
+        );
         final dice = List<DieRoll>.of(state.dice)..removeAt(dieIndex);
         var changed = state.copyWith(
           attempt: placed,
@@ -185,7 +199,7 @@ class DragonController extends ChangeNotifier {
           selectedDieIndices: const [],
           placementsSinceRoll: state.placementsSinceRoll + 1,
         );
-        if (placed.isTamed) {
+        if (placed.isTamed(state.fieldReductions)) {
           changed = _tamed(changed);
           lastMessage = 'Drache gezähmt! Gold erhalten.';
         }
@@ -201,12 +215,21 @@ class DragonController extends ChangeNotifier {
       throw StateError('Pro Wurf darf genau ein Würfel auf ein Summenfeld.');
     }
     if (state.sumFieldsReducedThisRoll.contains(fieldIndex)) {
-      throw StateError('Dieses Summenfeld wurde in diesem Wurf bereits reduziert.');
+      throw StateError(
+        'Dieses Summenfeld wurde in diesem Wurf bereits reduziert.',
+      );
     }
     final dice = [for (final i in dieIndices) state.dice[i]];
     await _transactions.mutate(
       change: () {
-        final placed = state.attempt!.placeSum(fieldIndex, dice);
+        final reduction = state.fieldReductions.length > fieldIndex
+            ? state.fieldReductions[fieldIndex]
+            : 0;
+        final placed = state.attempt!.placeSum(
+          fieldIndex,
+          dice,
+          reduction: reduction,
+        );
         final remaining = List<DieRoll>.of(state.dice);
         for (final i in dieIndices.sorted().reversed) {
           remaining.removeAt(i);
@@ -221,7 +244,7 @@ class DragonController extends ChangeNotifier {
             fieldIndex,
           ],
         );
-        if (placed.isTamed) {
+        if (placed.isTamed(state.fieldReductions)) {
           changed = _tamed(changed);
           lastMessage = 'Drache gezähmt! Gold erhalten.';
         }
@@ -264,10 +287,15 @@ class DragonController extends ChangeNotifier {
 
   // ── Block-Modus: manuelle Eingabe ─────────────────────────────────────────
 
-  Future<void> placeManualDie(int fieldIndex, int value, {DieColor color = DieColor.white}) async {
+  Future<void> placeManualDie(
+    int fieldIndex,
+    int value, {
+    DieColor color = DieColor.white,
+  }) async {
     _ensureReady();
     if (_transactions.isBusy) return;
-    if (state.mode != GameMode.block) throw StateError('Nur im Blockmodus verfügbar.');
+    if (state.mode != GameMode.block)
+      throw StateError('Nur im Blockmodus verfügbar.');
     if (value < 1 || value > 6) throw ArgumentError.value(value, 'value');
     final die = DieRoll(value, color);
 
@@ -295,12 +323,19 @@ class DragonController extends ChangeNotifier {
 
     await _transactions.mutate(
       change: () {
-        final placed = state.attempt!.placeSingle(fieldIndex, die);
+        final reduction = state.fieldReductions.length > fieldIndex
+            ? state.fieldReductions[fieldIndex]
+            : 0;
+        final placed = state.attempt!.placeSingle(
+          fieldIndex,
+          die,
+          reduction: reduction,
+        );
         var changed = state.copyWith(
           attempt: placed,
           placementsSinceRoll: state.placementsSinceRoll + 1,
         );
-        if (placed.isTamed) {
+        if (placed.isTamed(state.fieldReductions)) {
           changed = _tamed(changed);
           lastMessage = 'Drache gezähmt! Gold erhalten.';
         }
@@ -311,20 +346,33 @@ class DragonController extends ChangeNotifier {
     );
   }
 
-  Future<void> placeManualSum(int fieldIndex, List<(int, DieColor)> dice) async {
+  Future<void> placeManualSum(
+    int fieldIndex,
+    List<(int, DieColor)> dice,
+  ) async {
     _ensureReady();
     if (_transactions.isBusy) return;
-    if (state.mode != GameMode.block) throw StateError('Nur im Blockmodus verfügbar.');
+    if (state.mode != GameMode.block)
+      throw StateError('Nur im Blockmodus verfügbar.');
     if (dice.length != 1) {
       throw StateError('Pro Wurf darf genau ein Würfel auf ein Summenfeld.');
     }
     if (state.sumFieldsReducedThisRoll.contains(fieldIndex)) {
-      throw StateError('Dieses Summenfeld wurde in diesem Wurf bereits reduziert.');
+      throw StateError(
+        'Dieses Summenfeld wurde in diesem Wurf bereits reduziert.',
+      );
     }
     final rolls = dice.map((d) => DieRoll(d.$1, d.$2)).toList();
     await _transactions.mutate(
       change: () {
-        final placed = state.attempt!.placeSum(fieldIndex, rolls);
+        final reduction = state.fieldReductions.length > fieldIndex
+            ? state.fieldReductions[fieldIndex]
+            : 0;
+        final placed = state.attempt!.placeSum(
+          fieldIndex,
+          rolls,
+          reduction: reduction,
+        );
         var changed = state.copyWith(
           attempt: placed,
           placementsSinceRoll: state.placementsSinceRoll + 1,
@@ -333,7 +381,7 @@ class DragonController extends ChangeNotifier {
             fieldIndex,
           ],
         );
-        if (placed.isTamed) {
+        if (placed.isTamed(state.fieldReductions)) {
           changed = _tamed(changed);
           lastMessage = 'Drache gezähmt! Gold erhalten.';
         }
@@ -349,7 +397,8 @@ class DragonController extends ChangeNotifier {
   Future<void> continueRolling() async {
     _ensureReady();
     if (_transactions.isBusy) return;
-    if (!canContinue) throw StateError('Mindestens ein Würfel muss gelegt werden.');
+    if (!canContinue)
+      throw StateError('Mindestens ein Würfel muss gelegt werden.');
     if (state.isBossCard) throw StateError('Boss-Karten: kein Weiterwürfeln.');
 
     if (state.mode == GameMode.block) {
@@ -375,9 +424,12 @@ class DragonController extends ChangeNotifier {
     );
     String? message;
     if (!_hasAnyFit(changed)) {
-      final escapes = changed.triedPlayerIndices.length + 1 >= changed.players.length;
+      final escapes =
+          changed.triedPlayerIndices.length + 1 >= changed.players.length;
       changed = _failedNormalAttempt(changed);
-      message = escapes ? 'Der Drache ist entkommen.' : 'Kein passender Würfel! Zug beendet.';
+      message = escapes
+          ? 'Der Drache ist entkommen.'
+          : 'Kein passender Würfel! Zug beendet.';
     }
     await _transactions.mutateTransient(
       change: () {
@@ -400,14 +452,15 @@ class DragonController extends ChangeNotifier {
       return;
     }
 
-    if (!canEndTurn) throw StateError('Pflichtfelder müssen zuerst belegt werden.');
+    if (!canEndTurn)
+      throw StateError('Pflichtfelder müssen zuerst belegt werden.');
     await _transactions.mutate(
       change: () {
         var changed = state;
         final reward = changed.attempt!.diceGold;
         final players = List<DragonPlayer>.of(changed.players);
-        players[changed.activePlayerIndex] =
-            players[changed.activePlayerIndex].copyWith(gold: players[changed.activePlayerIndex].gold + reward);
+        players[changed.activePlayerIndex] = players[changed.activePlayerIndex]
+            .copyWith(gold: players[changed.activePlayerIndex].gold + reward);
         changed = changed.copyWith(players: players);
         _state = _failedNormalAttempt(changed);
         lastMessage = '$reward Gold erhalten. Der Drache zieht weiter.';
@@ -418,7 +471,8 @@ class DragonController extends ChangeNotifier {
   }
 
   Future<void> _bossEndTurn() async {
-    if (!canBossEndTurn) throw StateError('Mindestens ein Würfel muss gelegt werden.');
+    if (!canBossEndTurn)
+      throw StateError('Mindestens ein Würfel muss gelegt werden.');
     await _transactions.mutate(
       change: () {
         _state = _passBoss(state);
@@ -446,9 +500,12 @@ class DragonController extends ChangeNotifier {
           _state = _passBoss(state);
           lastMessage = 'Boss zieht weiter.';
         } else {
-          final escapes = state.triedPlayerIndices.length + 1 >= state.players.length;
+          final escapes =
+              state.triedPlayerIndices.length + 1 >= state.players.length;
           _state = _failedNormalAttempt(state);
-          lastMessage = escapes ? 'Der Drache ist entkommen.' : 'Kein Würfel passt. Der Drache zieht weiter.';
+          lastMessage = escapes
+              ? 'Der Drache ist entkommen.'
+              : 'Kein Würfel passt. Der Drache zieht weiter.';
         }
       },
       undoFromSnapshot: (snapshot) => snapshot,
@@ -458,11 +515,16 @@ class DragonController extends ChangeNotifier {
 
   // ── Fähigkeiten ────────────────────────────────────────────────────────────
 
-  Future<void> useAbility(DragonAbility ability, {int? fieldIndex, int? reduction}) async {
+  Future<void> useAbility(
+    DragonAbility ability, {
+    int? fieldIndex,
+    int? reduction,
+  }) async {
     _ensureReady();
     if (_transactions.isBusy) return;
     final player = state.activePlayer;
-    if (!player.canUse(ability)) throw StateError('Fähigkeit bereits verbraucht.');
+    if (!player.canUse(ability))
+      throw StateError('Fähigkeit bereits verbraucht.');
 
     await _transactions.mutate(
       change: () {
@@ -475,7 +537,8 @@ class DragonController extends ChangeNotifier {
 
         switch (ability) {
           case DragonAbility.reroll:
-            if (state.dice.isEmpty) throw StateError('Kein Wurf zum Neuwerfen.');
+            if (state.dice.isEmpty)
+              throw StateError('Kein Wurf zum Neuwerfen.');
             changed = changed.copyWith(
               dice: _rollDice(),
               selectedDieIndices: const [],
@@ -485,15 +548,18 @@ class DragonController extends ChangeNotifier {
             if (fieldIndex == null || reduction == null) {
               throw ArgumentError('Feld und Reduktion nötig.');
             }
-            if (reduction < 1 || reduction > 3) throw ArgumentError('Reduktion: 1–3.');
+            if (reduction < 1 || reduction > 3)
+              throw ArgumentError('Reduktion: 1–3.');
             final reds = List<int>.of(state.fieldReductions);
             reds[fieldIndex] += reduction;
             changed = changed.copyWith(fieldReductions: reds);
             lastMessage = '📉 Vorgabe um $reduction gesenkt!';
           case DragonAbility.handicap:
-            final nextIdx = (state.activePlayerIndex + 1) % state.players.length;
+            final nextIdx =
+                (state.activePlayerIndex + 1) % state.players.length;
             changed = changed.copyWith(handicapDice: 2);
-            lastMessage = '🎯 ${changed.players[nextIdx].name} würfelt mit 2 Würfeln weniger!';
+            lastMessage =
+                '🎯 ${changed.players[nextIdx].name} würfelt mit 2 Würfeln weniger!';
         }
         _state = changed;
       },
@@ -509,29 +575,40 @@ class DragonController extends ChangeNotifier {
     if (card == null || card.isBoss) return true; // Boss: immer möglich
     final attempt = st.attempt;
     if (attempt == null) return false;
+    final reductions = st.fieldReductions;
     return st.dice.any(
-      (die) => attempt.openFieldIndices.any(
-        (i) => attempt.card.fields[i].acceptsDie(die, card: card),
-      ),
-    ) || _hasSumFit(st);
+          (die) => attempt.openFieldIndices.any(
+            (i) => attempt.card.fields[i].acceptsDie(
+              die,
+              card: card,
+              reduction: reductions.length > i ? reductions[i] : 0,
+            ),
+          ),
+        ) ||
+        _hasSumFit(st);
   }
 
   bool _hasSumFit(DragonGameState st) {
     final attempt = st.attempt;
     if (attempt == null) return false;
     final card = st.currentCard!;
+    final reductions = st.fieldReductions;
+    final reduced = st.sumFieldsReducedThisRoll;
     for (final i in attempt.openFieldIndices) {
       final field = card.fields[i];
       if (field.kind != DragonFieldKind.sum) continue;
+      if (reduced.contains(i)) continue; // bereits in diesem Wurf reduziert
       final existing = attempt.placed[i];
       final existingSum = existing?.sum ?? 0;
       final existingCount = existing?.values.length ?? 0;
+      final reduction = reductions.length > i ? reductions[i] : 0;
       if (st.dice.any(
         (die) => field.acceptsSum(
           [die],
           card: card,
           existingSum: existingSum,
           existingCount: existingCount,
+          reduction: reduction,
         ),
       )) {
         return true;
@@ -585,7 +662,8 @@ class DragonController extends ChangeNotifier {
     return _drawNext(
       source.copyWith(
         players: players,
-        activePlayerIndex: (source.activePlayerIndex + 1) % source.players.length,
+        activePlayerIndex:
+            (source.activePlayerIndex + 1) % source.players.length,
         cardGold: 0,
         triedPlayerIndices: const [],
         dice: const [],
@@ -607,7 +685,8 @@ class DragonController extends ChangeNotifier {
     return _drawNext(
       source.copyWith(
         players: players,
-        activePlayerIndex: (source.activePlayerIndex + 1) % source.players.length,
+        activePlayerIndex:
+            (source.activePlayerIndex + 1) % source.players.length,
         triedPlayerIndices: const [],
         dice: const [],
         selectedDieIndices: const [],
@@ -646,8 +725,13 @@ class DragonController extends ChangeNotifier {
       ];
       if (leaders.length == 1) {
         final players = List<DragonPlayer>.of(completed.players);
-        players[leaders.single] = players[leaders.single].copyWith(bonusGold: 20);
-        completed = completed.copyWith(players: players, bonusWinnerIndex: leaders.single);
+        players[leaders.single] = players[leaders.single].copyWith(
+          bonusGold: 20,
+        );
+        completed = completed.copyWith(
+          players: players,
+          bonusWinnerIndex: leaders.single,
+        );
       }
       return completed;
     }
@@ -657,15 +741,17 @@ class DragonController extends ChangeNotifier {
       deck: deck,
       currentCard: card,
       attempt: card.isBoss ? null : DragonAttempt.empty(card),
-      bossRemainingHp: card.isBoss ? card.fields.map((f) => f.bossHp ?? 0).toList() : const [],
+      bossRemainingHp: card.isBoss
+          ? card.fields.map((f) => f.bossHp ?? 0).toList()
+          : const [],
       fieldReductions: List<int>.filled(card.fields.length, 0),
       handicapDice: 0,
     );
   }
 
   void _ensureReady() => _transactions.ensureDigitalSaveReady(
-        PersistenceMessages.pendingDigitalDiceSave,
-      );
+    PersistenceMessages.pendingDigitalDiceSave,
+  );
   Future<void> retryDigitalSave() => _transactions.retryDigitalSave();
   Future<void> undo() async {
     _ensureReady();
