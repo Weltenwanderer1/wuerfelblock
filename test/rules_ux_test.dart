@@ -75,7 +75,8 @@ void main() {
       'Spielidee',
       'Die Felder auf der Karte',
       'Dein Zug',
-      'Die drei Drachenarten',
+      'Die vier Drachenarten',
+      '🐉 Boss-Drache',
       'Spielende & Sieg',
     ]) {
       await tester.scrollUntilVisible(

@@ -4,7 +4,7 @@ import '../controllers/dragon_controller.dart';
 import '../l10n/localized_text.dart';
 import '../models/dragon_models.dart';
 import '../models/game_models.dart';
-import '../widgets/die_widget.dart';
+
 import 'dragon_result_screen.dart';
 import 'schuppenschatz_rules_screen.dart';
 
@@ -17,23 +17,38 @@ const _panel = Color(0xFFFFFBF3);
 const _water = Color(0xFF176B87);
 const _fire = Color(0xFFA93A2B);
 const _luck = Color(0xFF7A4C9E);
+const _ghost = Color(0xFF2C2C34);
+const _boss = Color(0xFF8B0000);
 
 Color _typeColor(DragonType type) => switch (type) {
   DragonType.water => _water,
   DragonType.fire => _fire,
   DragonType.luck => _luck,
+  DragonType.ghost => _ghost,
+  DragonType.boss => _boss,
 };
 
 Color _typeLight(DragonType type) => switch (type) {
   DragonType.water => const Color(0xFFD8F1F6),
   DragonType.fire => const Color(0xFFFFE0D6),
   DragonType.luck => const Color(0xFFEEDFF8),
+  DragonType.ghost => const Color(0xFFE8E8EE),
+  DragonType.boss => const Color(0xFFFFE0E0),
 };
 
 IconData _typeIcon(DragonType type) => switch (type) {
   DragonType.water => Icons.water_drop_rounded,
   DragonType.fire => Icons.local_fire_department_rounded,
   DragonType.luck => Icons.auto_awesome_rounded,
+  DragonType.ghost => Icons.nights_stay_rounded,
+  DragonType.boss => Icons.cruelty_free_rounded,
+};
+
+Color _dieColor(DieColor c) => switch (c) {
+  DieColor.white => Colors.white,
+  DieColor.blue => const Color(0xFF2196F3),
+  DieColor.green => const Color(0xFF4CAF50),
+  DieColor.black => const Color(0xFF212121),
 };
 
 class DragonGameScreen extends StatefulWidget {
@@ -116,16 +131,55 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     final card = _state.currentCard;
     if (card == null) return;
     final field = card.fields[fieldIndex];
+
+    if (field.kind == DragonFieldKind.sum) {
+      final result = await showDialog<List<(int, DieColor)>>(
+        context: context,
+        builder: (context) => _SumInputDialog(field: field),
+      );
+      if (result != null) {
+        await _run(() => _game.placeManualSum(fieldIndex, result));
+      }
+      return;
+    }
+
+    if (field.kind == DragonFieldKind.bossHp) {
+      final hp = _state.bossRemainingHp[fieldIndex];
+      final maxVal = hp < 6 ? hp : 6;
+      final value = await showDialog<int>(
+        context: context,
+        builder: (context) => _ManualValueDialog(
+          validValues: [for (var v = 1; v <= maxVal; v++) v],
+        ),
+      );
+      if (value != null) {
+        await _run(() => _game.placeManualDie(fieldIndex, value));
+      }
+      return;
+    }
+
+    // Farbwürfel-Felder: nur passender Würfel wählbar
     final validValues = [
       for (var value = 1; value <= 6; value++)
-        if (field.accepts(value, card: card)) value,
+        if (field.acceptsDie(
+          DieRoll(value, field.dieColor ?? DieColor.white),
+          card: card,
+        ))
+          value,
     ];
+    if (validValues.isEmpty) return;
     final value = await showDialog<int>(
       context: context,
       builder: (context) => _ManualValueDialog(validValues: validValues),
     );
     if (value != null) {
-      await _run(() => _game.placeManualDie(fieldIndex, value));
+      await _run(
+        () => _game.placeManualDie(
+          fieldIndex,
+          value,
+          color: field.dieColor ?? DieColor.white,
+        ),
+      );
     }
   }
 
@@ -139,12 +193,6 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     if (_state.isComplete) return _buildCompleted();
     final state = _state;
     final isDigital = state.mode == GameMode.digital;
-    final selectedDie =
-        isDigital &&
-            state.selectedDieIndex != null &&
-            state.selectedDieIndex! < state.dice.length
-        ? state.dice[state.selectedDieIndex!]
-        : null;
     final interactionEnabled = !_game.isBusy && !_game.needsDigitalSaveRetry;
 
     return Scaffold(
@@ -186,28 +234,37 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
               _MessageBanner(message: message),
             ],
             const SizedBox(height: 10),
-            _DragonChallengeCard(
-              key: const Key('dragon-card'),
-              state: state,
-              selectedDie: selectedDie,
-              manualMode: !isDigital,
-              enabled: interactionEnabled,
-              onFieldTap: (index) {
-                if (!interactionEnabled) return;
-                if (isDigital && selectedDie != null) {
-                  _run(() => _game.placeSelectedDie(index));
-                } else if (!isDigital) {
-                  _placeManual(index);
-                }
-              },
-            ),
+            if (state.isBossCard)
+              _BossCard(
+                key: const Key('dragon-boss-card'),
+                state: state,
+                onRun: _run,
+              )
+            else
+              _DragonChallengeCard(
+                key: const Key('dragon-card'),
+                state: state,
+                game: _game,
+                manualMode: !isDigital,
+                enabled: interactionEnabled,
+                onFieldTap: (index) {
+                  if (!interactionEnabled) return;
+                  if (isDigital && state.selectedDieIndices.isNotEmpty) {
+                    _run(() => _game.placeSelectedOnField(index));
+                  } else if (!isDigital) {
+                    _placeManual(index);
+                  }
+                },
+              ),
             const SizedBox(height: 10),
-            _RiskPanel(state: state),
+            if (!state.isBossCard) _RiskPanel(state: state),
             const SizedBox(height: 10),
             if (isDigital)
               _DigitalDiceArea(game: _game, onRun: _run)
             else
               const _BlockDiceHint(),
+            const SizedBox(height: 10),
+            _AbilityBar(game: _game, onRun: _run),
             const SizedBox(height: 10),
             _PlayerStrip(state: state),
           ],
@@ -256,6 +313,8 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
   );
 }
 
+// ─── Status Panel ─────────────────────────────────────────────────────────────
+
 class _StatusPanel extends StatelessWidget {
   const _StatusPanel({required this.state});
   final DragonGameState state;
@@ -300,14 +359,8 @@ class _StatusPanel extends StatelessWidget {
         ),
         _MiniStat(
           icon: Icons.style_rounded,
-          label: '${state.cardsInGame}',
-          semanticLabel: '${state.cardsInGame} Karten',
-        ),
-        const SizedBox(width: 8),
-        _MiniStat(
-          icon: Icons.monetization_on_rounded,
-          label: '${state.activePlayer.totalGold}',
-          semanticLabel: '${state.activePlayer.totalGold} Gold',
+          label: '${state.cardsRemaining}',
+          semanticLabel: '${state.cardsRemaining} Karten übrig',
         ),
       ],
     ),
@@ -347,6 +400,8 @@ class _MiniStat extends StatelessWidget {
   );
 }
 
+// ─── Message Banner ───────────────────────────────────────────────────────────
+
 class _MessageBanner extends StatelessWidget {
   const _MessageBanner({required this.message});
   final String message;
@@ -377,17 +432,19 @@ class _MessageBanner extends StatelessWidget {
   );
 }
 
+// ─── Normale Drachenkarte ─────────────────────────────────────────────────────
+
 class _DragonChallengeCard extends StatelessWidget {
   const _DragonChallengeCard({
     required this.state,
-    required this.selectedDie,
+    required this.game,
     required this.manualMode,
     required this.enabled,
     required this.onFieldTap,
     super.key,
   });
   final DragonGameState state;
-  final int? selectedDie;
+  final DragonController game;
   final bool manualMode;
   final bool enabled;
   final ValueChanged<int> onFieldTap;
@@ -398,6 +455,11 @@ class _DragonChallengeCard extends StatelessWidget {
     final attempt = state.attempt;
     if (card == null || attempt == null) return const SizedBox.shrink();
     final color = _typeColor(card.type);
+    final hasSelection = state.selectedDieIndices.isNotEmpty;
+    final selectedDice = [
+      for (final i in state.selectedDieIndices) state.dice[i],
+    ];
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -455,7 +517,26 @@ class _DragonChallengeCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (state.cardGold > 0)
+                if (card.bonusPoints > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB39DDB),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      '+${card.bonusPoints}★',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                if (state.cardGold > 0) ...[
+                  const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -473,6 +554,7 @@ class _DragonChallengeCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                ],
               ],
             ),
             const SizedBox(height: 18),
@@ -486,20 +568,28 @@ class _DragonChallengeCard extends StatelessWidget {
                     _FieldSocket(
                       index: i,
                       field: card.fields[i],
-                      placedValue: attempt.placedValues[i],
+                      placed: attempt.placed[i],
                       accent: color,
+                      reduction: state.fieldReductions.length > i
+                          ? state.fieldReductions[i]
+                          : 0,
                       acceptsSelected:
-                          selectedDie != null &&
-                          attempt.placedValues[i] == null &&
-                          card.fields[i].accepts(selectedDie!, card: card),
+                          hasSelection &&
+                          attempt.placed[i] == null &&
+                          _fieldAcceptsSelection(
+                            card.fields[i],
+                            selectedDice,
+                            card,
+                          ),
                       onTap:
-                          attempt.placedValues[i] == null &&
+                          attempt.placed[i] == null &&
                               enabled &&
                               (manualMode ||
-                                  (selectedDie != null &&
-                                      card.fields[i].accepts(
-                                        selectedDie!,
-                                        card: card,
+                                  (hasSelection &&
+                                      _fieldAcceptsSelection(
+                                        card.fields[i],
+                                        selectedDice,
+                                        card,
                                       )))
                           ? () => onFieldTap(i)
                           : null,
@@ -513,36 +603,261 @@ class _DragonChallengeCard extends StatelessWidget {
     );
   }
 
+  bool _fieldAcceptsSelection(
+    DragonField field,
+    List<DieRoll> dice,
+    DragonCard card,
+  ) {
+    if (dice.isEmpty) return false;
+    if (field.kind == DragonFieldKind.sum) {
+      return field.acceptsSum(dice, card: card);
+    }
+    if (dice.length == 1) {
+      return field.acceptsDie(dice.single, card: card);
+    }
+    return false;
+  }
+
   String _typeHint(DragonType type) => switch (type) {
-    DragonType.water => 'Jede passende Zahl oder Flamme zählt.',
-    DragonType.fire => 'Feuerfest: Eine 6 passt hier nie.',
-    DragonType.luck => 'Markierte Felder müssen zuerst voll sein.',
+    DragonType.water => 'Blaues Feld braucht den blauen Würfel.',
+    DragonType.fire => 'Feuerfest: Keine 6. Summenfeld mit 2–3 Würfeln.',
+    DragonType.luck => '★ Pflichtfelder + grünes Würfelfeld.',
+    DragonType.ghost => 'Schwarzes Feld + Summe aus 2–4 Würfeln.',
+    DragonType.boss => '',
   };
 }
 
-class _FieldSocket extends StatelessWidget {
-  const _FieldSocket({
+// ─── Boss-Karte ───────────────────────────────────────────────────────────────
+
+class _BossCard extends StatelessWidget {
+  const _BossCard({required this.state, required this.onRun, super.key});
+  final DragonGameState state;
+  final Future<void> Function(Future<void> Function()) onRun;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = state.currentCard;
+    if (card == null) return const SizedBox.shrink();
+    final hasSelection = state.selectedDieIndices.isNotEmpty;
+    final selectedValue = hasSelection && state.selectedDieIndices.length == 1
+        ? state.dice[state.selectedDieIndices.single].value
+        : null;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_typeLight(DragonType.boss), _panel],
+        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: _boss.withValues(alpha: .6), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: _boss.withValues(alpha: .2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: const BoxDecoration(
+                    color: _boss,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.cruelty_free_rounded,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      LocalizedText(
+                        'Boss-Drache',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: _boss,
+                        ),
+                      ),
+                      LocalizedText(
+                        'Reduziere die HP auf 0! Würfel werden weitergegeben.',
+                        style: TextStyle(fontSize: 12, color: _muted),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD77B),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: const Text(
+                    '20 🪙',
+                    style: TextStyle(
+                      color: _deepGold,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < state.bossRemainingHp.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 12),
+                  _BossHpField(
+                    index: i,
+                    hp: state.bossRemainingHp[i],
+                    maxHp: card.fields[i].bossHp ?? 0,
+                    acceptsSelected:
+                        selectedValue != null &&
+                        selectedValue <= state.bossRemainingHp[i],
+                    onTap:
+                        selectedValue != null &&
+                            selectedValue <= state.bossRemainingHp[i]
+                        ? () => onRun(() async {
+                            // Boss: single die placement via controller
+                          })
+                        : null,
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BossHpField extends StatelessWidget {
+  const _BossHpField({
     required this.index,
-    required this.field,
-    required this.placedValue,
-    required this.accent,
+    required this.hp,
+    required this.maxHp,
     required this.acceptsSelected,
     required this.onTap,
   });
   final int index;
-  final DragonField field;
-  final int? placedValue;
-  final Color accent;
+  final int hp;
+  final int maxHp;
   final bool acceptsSelected;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isFilled = placedValue != null;
+    final defeated = hp <= 0;
+    return Semantics(
+      label: 'Boss-Feld ${index + 1}: $hp von $maxHp HP',
+      button: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 80,
+          height: 90,
+          decoration: BoxDecoration(
+            color: defeated
+                ? const Color(0xFFC8E6C9)
+                : acceptsSelected
+                ? const Color(0xFFFFE49E)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: defeated
+                  ? const Color(0xFF4CAF50)
+                  : acceptsSelected
+                  ? _gold
+                  : _boss.withValues(alpha: .5),
+              width: acceptsSelected ? 3 : 1.5,
+            ),
+            boxShadow: acceptsSelected
+                ? [
+                    BoxShadow(
+                      color: _gold.withValues(alpha: .4),
+                      blurRadius: 10,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                defeated ? Icons.check_circle_rounded : Icons.favorite_rounded,
+                color: defeated ? const Color(0xFF4CAF50) : _boss,
+                size: 28,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                defeated ? '✓' : '$hp',
+                style: TextStyle(
+                  fontSize: defeated ? 20 : 24,
+                  fontWeight: FontWeight.w900,
+                  color: defeated ? const Color(0xFF4CAF50) : _boss,
+                ),
+              ),
+              if (!defeated)
+                Text(
+                  '/$maxHp',
+                  style: const TextStyle(fontSize: 11, color: _muted),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Feld-Socket ──────────────────────────────────────────────────────────────
+
+class _FieldSocket extends StatelessWidget {
+  const _FieldSocket({
+    required this.index,
+    required this.field,
+    required this.placed,
+    required this.accent,
+    required this.acceptsSelected,
+    required this.onTap,
+    this.reduction = 0,
+  });
+  final int index;
+  final DragonField field;
+  final PlacedField? placed;
+  final Color accent;
+  final bool acceptsSelected;
+  final VoidCallback? onTap;
+  final int reduction;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFilled = placed != null;
     return Semantics(
       button: onTap != null,
-      label:
-          'Feld ${index + 1}: ${field.symbol}${isFilled ? ', belegt mit $placedValue' : ', frei'}',
+      label: 'Feld ${index + 1}: $_label${isFilled ? ', belegt' : ', frei'}',
       child: InkWell(
         key: Key('dragon-field-$index'),
         onTap: onTap,
@@ -575,10 +890,10 @@ class _FieldSocket extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               Text(
-                isFilled ? _dieLabel(placedValue) : _fieldLabel(field),
+                isFilled ? _placedLabel : _label,
                 style: TextStyle(
                   color: isFilled ? Colors.white : _ink,
-                  fontSize: isFilled ? 24 : 20,
+                  fontSize: isFilled ? 18 : 16,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -595,13 +910,52 @@ class _FieldSocket extends StatelessWidget {
     );
   }
 
-  String _dieLabel(int? value) => value == 6 ? '🔥' : '$value';
-  String _fieldLabel(DragonField value) => switch (value.kind) {
-    DragonFieldKind.number => '${value.number}',
-    DragonFieldKind.flame => '🔥',
-    DragonFieldKind.empty => '✦',
+  String get _placedLabel {
+    if (placed == null) return '';
+    final p = placed!;
+    if (p.values.length == 1) {
+      return p.values.single == 6 && p.colors.single == DieColor.white
+          ? '🔥'
+          : '${p.values.single}';
+    }
+    return p.values.join('+');
+  }
+
+  String get _label {
+    if (reduction > 0 &&
+        (field.kind == DragonFieldKind.number ||
+            field.kind == DragonFieldKind.coloredDie ||
+            field.kind == DragonFieldKind.sum)) {
+      final orig = field.kind == DragonFieldKind.sum
+          ? (field.sumTarget ?? 0)
+          : (field.number ?? 0);
+      final effective = orig - reduction;
+      final prefix = field.kind == DragonFieldKind.sum ? 'Σ' : '';
+      final colorPrefix = field.kind == DragonFieldKind.coloredDie
+          ? _colorEmoji(field.dieColor!)
+          : '';
+      return '$prefix$colorPrefix$effective';
+    }
+    return switch (field.kind) {
+      DragonFieldKind.number => '${field.mandatory ? '★' : ''}${field.number}',
+      DragonFieldKind.flame => '🔥',
+      DragonFieldKind.empty => '✦',
+      DragonFieldKind.coloredDie =>
+        '${_colorEmoji(field.dieColor!)}${field.number}',
+      DragonFieldKind.sum => 'Σ${field.sumTarget}',
+      DragonFieldKind.bossHp => '♥${field.bossHp}',
+    };
+  }
+
+  String _colorEmoji(DieColor c) => switch (c) {
+    DieColor.blue => '🔵',
+    DieColor.green => '🟢',
+    DieColor.black => '⚫',
+    DieColor.white => '⚪',
   };
 }
+
+// ─── Risk Panel ───────────────────────────────────────────────────────────────
 
 class _RiskPanel extends StatelessWidget {
   const _RiskPanel({required this.state});
@@ -648,6 +1002,8 @@ class _RiskPanel extends StatelessWidget {
   }
 }
 
+// ─── Digital Dice Area ────────────────────────────────────────────────────────
+
 class _DigitalDiceArea extends StatelessWidget {
   const _DigitalDiceArea({required this.game, required this.onRun});
   final DragonController game;
@@ -658,17 +1014,19 @@ class _DigitalDiceArea extends StatelessWidget {
     final state = game.state;
     if (state.dice.isEmpty) {
       return const LocalizedText(
-        'Bereit? Würfle und wähle danach einen passenden Würfel.',
+        'Bereit? Würfle und wähle danach passende Würfel.',
         textAlign: TextAlign.center,
         style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
       );
     }
     return Column(
       children: [
-        const LocalizedText(
-          'Würfel wählen, dann auf ein leuchtendes Feld tippen',
+        LocalizedText(
+          state.isBossCard
+              ? 'Würfel wählen → Boss-Feld antippen (reduziert HP)'
+              : 'Würfel wählen → Feld antippen. Mehrere für Σ-Felder.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: _muted),
+          style: const TextStyle(fontSize: 12, color: _muted),
         ),
         const SizedBox(height: 7),
         Wrap(
@@ -677,32 +1035,106 @@ class _DigitalDiceArea extends StatelessWidget {
           runSpacing: 7,
           children: [
             for (var i = 0; i < state.dice.length; i++)
-              DieWidget(
+              _ColoredDieWidget(
                 key: Key('dragon-die-$i'),
-                value: state.dice[i],
-                held: state.selectedDieIndex == i,
-                selectable: true,
-                face: state.dice[i] == 6
-                    ? const Icon(
-                        Icons.local_fire_department_rounded,
-                        color: _fire,
-                        size: 32,
-                      )
-                    : null,
-                semanticValue: state.dice[i] == 6 ? 'Flamme' : null,
+                die: state.dice[i],
+                selected: state.selectedDieIndices.contains(i),
                 onTap: game.isBusy || game.needsDigitalSaveRetry
                     ? null
-                    : () => onRun(() => game.selectDie(i)),
-                index: 300 + i,
-                selectedSemantic: 'ausgewählt',
-                unselectedSemantic: 'nicht ausgewählt',
+                    : () => onRun(() => game.toggleDie(i)),
+                index: i,
               ),
           ],
         ),
+        if (state.handicapDice > 0)
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: LocalizedText(
+              '🎯 Handicap aktiv: 2 Würfel weniger',
+              style: TextStyle(
+                fontSize: 11,
+                color: _fire,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
       ],
     );
   }
 }
+
+class _ColoredDieWidget extends StatelessWidget {
+  const _ColoredDieWidget({
+    required this.die,
+    required this.selected,
+    required this.onTap,
+    required this.index,
+    super.key,
+  });
+  final DieRoll die;
+  final bool selected;
+  final VoidCallback? onTap;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _dieColor(die.color);
+    final isWhite = die.color == DieColor.white;
+    return Semantics(
+      label:
+          '${die.color.label}er Würfel: ${die.value}${selected ? ', ausgewählt' : ''}',
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: isWhite ? Colors.white : color.withValues(alpha: .15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? _gold
+                  : isWhite
+                  ? const Color(0xFF9E9E9E)
+                  : color,
+              width: selected ? 3 : 1.5,
+            ),
+            boxShadow: selected
+                ? [BoxShadow(color: _gold.withValues(alpha: .4), blurRadius: 8)]
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (!isWhite)
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              Text(
+                die.value == 6 && isWhite ? '🔥' : '${die.value}',
+                style: TextStyle(
+                  fontSize: die.value == 6 && isWhite ? 22 : 24,
+                  fontWeight: FontWeight.w900,
+                  color: isWhite ? _ink : color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Block Dice Hint ──────────────────────────────────────────────────────────
 
 class _BlockDiceHint extends StatelessWidget {
   const _BlockDiceHint();
@@ -723,6 +1155,130 @@ class _BlockDiceHint extends StatelessWidget {
     ],
   );
 }
+
+// ─── Ability Bar ──────────────────────────────────────────────────────────────
+
+class _AbilityBar extends StatelessWidget {
+  const _AbilityBar({required this.game, required this.onRun});
+  final DragonController game;
+  final Future<void> Function(Future<void> Function()) onRun;
+
+  @override
+  Widget build(BuildContext context) {
+    final player = game.state.activePlayer;
+    final abilities = DragonAbility.values;
+    final available = abilities.where(player.canUse).toList();
+    if (available.isEmpty) {
+      return const LocalizedText(
+        'Alle Fähigkeiten verbraucht.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 12, color: _muted),
+      );
+    }
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final ability in available)
+          ActionChip(
+            key: Key('dragon-ability-${ability.name}'),
+            label: LocalizedText(ability.label),
+            avatar: const Icon(Icons.bolt_rounded, size: 16),
+            onPressed: () => _showAbilityDialog(context, ability),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _showAbilityDialog(
+    BuildContext context,
+    DragonAbility ability,
+  ) async {
+    if (ability == DragonAbility.reduce) {
+      final card = game.state.currentCard;
+      if (card == null) return;
+      final fieldIdx = await showDialog<int>(
+        context: context,
+        builder: (ctx) =>
+            _ReduceDialog(card: card, reductions: game.state.fieldReductions),
+      );
+      if (fieldIdx == null || !context.mounted) return;
+      final reduction = await showDialog<int>(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          title: const LocalizedText('Um wie viel senken?'),
+          children: [
+            for (final r in [1, 2, 3])
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, r),
+                child: Text('−$r'),
+              ),
+          ],
+        ),
+      );
+      if (reduction == null) return;
+      onRun(
+        () => game.useAbility(
+          ability,
+          fieldIndex: fieldIdx,
+          reduction: reduction,
+        ),
+      );
+    } else {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: LocalizedText(ability.label),
+          content: LocalizedText(ability.description),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const LocalizedText('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const LocalizedText('Einsetzen'),
+            ),
+          ],
+        ),
+      );
+      if (confirm == true) {
+        onRun(() => game.useAbility(ability));
+      }
+    }
+  }
+}
+
+class _ReduceDialog extends StatelessWidget {
+  const _ReduceDialog({required this.card, required this.reductions});
+  final DragonCard card;
+  final List<int> reductions;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const LocalizedText('Welches Feld senken?'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < card.fields.length; i++)
+          if (card.fields[i].kind == DragonFieldKind.number ||
+              card.fields[i].kind == DragonFieldKind.coloredDie ||
+              card.fields[i].kind == DragonFieldKind.sum)
+            ListTile(
+              dense: true,
+              title: Text('Feld ${i + 1}: ${card.fields[i].symbol}'),
+              subtitle: reductions[i] > 0
+                  ? Text('Bereits −${reductions[i]}')
+                  : null,
+              onTap: () => Navigator.pop(context, i),
+            ),
+      ],
+    ),
+  );
+}
+
+// ─── Player Strip ─────────────────────────────────────────────────────────────
 
 class _PlayerStrip extends StatelessWidget {
   const _PlayerStrip({required this.state});
@@ -776,6 +1332,8 @@ class _PlayerStrip extends StatelessWidget {
   }
 }
 
+// ─── Action Bar ───────────────────────────────────────────────────────────────
+
 class _ActionBar extends StatelessWidget {
   const _ActionBar({required this.game, required this.onRun});
   final DragonController game;
@@ -798,6 +1356,7 @@ class _ActionBar extends StatelessWidget {
         ),
       );
     } else {
+      // Würfeln (digital, noch keine Würfel)
       if (state.mode == GameMode.digital &&
           state.dice.isEmpty &&
           state.placementsSinceRoll == 0) {
@@ -810,16 +1369,20 @@ class _ActionBar extends StatelessWidget {
           ),
         );
       }
+      // Block: Fehlversuch
       if (state.mode == GameMode.block && state.placementsSinceRoll == 0) {
         actions.add(
           OutlinedButton.icon(
             key: const Key('dragon-fail-attempt'),
             onPressed: game.isBusy ? null : () => onRun(game.failAttempt),
             icon: const Icon(Icons.block_rounded),
-            label: const LocalizedText('Kein Würfel passt'),
+            label: LocalizedText(
+              state.isBossCard ? 'Boss weitergeben' : 'Kein Würfel passt',
+            ),
           ),
         );
       }
+      // Weiter würfeln (nur normale Karten)
       if (game.canContinue) {
         actions.add(
           FilledButton.icon(
@@ -830,6 +1393,7 @@ class _ActionBar extends StatelessWidget {
           ),
         );
       }
+      // Gold sichern (normale Karten)
       if (game.canEndTurn) {
         actions.add(
           OutlinedButton.icon(
@@ -839,6 +1403,17 @@ class _ActionBar extends StatelessWidget {
             label: LocalizedText(
               '${state.attempt?.diceGold ?? 0} Gold sichern',
             ),
+          ),
+        );
+      }
+      // Boss: Zug beenden (weitergeben)
+      if (game.canBossEndTurn) {
+        actions.add(
+          OutlinedButton.icon(
+            key: const Key('dragon-boss-end'),
+            onPressed: game.isBusy ? null : () => onRun(game.endTurn),
+            icon: const Icon(Icons.swap_horiz_rounded),
+            label: const LocalizedText('Boss weitergeben'),
           ),
         );
       }
@@ -880,6 +1455,8 @@ class _ActionBar extends StatelessWidget {
   }
 }
 
+// ─── Dialogs ──────────────────────────────────────────────────────────────────
+
 class _ManualValueDialog extends StatelessWidget {
   const _ManualValueDialog({required this.validValues});
   final List<int> validValues;
@@ -903,5 +1480,75 @@ class _ManualValueDialog extends StatelessWidget {
           ),
       ],
     ),
+  );
+}
+
+class _SumInputDialog extends StatefulWidget {
+  const _SumInputDialog({required this.field});
+  final DragonField field;
+
+  @override
+  State<_SumInputDialog> createState() => _SumInputDialogState();
+}
+
+class _SumInputDialogState extends State<_SumInputDialog> {
+  final List<(int, DieColor)> _dice = [];
+
+  int get _sum => _dice.fold(0, (a, d) => a + d.$1);
+  bool get _isValid =>
+      _dice.length >= widget.field.sumMinDice &&
+      _dice.length <= widget.field.sumMaxDice &&
+      _sum == (widget.field.sumTarget ?? 0);
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: LocalizedText(
+      'Summe = ${widget.field.sumTarget} (${widget.field.sumMinDice}–${widget.field.sumMaxDice} Würfel)',
+    ),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Aktuell: ${_dice.isEmpty ? "–" : _dice.map((d) => '${d.$1}').join(" + ")} = $_sum',
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (var v = 1; v <= 6; v++)
+              for (final c in DieColor.values)
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(44, 44),
+                    foregroundColor: _dieColor(c) == Colors.white
+                        ? _ink
+                        : _dieColor(c),
+                  ),
+                  onPressed: _dice.length < widget.field.sumMaxDice
+                      ? () => setState(() => _dice.add((v, c)))
+                      : null,
+                  child: Text('$v', style: const TextStyle(fontSize: 16)),
+                ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_dice.isNotEmpty)
+          TextButton(
+            onPressed: () => setState(() => _dice.removeLast()),
+            child: const LocalizedText('Letzten Würfel entfernen'),
+          ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const LocalizedText('Abbrechen'),
+      ),
+      FilledButton(
+        onPressed: _isValid ? () => Navigator.pop(context, _dice) : null,
+        child: const LocalizedText('Bestätigen'),
+      ),
+    ],
   );
 }

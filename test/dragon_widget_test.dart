@@ -24,6 +24,15 @@ class _FailingOnceRepository extends MemoryGameRepository {
   }
 }
 
+void _useTallViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+}
+
 void main() {
   testWidgets(
     'setup exposes Schuppenschatz, limits players to four and quick game',
@@ -43,6 +52,7 @@ void main() {
           ),
         ),
       );
+
       await tester.tap(find.byKey(const Key('game-kind-dragongold')));
       await tester.pump();
       expect(
@@ -67,61 +77,198 @@ void main() {
         find.byKey(const Key('start-game'), skipOffstage: false),
       );
       await tester.pumpAndSettle();
+
       expect(started, isA<DragonController>());
       expect((started! as DragonController).state.cardsInGame, 20);
     },
   );
 
-  testWidgets('digital screen shows card, players, deck and tappable dice', (
+  testWidgets(
+    'digital screen shows colored dice, remaining cards and ability chips',
+    (tester) async {
+      _useTallViewport(tester);
+      const card = DragonCard(
+        id: 1,
+        type: DragonType.water,
+        fields: [DragonField.coloredDie(DieColor.blue, 3), DragonField.empty()],
+      );
+      const nextCard = DragonCard(
+        id: 2,
+        type: DragonType.fire,
+        fields: [DragonField.empty()],
+      );
+      final values = [1, 2, 3, 4, 5];
+      final state = DragonGameState(
+        players: const [
+          DragonPlayer(name: 'Ada'),
+          DragonPlayer(name: 'Bob'),
+        ],
+        mode: GameMode.digital,
+        deck: const [nextCard],
+        currentCard: card,
+        attempt: DragonAttempt.empty(card),
+        cardsInGame: 41,
+        goldPool: 48,
+        fieldReductions: const [0, 0],
+      );
+      final game = DragonController(
+        state: state,
+        repository: MemoryGameRepository(),
+        roller: () => values.removeAt(0),
+      );
+
+      await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
+      final status = find.byKey(const Key('schuppenschatz-status'));
+      expect(status, findsOneWidget);
+      expect(
+        find.descendant(of: status, matching: find.text('2')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: status, matching: find.text('41')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: status, matching: find.textContaining('Gold')),
+        findsNothing,
+      );
+      for (final ability in DragonAbility.values) {
+        expect(
+          find.byKey(Key('dragon-ability-${ability.name}')),
+          findsOneWidget,
+        );
+      }
+
+      await tester.tap(find.byKey(const Key('dragon-roll')));
+      await tester.pumpAndSettle();
+
+      expect(game.state.dice, const [
+        DieRoll(1, DieColor.white),
+        DieRoll(2, DieColor.white),
+        DieRoll(3, DieColor.blue),
+        DieRoll(4, DieColor.green),
+        DieRoll(5, DieColor.black),
+      ]);
+      expect(find.byKey(const Key('dragon-die-0')), findsOneWidget);
+      expect(find.byKey(const Key('dragon-die-4')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Weißer Würfel: 1')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Blauer Würfel: 3')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('digital UI multi-selects dice and places them on a sum field', (
     tester,
   ) async {
+    _useTallViewport(tester);
+    const card = DragonCard(
+      id: 10,
+      type: DragonType.fire,
+      fields: [
+        DragonField.sum(3, sumMinDice: 2, sumMaxDice: 2),
+        DragonField.empty(),
+      ],
+    );
     final values = [1, 2, 3, 4, 5];
     final game = DragonController.newGame(
       names: ['Ada', 'Bob'],
       mode: GameMode.digital,
       repository: MemoryGameRepository(),
-      shuffledCards: DragonDeck.cards,
+      shuffledCards: const [card],
       roller: () => values.removeAt(0),
     );
-    tester.view.physicalSize = const Size(360, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
     await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
-    expect(find.byKey(const Key('dragon-card')), findsOneWidget);
-    expect(find.text('41'), findsOneWidget);
+
     await tester.tap(find.byKey(const Key('dragon-roll')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('dragon-die-0')), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.byKey(const Key('dragon-die-0')));
+    await tester.tap(find.byKey(const Key('dragon-die-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dragon-die-1')));
+    await tester.pumpAndSettle();
+    expect(game.state.selectedDieIndices, [0, 1]);
+
+    await tester.ensureVisible(find.byKey(const Key('dragon-field-0')));
+    await tester.tap(find.byKey(const Key('dragon-field-0')));
+    await tester.pumpAndSettle();
+
+    expect(game.state.selectedDieIndices, isEmpty);
+    expect(game.state.attempt!.placed[0]!.values, [1, 2]);
+    expect(game.state.attempt!.placed[0]!.colors, [
+      DieColor.white,
+      DieColor.white,
+    ]);
+    expect(game.state.dice, hasLength(3));
   });
 
-  testWidgets('block screen enters a physical die value on a field', (
+  testWidgets('block screen records the color of a physical die', (
     tester,
   ) async {
+    const card = DragonCard(
+      id: 19,
+      type: DragonType.luck,
+      fields: [DragonField.coloredDie(DieColor.green, 4), DragonField.empty()],
+    );
     final game = DragonController.newGame(
       names: ['Ada', 'Bob'],
       repository: MemoryGameRepository(),
-      shuffledCards: DragonDeck.cards,
+      shuffledCards: const [card],
     );
     await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
+
     await tester.tap(find.byKey(const Key('dragon-field-0')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('dragon-manual-value-1')));
+    await tester.tap(find.byKey(const Key('dragon-manual-value-4')));
     await tester.pumpAndSettle();
-    expect(game.state.attempt!.placedValues[0], 1);
+
+    expect(game.state.attempt!.placed[0]!.values, [4]);
+    expect(game.state.attempt!.placed[0]!.colors, [DieColor.green]);
   });
 
-  testWidgets('game screen exposes status, risk, rules and fixed actions', (
+  testWidgets('boss card shows its HP fields', (tester) async {
+    _useTallViewport(tester);
+    const card = DragonCard(
+      id: 37,
+      type: DragonType.boss,
+      fields: [
+        DragonField.bossHp(12),
+        DragonField.bossHp(18),
+        DragonField.bossHp(8),
+      ],
+    );
+    final game = DragonController.newGame(
+      names: ['Ada', 'Bob'],
+      mode: GameMode.digital,
+      repository: MemoryGameRepository(),
+      shuffledCards: const [card],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
+
+    expect(find.byKey(const Key('dragon-boss-card')), findsOneWidget);
+    expect(find.byKey(const Key('dragon-card')), findsNothing);
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('/12'), findsOneWidget);
+    expect(find.text('18'), findsOneWidget);
+    expect(find.text('/18'), findsOneWidget);
+    expect(find.text('8'), findsOneWidget);
+    expect(find.text('/8'), findsOneWidget);
+  });
+
+  testWidgets('game screen exposes risk, rules and fixed actions', (
     tester,
   ) async {
     final game = DragonController.newGame(
       names: ['Ada', 'Bob'],
       mode: GameMode.digital,
       repository: MemoryGameRepository(),
-      shuffledCards: DragonDeck.cards,
+      shuffledCards: const [
+        DragonCard(
+          id: 1,
+          type: DragonType.water,
+          fields: [DragonField.empty()],
+        ),
+      ],
     );
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
@@ -130,7 +277,7 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
     await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
-    expect(find.byKey(const Key('schuppenschatz-status')), findsOneWidget);
+
     expect(find.byKey(const Key('schuppenschatz-risk')), findsOneWidget);
     expect(find.byKey(const Key('dragon-action-bar')), findsOneWidget);
     expect(find.text('Jetzt sicher: 0 Gold'), findsOneWidget);
@@ -145,7 +292,13 @@ void main() {
     final game = DragonController.newGame(
       names: ['Ada', 'Bob'],
       repository: MemoryGameRepository(),
-      shuffledCards: DragonDeck.cards,
+      shuffledCards: const [
+        DragonCard(
+          id: 1,
+          type: DragonType.water,
+          fields: [DragonField.empty()],
+        ),
+      ],
     );
     await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
     await tester.tap(find.byKey(const Key('dragon-fail-attempt')));
@@ -161,7 +314,13 @@ void main() {
       names: ['Ada', 'Bob'],
       mode: GameMode.digital,
       repository: MemoryGameRepository(),
-      shuffledCards: DragonDeck.cards,
+      shuffledCards: const [
+        DragonCard(
+          id: 1,
+          type: DragonType.water,
+          fields: [DragonField.empty()],
+        ),
+      ],
     );
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
@@ -193,13 +352,14 @@ void main() {
       names: ['Ada', 'Bob'],
       mode: GameMode.digital,
       repository: MemoryGameRepository(),
-      shuffledCards: [card],
+      shuffledCards: const [card],
       roller: () => values.removeAt(0),
     );
     await game.rollDigital();
-    await game.selectDie(0);
-    await game.placeSelectedDie(0);
+    await game.toggleDie(0);
+    await game.placeSelectedOnField(0);
     expect(game.state.isComplete, isTrue);
+
     await tester.pumpWidget(MaterialApp(home: DragonResultScreen(game: game)));
     expect(find.text('Schuppenschatz · Ergebnis'), findsOneWidget);
     expect(find.byKey(const Key('dragon-result-summary')), findsOneWidget);
@@ -225,8 +385,8 @@ void main() {
       roller: () => values.removeAt(0),
     );
     await game.rollDigital();
-    await game.selectDie(0);
-    await game.placeSelectedDie(0);
+    await game.toggleDie(0);
+    await game.placeSelectedOnField(0);
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),
@@ -246,7 +406,13 @@ void main() {
       names: ['Ada', 'Bob'],
       mode: GameMode.digital,
       repository: MemoryGameRepository(),
-      shuffledCards: DragonDeck.cards,
+      shuffledCards: const [
+        DragonCard(
+          id: 1,
+          type: DragonType.water,
+          fields: [DragonField.empty()],
+        ),
+      ],
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -307,6 +473,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('dragon-die-0')));
       await tester.pumpAndSettle();
+      expect(game.state.selectedDieIndices, [0]);
       expect(
         tester.widget<InkWell>(find.byKey(const Key('dragon-field-0'))).onTap,
         isNotNull,
@@ -314,9 +481,7 @@ void main() {
     },
   );
 
-  testWidgets('the internal six is rendered and announced as a flame', (
-    tester,
-  ) async {
+  testWidgets('a white six is rendered as a flame', (tester) async {
     const card = DragonCard(
       id: 1,
       type: DragonType.water,
@@ -333,7 +498,8 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
     await tester.tap(find.byKey(const Key('dragon-roll')));
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel(RegExp('Flamme')), findsAtLeastNWidgets(1));
-    expect(find.byIcon(Icons.local_fire_department_rounded), findsOneWidget);
+
+    expect(find.text('🔥'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Weißer Würfel: 6')), findsOneWidget);
   });
 }

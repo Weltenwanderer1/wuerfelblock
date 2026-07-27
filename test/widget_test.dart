@@ -583,8 +583,8 @@ void main() {
         roller: () => values.removeAt(0),
       );
       await game.rollDigital();
-      await game.selectDie(0);
-      await game.placeSelectedDie(0);
+      await game.toggleDie(0);
+      await game.placeSelectedOnField(0);
       expect(game.state.isComplete, isTrue);
 
       await tester.pumpWidget(WuerfelblockApp(repository: repository));
