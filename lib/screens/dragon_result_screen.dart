@@ -5,12 +5,13 @@ import '../l10n/localized_text.dart';
 import '../models/dragon_models.dart';
 import 'schuppenschatz_rules_screen.dart';
 
-const _page = Color(0xFFF7F1E5);
-const _ink = Color(0xFF241C2B);
-const _muted = Color(0xFF766C78);
-const _gold = Color(0xFFC98915);
-const _deepGold = Color(0xFF7A4B00);
-const _panel = Color(0xFFFFFBF3);
+const _page = Color(0xFF031425);
+const _ink = Color(0xFFD2E4FB);
+const _muted = Color(0xFFD0C6AB);
+const _gold = Color(0xFFFFD700);
+const _deepGold = Color(0xFFFFB77D);
+const _panel = Color(0xFF0F2131);
+const _surface = Color(0xFF1A2B3C);
 
 class DragonResultScreen extends StatefulWidget {
   const DragonResultScreen({required this.game, super.key});
@@ -57,9 +58,13 @@ class _DragonResultScreenState extends State<DragonResultScreen> {
       child: Scaffold(
         backgroundColor: _page,
         appBar: AppBar(
-          title: const LocalizedText('Schuppenschatz · Ergebnis'),
+          title: const LocalizedText(
+            'Schuppenschatz · Ergebnis',
+            style: TextStyle(color: _ink),
+          ),
           automaticallyImplyLeading: false,
           backgroundColor: _page,
+          iconTheme: const IconThemeData(color: _ink),
           surfaceTintColor: Colors.transparent,
           actions: [
             IconButton(
@@ -99,14 +104,16 @@ class _DragonResultScreenState extends State<DragonResultScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFE1DE),
+                    color: const Color(0xFF690005),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFB84C43)),
+                    border: Border.all(
+                      color: const Color(0xFF93000A).withValues(alpha: .6),
+                    ),
                   ),
                   child: LocalizedText(
                     _error!,
                     style: const TextStyle(
-                      color: Color(0xFF8A2F29),
+                      color: _deepGold,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -146,10 +153,10 @@ class _WinnerSummary extends StatelessWidget {
       key: const Key('dragon-result-summary'),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF2C2133), Color(0xFF5D3D52)],
+          colors: [_panel, const Color(0xFF2A3B4C)],
         ),
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
@@ -166,29 +173,26 @@ class _WinnerSummary extends StatelessWidget {
             width: 68,
             height: 68,
             decoration: const BoxDecoration(
-              color: Color(0xFFFFD77B),
+              color: _gold,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.emoji_events_rounded,
-              color: _deepGold,
+              color: _page,
               size: 38,
             ),
           ),
           const SizedBox(height: 10),
           const LocalizedText(
             'Schatzmeister',
-            style: TextStyle(
-              color: Color(0xFFD9CCD8),
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 2),
           Text(
             winnerNames,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white,
+              color: _ink,
               fontSize: 25,
               fontWeight: FontWeight.w900,
             ),
@@ -198,16 +202,13 @@ class _WinnerSummary extends StatelessWidget {
             Text(
               '$bonusWinner ${localizeText(context, 'erhält 20 Bonusgold für die meisten Drachen.')}',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFFFFD77B),
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(color: _gold, fontWeight: FontWeight.w800),
             )
           else
             const LocalizedText(
               'Gleichstand bei den Drachen: Das Bonusgold bleibt liegen.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFFD9CCD8)),
+              style: TextStyle(color: _muted),
             ),
         ],
       ),
@@ -233,9 +234,11 @@ class _ResultRow extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 8),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: isWinner ? const Color(0xFFFFE7B3) : _panel,
+      color: isWinner ? _gold.withValues(alpha: .15) : _panel,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: isWinner ? _gold : const Color(0xFFE3D7C4)),
+      border: Border.all(
+        color: isWinner ? _gold : _muted.withValues(alpha: .3),
+      ),
     ),
     child: Row(
       children: [
@@ -244,13 +247,13 @@ class _ResultRow extends StatelessWidget {
           height: 38,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isWinner ? _gold : const Color(0xFFEAE0E9),
+            color: isWinner ? _gold : _surface,
             shape: BoxShape.circle,
           ),
           child: Text(
             '$rank',
             style: TextStyle(
-              color: isWinner ? Colors.white : _ink,
+              color: isWinner ? _page : _ink,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -284,7 +287,7 @@ class _ResultRow extends StatelessWidget {
             Text(
               '${player.totalGold}',
               style: const TextStyle(
-                color: _deepGold,
+                color: _gold,
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
               ),

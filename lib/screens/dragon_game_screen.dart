@@ -8,17 +8,17 @@ import '../models/game_models.dart';
 import 'dragon_result_screen.dart';
 import 'schuppenschatz_rules_screen.dart';
 
-const _page = Color(0xFFF7F1E5);
-const _ink = Color(0xFF241C2B);
-const _muted = Color(0xFF766C78);
-const _gold = Color(0xFFC98915);
-const _deepGold = Color(0xFF7A4B00);
-const _panel = Color(0xFFFFFBF3);
-const _water = Color(0xFF176B87);
-const _fire = Color(0xFFA93A2B);
-const _luck = Color(0xFF7A4C9E);
-const _ghost = Color(0xFF2C2C34);
-const _boss = Color(0xFF8B0000);
+const _page = Color(0xFF031425);
+const _ink = Color(0xFFD2E4FB);
+const _muted = Color(0xFFD0C6AB);
+const _gold = Color(0xFFFFD700);
+const _deepGold = Color(0xFFFFB77D);
+const _panel = Color(0xFF0F2131);
+const _water = Color(0xFF006498);
+const _fire = Color(0xFFFD8B00);
+const _luck = Color(0xFF10B981);
+const _ghost = Color(0xFF4D4732);
+const _boss = Color(0xFF93000A);
 
 Color _typeColor(DragonType type) => switch (type) {
   DragonType.water => _water,
@@ -29,11 +29,11 @@ Color _typeColor(DragonType type) => switch (type) {
 };
 
 Color _typeLight(DragonType type) => switch (type) {
-  DragonType.water => const Color(0xFFD8F1F6),
-  DragonType.fire => const Color(0xFFFFE0D6),
-  DragonType.luck => const Color(0xFFEEDFF8),
-  DragonType.ghost => const Color(0xFFE8E8EE),
-  DragonType.boss => const Color(0xFFFFE0E0),
+  DragonType.water => const Color(0xFF001D31),
+  DragonType.fire => const Color(0xFF2F1500),
+  DragonType.luck => const Color(0xFF064E3B),
+  DragonType.ghost => const Color(0xFF1A2B3C),
+  DragonType.boss => const Color(0xFF690005),
 };
 
 IconData _typeIcon(DragonType type) => switch (type) {
@@ -216,8 +216,12 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     return Scaffold(
       backgroundColor: _page,
       appBar: AppBar(
-        title: const LocalizedText('Schuppenschatz'),
+        title: const LocalizedText(
+          'Schuppenschatz',
+          style: TextStyle(color: _ink),
+        ),
         backgroundColor: _page,
+        iconTheme: const IconThemeData(color: _ink),
         surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
@@ -304,8 +308,12 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
   Widget _buildCompleted() => Scaffold(
     backgroundColor: _page,
     appBar: AppBar(
-      title: const LocalizedText('Schuppenschatz · Geschafft'),
+      title: const LocalizedText(
+        'Schuppenschatz · Geschafft',
+        style: TextStyle(color: _ink),
+      ),
       automaticallyImplyLeading: false,
+      iconTheme: const IconThemeData(color: _ink),
     ),
     body: SafeArea(
       child: Center(
@@ -351,7 +359,7 @@ class _StatusPanel extends StatelessWidget {
     key: const Key('schuppenschatz-status'),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: _ink,
+      color: _panel,
       borderRadius: BorderRadius.circular(20),
     ),
     child: Row(
@@ -369,7 +377,7 @@ class _StatusPanel extends StatelessWidget {
             children: [
               const LocalizedText(
                 'Am Zug',
-                style: TextStyle(color: Color(0xFFD7CED9), fontSize: 12),
+                style: TextStyle(color: _muted, fontSize: 12),
               ),
               Text(
                 state.activePlayer.name,
@@ -417,7 +425,7 @@ class _MiniStat extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: const Color(0xFFFFD77B)),
+        Icon(icon, size: 18, color: _gold),
         const SizedBox(height: 2),
         Text(
           label,
@@ -443,21 +451,18 @@ class _MessageBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
     decoration: BoxDecoration(
-      color: const Color(0xFFFFE7B3),
+      color: const Color(0xFF2A3B4C),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0xFFE2B557)),
+      border: Border.all(color: _gold.withValues(alpha: .35)),
     ),
     child: Row(
       children: [
-        const Icon(Icons.campaign_rounded, size: 20, color: _deepGold),
+        const Icon(Icons.campaign_rounded, size: 20, color: _gold),
         const SizedBox(width: 8),
         Expanded(
           child: LocalizedText(
             message,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: _deepGold,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w800, color: _ink),
           ),
         ),
       ],
@@ -579,13 +584,13 @@ class _DragonChallengeCard extends StatelessWidget {
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFB39DDB),
+                      color: _luck.withValues(alpha: .3),
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
                       '+${card.bonusPoints}★',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: _luck,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -598,13 +603,13 @@ class _DragonChallengeCard extends StatelessWidget {
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFD77B),
+                      color: _gold.withValues(alpha: .25),
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
                       '+${state.cardGold}',
                       style: const TextStyle(
-                        color: _deepGold,
+                        color: _gold,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -792,15 +797,12 @@ class _BossCard extends StatelessWidget {
                     vertical: 7,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFD77B),
+                    color: _gold.withValues(alpha: .25),
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: const Text(
                     '20 🪙',
-                    style: TextStyle(
-                      color: _deepGold,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(color: _gold, fontWeight: FontWeight.w900),
                   ),
                 ),
               ],
@@ -876,18 +878,18 @@ class _BossHpField extends StatelessWidget {
           height: 90,
           decoration: BoxDecoration(
             color: defeated
-                ? const Color(0xFFC8E6C9)
+                ? _luck.withValues(alpha: .25)
                 : usedThisRoll
-                ? const Color(0xFFE8E0E4)
+                ? const Color(0xFF1A2B3C)
                 : acceptsSelected
-                ? const Color(0xFFFFE49E)
-                : Colors.white,
+                ? _gold.withValues(alpha: .25)
+                : _panel,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: defeated
-                  ? const Color(0xFF4CAF50)
+                  ? _luck
                   : usedThisRoll
-                  ? const Color(0xFFB0A4AE)
+                  ? _muted.withValues(alpha: .5)
                   : acceptsSelected
                   ? _gold
                   : _boss.withValues(alpha: .5),
@@ -908,7 +910,7 @@ class _BossHpField extends StatelessWidget {
               Icon(
                 defeated ? Icons.check_circle_rounded : Icons.favorite_rounded,
                 color: defeated
-                    ? const Color(0xFF4CAF50)
+                    ? _luck
                     : usedThisRoll
                     ? _muted
                     : _boss,
@@ -921,7 +923,7 @@ class _BossHpField extends StatelessWidget {
                   fontSize: defeated ? 20 : 24,
                   fontWeight: FontWeight.w900,
                   color: defeated
-                      ? const Color(0xFF4CAF50)
+                      ? _luck
                       : usedThisRoll
                       ? _muted
                       : _boss,
@@ -1012,7 +1014,7 @@ class _FieldSocket extends StatelessWidget {
                 : isPartial
                 ? accent.withValues(alpha: .5)
                 : acceptsSelected
-                ? const Color(0xFFFFE49E)
+                ? _gold.withValues(alpha: .25)
                 : _fieldBgColor(field),
             shadows: acceptsSelected
                 ? [
@@ -1082,9 +1084,9 @@ class _FieldSocket extends StatelessWidget {
 
   Color _fieldBgColor(DragonField field) {
     if (field.kind == DragonFieldKind.coloredDie && field.dieColor != null) {
-      return _dieColor(field.dieColor!).withValues(alpha: .35);
+      return _dieColor(field.dieColor!).withValues(alpha: .3);
     }
-    return Colors.white.withValues(alpha: .82);
+    return const Color(0xFF1A2B3C);
   }
 }
 
@@ -1105,7 +1107,7 @@ class _RiskPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: _panel,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE3D7C4)),
+        border: Border.all(color: _muted.withValues(alpha: .3)),
       ),
       child: Row(
         children: [
@@ -1231,7 +1233,7 @@ class _ColoredDieWidget extends StatelessWidget {
               color: selected
                   ? _gold
                   : isWhite
-                  ? const Color(0xFF9E9E9E)
+                  ? _muted.withValues(alpha: .5)
                   : color,
               width: selected ? 3 : 1.5,
             ),
@@ -1433,10 +1435,10 @@ class _PlayerStrip extends StatelessWidget {
             width: 142,
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
             decoration: BoxDecoration(
-              color: active ? const Color(0xFFFFE7B3) : _panel,
+              color: active ? _gold.withValues(alpha: .15) : _panel,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: active ? _gold : const Color(0xFFE3D7C4),
+                color: active ? _gold : _muted.withValues(alpha: .3),
               ),
             ),
             child: Column(
