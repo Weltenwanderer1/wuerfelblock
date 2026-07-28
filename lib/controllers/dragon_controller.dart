@@ -67,7 +67,7 @@ class DragonController extends ChangeNotifier {
       !state.isComplete &&
       !state.isBossCard &&
       state.placementsSinceRoll > 0 &&
-      (state.attempt?.allMandatoryCovered ?? false);
+      (state.attempt?.allMandatoryCovered(state.fieldReductions) ?? false);
 
   bool get canContinue =>
       !state.isComplete &&
@@ -112,6 +112,9 @@ class DragonController extends ChangeNotifier {
       selectedDieIndices: const [],
       placementsSinceRoll: 0,
       sumFieldsReducedThisRoll: const [],
+      bossFieldsUsedThisRoll: const [],
+      rollCount: state.rollCount + 1,
+      handicapDice: 0, // consumed
     );
     String? message;
     if (!state.isBossCard && !_hasAnyFit(changed)) {
@@ -257,6 +260,11 @@ class DragonController extends ChangeNotifier {
 
   Future<void> _placeBossDie(int fieldIndex, int dieIndex) async {
     final die = state.dice[dieIndex];
+    if (state.bossFieldsUsedThisRoll.contains(fieldIndex)) {
+      throw StateError(
+        'Dieses Boss-Feld wurde in diesem Wurf bereits verwendet.',
+      );
+    }
     await _transactions.mutate(
       change: () {
         final hp = List<int>.of(state.bossRemainingHp);
@@ -272,6 +280,7 @@ class DragonController extends ChangeNotifier {
           dice: dice,
           selectedDieIndices: const [],
           placementsSinceRoll: state.placementsSinceRoll + 1,
+          bossFieldsUsedThisRoll: [...state.bossFieldsUsedThisRoll, fieldIndex],
         );
 
         if (hp.every((h) => h <= 0)) {
@@ -301,6 +310,11 @@ class DragonController extends ChangeNotifier {
     final die = DieRoll(value, color);
 
     if (state.isBossCard) {
+      if (state.bossFieldsUsedThisRoll.contains(fieldIndex)) {
+        throw StateError(
+          'Dieses Boss-Feld wurde in diesem Wurf bereits verwendet.',
+        );
+      }
       await _transactions.mutate(
         change: () {
           final hp = List<int>.of(state.bossRemainingHp);
@@ -309,6 +323,10 @@ class DragonController extends ChangeNotifier {
           var changed = state.copyWith(
             bossRemainingHp: hp,
             placementsSinceRoll: state.placementsSinceRoll + 1,
+            bossFieldsUsedThisRoll: [
+              ...state.bossFieldsUsedThisRoll,
+              fieldIndex,
+            ],
           );
           if (hp.every((h) => h <= 0)) {
             changed = _bossDefeated(changed);
@@ -411,6 +429,8 @@ class DragonController extends ChangeNotifier {
           selectedDieIndices: const [],
           placementsSinceRoll: 0,
           sumFieldsReducedThisRoll: const [],
+          bossFieldsUsedThisRoll: const [],
+          rollCount: state.rollCount + 1,
         ),
         undoFromSnapshot: (snapshot) => snapshot,
         pendingSaveMessage: PersistenceMessages.pendingDigitalDiceSave,
@@ -424,6 +444,9 @@ class DragonController extends ChangeNotifier {
       selectedDieIndices: const [],
       placementsSinceRoll: 0,
       sumFieldsReducedThisRoll: const [],
+      bossFieldsUsedThisRoll: const [],
+      rollCount: state.rollCount + 1,
+      handicapDice: 0, // consumed
     );
     String? message;
     if (!_hasAnyFit(changed)) {
@@ -585,13 +608,20 @@ class DragonController extends ChangeNotifier {
     if (attempt == null) return false;
     final reductions = st.fieldReductions;
     return st.dice.any(
-          (die) => attempt.openFieldIndices.any(
-            (i) => attempt.card.fields[i].acceptsDie(
+          (die) => attempt.openFieldIndices.any((i) {
+            final field = attempt.card.fields[i];
+            // Reduced-to-zero fields are not open
+            if (field.kind == DragonFieldKind.number ||
+                field.kind == DragonFieldKind.coloredDie) {
+              final reduction = reductions.length > i ? reductions[i] : 0;
+              if (field.effectiveNumber(reduction) <= 0) return false;
+            }
+            return field.acceptsDie(
               die,
               card: card,
               reduction: reductions.length > i ? reductions[i] : 0,
-            ),
-          ),
+            );
+          }),
         ) ||
         _hasSumFit(st);
   }
@@ -640,8 +670,9 @@ class DragonController extends ChangeNotifier {
           selectedDieIndices: const [],
           placementsSinceRoll: 0,
           sumFieldsReducedThisRoll: const [],
+          bossFieldsUsedThisRoll: const [],
           escapedDragonIds: escaped,
-          handicapDice: 0,
+          rollCount: 0,
         ),
       );
     }
@@ -654,7 +685,8 @@ class DragonController extends ChangeNotifier {
       selectedDieIndices: const [],
       placementsSinceRoll: 0,
       sumFieldsReducedThisRoll: const [],
-      handicapDice: 0,
+      bossFieldsUsedThisRoll: const [],
+      rollCount: 0,
     );
   }
 
@@ -678,7 +710,9 @@ class DragonController extends ChangeNotifier {
         selectedDieIndices: const [],
         placementsSinceRoll: 0,
         sumFieldsReducedThisRoll: const [],
+        bossFieldsUsedThisRoll: const [],
         handicapDice: 0,
+        rollCount: 0,
       ),
     );
   }
@@ -700,7 +734,9 @@ class DragonController extends ChangeNotifier {
         selectedDieIndices: const [],
         placementsSinceRoll: 0,
         sumFieldsReducedThisRoll: const [],
+        bossFieldsUsedThisRoll: const [],
         handicapDice: 0,
+        rollCount: 0,
       ),
     );
   }
@@ -713,7 +749,8 @@ class DragonController extends ChangeNotifier {
       selectedDieIndices: const [],
       placementsSinceRoll: 0,
       sumFieldsReducedThisRoll: const [],
-      handicapDice: 0,
+      bossFieldsUsedThisRoll: const [],
+      rollCount: 0,
     );
   }
 

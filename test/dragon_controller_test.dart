@@ -454,7 +454,7 @@ void main() {
     final json = game.state.toJson();
     final restored = DragonGameState.fromJson(json);
 
-    expect(json['schemaVersion'], 3);
+    expect(json['schemaVersion'], 4);
     expect(restored.toJson(), json);
     expect(restored.dice, game.state.dice);
     expect(restored.selectedDieIndices, [0, 4]);
@@ -463,7 +463,9 @@ void main() {
 
     final version2 = Map<String, dynamic>.of(json)
       ..['schemaVersion'] = 2
-      ..remove('sumFieldsReducedThisRoll');
+      ..remove('sumFieldsReducedThisRoll')
+      ..remove('bossFieldsUsedThisRoll')
+      ..remove('rollCount');
     expect(
       DragonGameState.fromJson(version2).sumFieldsReducedThisRoll,
       isEmpty,

@@ -389,6 +389,12 @@ class _StatusPanel extends StatelessWidget {
           label: '${state.cardsRemaining}',
           semanticLabel: '${state.cardsRemaining} Karten übrig',
         ),
+        const SizedBox(width: 8),
+        _MiniStat(
+          icon: Icons.casino_rounded,
+          label: '${state.rollCount}',
+          semanticLabel: '${state.rollCount}. Wurf in diesem Zug',
+        ),
       ],
     ),
   );
@@ -489,7 +495,17 @@ class _DragonChallengeCard extends StatelessWidget {
 
     bool fieldIsOpen(int i) {
       final pf = attempt.placed[i];
-      if (pf == null) return true;
+      if (pf == null) {
+        final field = card.fields[i];
+        if (field.kind == DragonFieldKind.number ||
+            field.kind == DragonFieldKind.coloredDie) {
+          final reduction = state.fieldReductions.length > i
+              ? state.fieldReductions[i]
+              : 0;
+          if (field.effectiveNumber(reduction) <= 0) return false;
+        }
+        return true;
+      }
       return card.fields[i].kind == DragonFieldKind.sum &&
           !card.fields[i].isSumComplete(pf.sum, pf.values.length);
     }
@@ -659,6 +675,10 @@ class _DragonChallengeCard extends StatelessWidget {
     int reduction,
   ) {
     if (dice.isEmpty) return false;
+    if (field.kind == DragonFieldKind.number ||
+        field.kind == DragonFieldKind.coloredDie) {
+      if (field.effectiveNumber(reduction) <= 0) return false;
+    }
     if (field.kind == DragonFieldKind.sum) {
       if (dice.length != 1) return false;
       final existingSum = existing?.sum ?? 0;
@@ -760,7 +780,7 @@ class _BossCard extends StatelessWidget {
                         ),
                       ),
                       LocalizedText(
-                        'Reduziere die HP auf 0! Würfel werden weitergegeben.',
+                        'Jedes Feld 1× pro Wurf · Würfel weitergeben',
                         style: TextStyle(fontSize: 12, color: _muted),
                       ),
                     ],
@@ -789,26 +809,29 @@ class _BossCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (var i = 0; i < state.bossRemainingHp.length; i++) ...[
+                for (var i = 0; i < state.bossRemainingHp.length; i++) ...{
                   if (i > 0) const SizedBox(width: 12),
                   _BossHpField(
                     key: Key('dragon-boss-field-$i'),
                     index: i,
                     hp: state.bossRemainingHp[i],
                     maxHp: card.fields[i].bossHp ?? 0,
+                    usedThisRoll: state.bossFieldsUsedThisRoll.contains(i),
                     acceptsSelected:
                         selectedValue != null &&
-                        selectedValue <= state.bossRemainingHp[i],
+                        selectedValue <= state.bossRemainingHp[i] &&
+                        !state.bossFieldsUsedThisRoll.contains(i),
                     onTap:
                         enabled &&
                             state.bossRemainingHp[i] > 0 &&
+                            !state.bossFieldsUsedThisRoll.contains(i) &&
                             (manualMode ||
                                 (selectedValue != null &&
                                     selectedValue <= state.bossRemainingHp[i]))
                         ? () => onFieldTap(i)
                         : null,
                   ),
-                ],
+                },
               ],
             ),
           ],
@@ -825,6 +848,7 @@ class _BossHpField extends StatelessWidget {
     required this.maxHp,
     required this.acceptsSelected,
     required this.onTap,
+    this.usedThisRoll = false,
     super.key,
   });
   final int index;
@@ -832,12 +856,14 @@ class _BossHpField extends StatelessWidget {
   final int maxHp;
   final bool acceptsSelected;
   final VoidCallback? onTap;
+  final bool usedThisRoll;
 
   @override
   Widget build(BuildContext context) {
     final defeated = hp <= 0;
     return Semantics(
-      label: 'Boss-Feld ${index + 1}: $hp von $maxHp HP',
+      label:
+          'Boss-Feld ${index + 1}: $hp von $maxHp HP${usedThisRoll ? ', bereits verwendet' : ''}',
       button: onTap != null,
       child: InkWell(
         onTap: onTap,
@@ -851,6 +877,8 @@ class _BossHpField extends StatelessWidget {
           decoration: BoxDecoration(
             color: defeated
                 ? const Color(0xFFC8E6C9)
+                : usedThisRoll
+                ? const Color(0xFFE8E0E4)
                 : acceptsSelected
                 ? const Color(0xFFFFE49E)
                 : Colors.white,
@@ -858,6 +886,8 @@ class _BossHpField extends StatelessWidget {
             border: Border.all(
               color: defeated
                   ? const Color(0xFF4CAF50)
+                  : usedThisRoll
+                  ? const Color(0xFFB0A4AE)
                   : acceptsSelected
                   ? _gold
                   : _boss.withValues(alpha: .5),
@@ -877,7 +907,11 @@ class _BossHpField extends StatelessWidget {
             children: [
               Icon(
                 defeated ? Icons.check_circle_rounded : Icons.favorite_rounded,
-                color: defeated ? const Color(0xFF4CAF50) : _boss,
+                color: defeated
+                    ? const Color(0xFF4CAF50)
+                    : usedThisRoll
+                    ? _muted
+                    : _boss,
                 size: 28,
               ),
               const SizedBox(height: 4),
@@ -886,7 +920,16 @@ class _BossHpField extends StatelessWidget {
                 style: TextStyle(
                   fontSize: defeated ? 20 : 24,
                   fontWeight: FontWeight.w900,
-                  color: defeated ? const Color(0xFF4CAF50) : _boss,
+                  color: defeated
+                      ? const Color(0xFF4CAF50)
+                      : usedThisRoll
+                      ? _muted
+                      : _boss,
+                  decoration: usedThisRoll
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
+                  decorationColor: _boss,
+                  decorationThickness: 2.5,
                 ),
               ),
               if (!defeated)
@@ -929,8 +972,8 @@ class _FieldSocket extends StatelessWidget {
     final isFilled = placed != null;
     final isPartial = isFilled && isOpen; // Summenfeld mit Zwischenstand
     final isComplete =
-        isFilled &&
-        !isOpen; // alle anderen Felder oder vollständiges Summenfeld
+        isFilled && !isOpen; // vollständig (nicht Summe oder Summe fertig)
+    final isSum = field.kind == DragonFieldKind.sum;
 
     return Semantics(
       button: onTap != null,
@@ -964,8 +1007,8 @@ class _FieldSocket extends StatelessWidget {
                       width: acceptsSelected ? 3 : 1.5,
                     ),
                   ),
-            color: isComplete
-                ? accent
+            color: isComplete && !isSum
+                ? accent.withValues(alpha: .15)
                 : isPartial
                 ? accent.withValues(alpha: .5)
                 : acceptsSelected
@@ -986,9 +1029,14 @@ class _FieldSocket extends StatelessWidget {
               Text(
                 isFilled ? _placedLabel : _label,
                 style: TextStyle(
-                  color: isComplete ? Colors.white : _ink,
+                  color: isComplete && !isSum ? _muted : _ink,
                   fontSize: isFilled ? 18 : 16,
                   fontWeight: FontWeight.w900,
+                  decoration: isComplete && !isSum
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
+                  decorationColor: accent,
+                  decorationThickness: 2.5,
                 ),
               ),
             ],

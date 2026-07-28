@@ -621,10 +621,20 @@ class DragonAttempt {
       _placed.whereType<PlacedField>().fold(0, (a, p) => a + p.gold);
 
   bool isTamed(List<int> fieldReductions) {
-    if (placedCount != card.fields.length) return false;
+    var effectivePlaced = 0;
     for (var i = 0; i < card.fields.length; i++) {
       final field = card.fields[i];
-      final pf = _placed[i]!;
+      if (_placed[i] != null) {
+        effectivePlaced++;
+      } else if (_isReducedToZero(field, i, fieldReductions)) {
+        effectivePlaced++;
+      }
+    }
+    if (effectivePlaced != card.fields.length) return false;
+    for (var i = 0; i < card.fields.length; i++) {
+      final field = card.fields[i];
+      final pf = _placed[i];
+      if (pf == null) continue; // reduced to zero, skip
       if (field.kind == DragonFieldKind.sum &&
           !field.isSumComplete(
             pf.sum,
@@ -637,9 +647,21 @@ class DragonAttempt {
     return true;
   }
 
-  bool get allMandatoryCovered {
+  bool _isReducedToZero(DragonField field, int i, List<int> fieldReductions) {
+    if (field.kind != DragonFieldKind.number &&
+        field.kind != DragonFieldKind.coloredDie) {
+      return false;
+    }
+    final reduction = fieldReductions.length > i ? fieldReductions[i] : 0;
+    return field.effectiveNumber(reduction) <= 0;
+  }
+
+  bool allMandatoryCovered(List<int> fieldReductions) {
     for (var i = 0; i < card.fields.length; i++) {
-      if (card.fields[i].mandatory && _placed[i] == null) return false;
+      if (!card.fields[i].mandatory) continue;
+      if (_placed[i] != null) continue;
+      if (_isReducedToZero(card.fields[i], i, fieldReductions)) continue;
+      return false;
     }
     return true;
   }
@@ -848,6 +870,8 @@ class DragonGameState implements SavedGameState {
     this.handicapDice = 0,
     List<int> fieldReductions = const [],
     List<int> sumFieldsReducedThisRoll = const [],
+    List<int> bossFieldsUsedThisRoll = const [],
+    this.rollCount = 0,
   }) : _players = List.unmodifiable(players),
        _deck = List.unmodifiable(deck),
        _tried = List.unmodifiable(triedPlayerIndices),
@@ -856,7 +880,8 @@ class DragonGameState implements SavedGameState {
        _escaped = List.unmodifiable(escapedDragonIds),
        _bossHp = List.unmodifiable(bossRemainingHp),
        _reductions = List.unmodifiable(fieldReductions),
-       _sumFieldsReduced = List.unmodifiable(sumFieldsReducedThisRoll) {
+       _sumFieldsReduced = List.unmodifiable(sumFieldsReducedThisRoll),
+       _bossFieldsUsed = List.unmodifiable(bossFieldsUsedThisRoll) {
     if (_players.length < 2 ||
         _players.length > 4 ||
         activePlayerIndex < 0 ||
@@ -902,7 +927,7 @@ class DragonGameState implements SavedGameState {
     );
   }
 
-  static const schemaVersion = 3;
+  static const schemaVersion = 4;
   final List<DragonPlayer> _players;
   final GameMode mode;
   final List<DragonCard> _deck;
@@ -922,6 +947,8 @@ class DragonGameState implements SavedGameState {
   final int handicapDice;
   final List<int> _reductions;
   final List<int> _sumFieldsReduced;
+  final List<int> _bossFieldsUsed;
+  final int rollCount;
 
   @override
   List<DragonPlayer> get players => UnmodifiableListView(_players);
@@ -934,6 +961,7 @@ class DragonGameState implements SavedGameState {
   List<int> get fieldReductions => UnmodifiableListView(_reductions);
   List<int> get sumFieldsReducedThisRoll =>
       UnmodifiableListView(_sumFieldsReduced);
+  List<int> get bossFieldsUsedThisRoll => UnmodifiableListView(_bossFieldsUsed);
 
   DragonPlayer get activePlayer => _players[activePlayerIndex];
   int get cardsRemaining => _deck.length + (currentCard == null ? 0 : 1);
@@ -979,6 +1007,8 @@ class DragonGameState implements SavedGameState {
     int? handicapDice,
     List<int>? fieldReductions,
     List<int>? sumFieldsReducedThisRoll,
+    List<int>? bossFieldsUsedThisRoll,
+    int? rollCount,
   }) => DragonGameState(
     players: players ?? _players,
     mode: mode,
@@ -1005,6 +1035,8 @@ class DragonGameState implements SavedGameState {
     handicapDice: handicapDice ?? this.handicapDice,
     fieldReductions: fieldReductions ?? _reductions,
     sumFieldsReducedThisRoll: sumFieldsReducedThisRoll ?? _sumFieldsReduced,
+    bossFieldsUsedThisRoll: bossFieldsUsedThisRoll ?? _bossFieldsUsed,
+    rollCount: rollCount ?? this.rollCount,
   );
 
   DragonGameState copy() => DragonGameState.fromJson(toJson());
@@ -1039,13 +1071,15 @@ class DragonGameState implements SavedGameState {
     'handicapDice': handicapDice,
     'fieldReductions': _reductions,
     'sumFieldsReducedThisRoll': _sumFieldsReduced,
+    'bossFieldsUsedThisRoll': _bossFieldsUsed,
+    'rollCount': rollCount,
   };
 
   factory DragonGameState.fromJson(Map<String, dynamic> json) {
     try {
       final version = json['schemaVersion'];
       if (json['type'] != 'dragongold' ||
-          (version != 2 && version != schemaVersion)) {
+          (version != 2 && version != 3 && version != schemaVersion)) {
         throw const FormatException('Ungültiger Schuppenschatz-Spielstand.');
       }
       final expectedKeys = <String>{
@@ -1071,6 +1105,11 @@ class DragonGameState implements SavedGameState {
         'fieldReductions',
       };
       if (version == schemaVersion) {
+        expectedKeys.add('sumFieldsReducedThisRoll');
+        expectedKeys.add('bossFieldsUsedThisRoll');
+        expectedKeys.add('rollCount');
+      }
+      if (version == 3) {
         expectedKeys.add('sumFieldsReducedThisRoll');
       }
       _requireExactKeys(json, expectedKeys);
@@ -1107,9 +1146,13 @@ class DragonGameState implements SavedGameState {
         bossRemainingHp: (json['bossRemainingHp'] as List).cast<int>(),
         handicapDice: (json['handicapDice'] as int?) ?? 0,
         fieldReductions: (json['fieldReductions'] as List).cast<int>(),
-        sumFieldsReducedThisRoll: version == schemaVersion
+        sumFieldsReducedThisRoll: version >= 3
             ? (json['sumFieldsReducedThisRoll'] as List).cast<int>()
             : const [],
+        bossFieldsUsedThisRoll: version >= 4
+            ? (json['bossFieldsUsedThisRoll'] as List).cast<int>()
+            : const [],
+        rollCount: (json['rollCount'] as int?) ?? 0,
       );
     } on FormatException {
       rethrow;

@@ -387,11 +387,11 @@ void main() {
 
     test('mandatory fields remain open until covered', () {
       var attempt = DragonAttempt.empty(luck);
-      expect(attempt.allMandatoryCovered, isFalse);
+      expect(attempt.allMandatoryCovered(const []), isFalse);
       attempt = attempt.placeSingle(0, const DieRoll(2, DieColor.green));
-      expect(attempt.allMandatoryCovered, isFalse);
+      expect(attempt.allMandatoryCovered(const []), isFalse);
       attempt = attempt.placeSingle(1, const DieRoll(1, DieColor.white));
-      expect(attempt.allMandatoryCovered, isTrue);
+      expect(attempt.allMandatoryCovered(const []), isTrue);
     });
     test('placeSingle records values and colors in placed fields', () {
       final attempt = DragonAttempt.empty(
