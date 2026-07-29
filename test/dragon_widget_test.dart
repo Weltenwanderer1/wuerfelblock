@@ -188,7 +188,20 @@ void main() {
     await tester.tap(find.byKey(const Key('dragon-field-0')));
     await tester.pumpAndSettle();
     expect(game.state.attempt!.placed[0]!.values, [1]);
-    expect(find.text('↗2'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('dragon-field-0')),
+        matching: find.byIcon(Icons.north_east_rounded),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('dragon-field-0')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const Key('dragon-die-0')));
     await tester.pumpAndSettle();

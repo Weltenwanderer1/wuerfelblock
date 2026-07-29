@@ -633,17 +633,32 @@ class _DragonChallengeCard extends StatelessWidget {
                           children: [
                             LocalizedText(
                               card.type.label,
-                              style: TextStyle(
-                                fontSize: 19,
+                              style: const TextStyle(
+                                fontSize: 21,
+                                height: .95,
                                 fontWeight: FontWeight.w900,
-                                color: color,
+                                color: Color(0xFFFFF0CD),
+                                shadows: [
+                                  Shadow(
+                                    color: Color(0xFF0B0604),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
                               ),
                             ),
                             LocalizedText(
                               _typeHint(card.type),
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: _muted,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFFFDFA6),
+                                shadows: [
+                                  Shadow(
+                                    color: Color(0xFF0B0604),
+                                    blurRadius: 2,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -1118,6 +1133,17 @@ class _FieldSocket extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (isSum && !isComplete)
+                const Positioned(
+                  top: 5,
+                  left: 5,
+                  child: Icon(
+                    Icons.north_east_rounded,
+                    color: _deepGold,
+                    size: 15,
+                    shadows: [Shadow(color: Color(0xFF080403), blurRadius: 2)],
+                  ),
+                ),
               if (field.mandatory && !isFilled)
                 const Positioned(
                   top: 4,
@@ -1163,7 +1189,7 @@ class _FieldSocket extends StatelessWidget {
     if (placed == null) return '';
     final p = placed!;
     if (field.kind == DragonFieldKind.sum) {
-      return '↗${field.remainingTarget(p.sum, reduction: reduction)}';
+      return '${field.remainingTarget(p.sum, reduction: reduction)}';
     }
     if (p.values.length == 1) {
       return '${p.values.single}';
@@ -1180,15 +1206,14 @@ class _FieldSocket extends StatelessWidget {
           ? (field.sumTarget ?? 0)
           : (field.number ?? 0);
       final effective = orig - reduction;
-      final prefix = field.kind == DragonFieldKind.sum ? '↗' : '';
-      return '$prefix$effective';
+      return '$effective';
     }
     return switch (field.kind) {
       DragonFieldKind.number => '${field.number}',
       DragonFieldKind.flame => '6',
       DragonFieldKind.empty => '🔥',
       DragonFieldKind.coloredDie => '${field.number}',
-      DragonFieldKind.sum => '↗${field.sumTarget}',
+      DragonFieldKind.sum => '${field.sumTarget}',
       DragonFieldKind.bossHp => '♥${field.bossHp}',
     };
   }
@@ -1500,11 +1525,8 @@ class _AbilityBar extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 16,
-                      color: _deepGold,
-                    ),
+                    const SizedBox(width: 6),
+                    Icon(_abilityIcon(ability), size: 16, color: _deepGold),
                     const SizedBox(width: 6),
                     LocalizedText(
                       ability.label,
@@ -1521,6 +1543,12 @@ class _AbilityBar extends StatelessWidget {
       ],
     );
   }
+
+  IconData _abilityIcon(DragonAbility ability) => switch (ability) {
+    DragonAbility.reroll => Icons.refresh_rounded,
+    DragonAbility.reduce => Icons.vertical_align_bottom_rounded,
+    DragonAbility.handicap => Icons.track_changes_rounded,
+  };
 
   Future<void> _showAbilityDialog(
     BuildContext context,
