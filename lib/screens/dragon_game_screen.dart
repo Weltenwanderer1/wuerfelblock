@@ -237,6 +237,20 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
           ],
         ),
         backgroundColor: const Color(0xFF1B100A),
+        flexibleSpace: const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF4B2A16), Color(0xFF1A0D08)],
+            ),
+            border: Border(
+              top: BorderSide(color: Color(0xFFDDAE4B), width: 1.4),
+              bottom: BorderSide(color: Color(0xFF080403), width: 3),
+            ),
+            boxShadow: [BoxShadow(color: Color(0x99000000), blurRadius: 10)],
+          ),
+        ),
         iconTheme: const IconThemeData(color: _deepGold),
         surfaceTintColor: Colors.transparent,
         actions: [
@@ -805,10 +819,20 @@ class _BossCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
+        image: const DecorationImage(
+          image: AssetImage(
+            'assets/images/schuppenschatz/rune_dragon_card.png',
+          ),
+          fit: BoxFit.cover,
+          opacity: .9,
+        ),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_typeLight(DragonType.boss), _panel],
+          colors: [
+            _typeLight(DragonType.boss).withValues(alpha: .75),
+            _panel.withValues(alpha: .68),
+          ],
         ),
         borderRadius: BorderRadius.circular(26),
         border: Border.all(color: _boss.withValues(alpha: .6), width: 2),
@@ -1421,11 +1445,56 @@ class _AbilityBar extends StatelessWidget {
       runSpacing: 8,
       children: [
         for (final ability in available)
-          ActionChip(
+          Material(
             key: Key('dragon-ability-${ability.name}'),
-            label: LocalizedText(ability.label),
-            avatar: const Icon(Icons.bolt_rounded, size: 16),
-            onPressed: () => _showAbilityDialog(context, ability),
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _showAbilityDialog(context, ability),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF8A4A22), Color(0xFF30140A)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFDDAE4B),
+                    width: 1.4,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x77000000),
+                      blurRadius: 5,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 16,
+                      color: _deepGold,
+                    ),
+                    const SizedBox(width: 6),
+                    LocalizedText(
+                      ability.label,
+                      style: const TextStyle(
+                        color: Color(0xFFFFE6A6),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
       ],
     );
@@ -1541,11 +1610,25 @@ class _PlayerStrip extends StatelessWidget {
             width: 142,
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
             decoration: BoxDecoration(
-              color: active ? _gold.withValues(alpha: .15) : _panel,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: active ? _gold : _muted.withValues(alpha: .3),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: active
+                    ? [const Color(0xFFFFE0A1), const Color(0xFFC98A36)]
+                    : [const Color(0xFFF5D493), const Color(0xFFB97832)],
               ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: active ? _deepGold : const Color(0xFF52290F),
+                width: active ? 2 : 1.3,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x66000000),
+                  blurRadius: 5,
+                  offset: Offset(0, 3),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

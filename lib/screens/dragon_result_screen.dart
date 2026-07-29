@@ -64,6 +64,19 @@ class _DragonResultScreenState extends State<DragonResultScreen> {
           ),
           automaticallyImplyLeading: false,
           backgroundColor: const Color(0xFF1B100A),
+          flexibleSpace: const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF4B2A16), Color(0xFF1A0D08)],
+              ),
+              border: Border(
+                top: BorderSide(color: Color(0xFFDDAE4B), width: 1.4),
+                bottom: BorderSide(color: Color(0xFF080403), width: 3),
+              ),
+            ),
+          ),
           iconTheme: const IconThemeData(color: _deepGold),
           surfaceTintColor: Colors.transparent,
           actions: [
