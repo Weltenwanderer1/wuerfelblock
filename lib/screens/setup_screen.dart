@@ -300,6 +300,9 @@ class _SetupScreenState extends State<SetupScreen> {
                       label: item.label,
                       detail: item.detail,
                       selected: game == item,
+                      selectedColor: item == GameKind.dragongold
+                          ? const Color(0xFFE0B56A)
+                          : null,
                       onTap: () => selectGame(item),
                     ),
                   ),
@@ -429,16 +432,18 @@ class _ChoiceCard extends StatelessWidget {
     required this.detail,
     required this.selected,
     required this.onTap,
+    this.selectedColor,
   });
   final String label;
   final String detail;
   final bool selected;
   final VoidCallback onTap;
+  final Color? selectedColor;
 
   @override
   Widget build(BuildContext context) => Card(
     margin: const EdgeInsets.all(5),
-    color: selected ? AppColors.rose : null,
+    color: selected ? (selectedColor ?? AppColors.rose) : null,
     child: Semantics(
       selected: selected,
       button: true,
