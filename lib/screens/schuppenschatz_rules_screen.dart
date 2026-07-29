@@ -109,16 +109,16 @@ class SchuppenschatzRulesScreen extends StatelessWidget {
     appBar: AppBar(
       title: const LocalizedText(
         'Schuppenschatz · Regeln',
-        style: TextStyle(color: _rulesInk, fontWeight: FontWeight.w900),
+        style: TextStyle(color: Color(0xFFF0C56A), fontWeight: FontWeight.w900),
       ),
-      backgroundColor: _rulesPage,
-      foregroundColor: _rulesInk,
+      backgroundColor: const Color(0xFF1B100A),
+      foregroundColor: const Color(0xFFF0C56A),
       surfaceTintColor: Colors.transparent,
     ),
     body: DecoratedBox(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/images/schuppenschatz/parchment_board.png'),
+          image: AssetImage('assets/images/schuppenschatz/dragon_board.png'),
           fit: BoxFit.cover,
           alignment: Alignment.topCenter,
         ),

@@ -60,11 +60,11 @@ class _DragonResultScreenState extends State<DragonResultScreen> {
         appBar: AppBar(
           title: const LocalizedText(
             'Schuppenschatz · Ergebnis',
-            style: TextStyle(color: _ink, fontWeight: FontWeight.w900),
+            style: TextStyle(color: _deepGold, fontWeight: FontWeight.w900),
           ),
           automaticallyImplyLeading: false,
-          backgroundColor: _page,
-          iconTheme: const IconThemeData(color: _ink),
+          backgroundColor: const Color(0xFF1B100A),
+          iconTheme: const IconThemeData(color: _deepGold),
           surfaceTintColor: Colors.transparent,
           actions: [
             IconButton(
@@ -80,7 +80,7 @@ class _DragonResultScreenState extends State<DragonResultScreen> {
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(
-                  'assets/images/schuppenschatz/parchment_board.png',
+                  'assets/images/schuppenschatz/dragon_board.png',
                 ),
                 fit: BoxFit.cover,
                 alignment: Alignment.topCenter,

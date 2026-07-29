@@ -212,6 +212,30 @@ void main() {
     expect(game.state.dice, hasLength(4));
   });
 
+  testWidgets('fantasy board uses wood status, rune card and framed actions', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    const card = DragonCard(
+      id: 77,
+      type: DragonType.ghost,
+      fields: [DragonField.empty(), DragonField.number(3)],
+    );
+    final game = DragonController.newGame(
+      names: ['Ada', 'Bob'],
+      mode: GameMode.digital,
+      repository: MemoryGameRepository(),
+      shuffledCards: const [card],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
+
+    expect(find.byKey(const Key('dragon-wood-status')), findsOneWidget);
+    expect(find.byKey(const Key('dragon-rune-card-frame')), findsOneWidget);
+    expect(find.byKey(const Key('dragon-action-frame')), findsOneWidget);
+    expect(find.byKey(const Key('dragon-parchment-player-0')), findsOneWidget);
+  });
+
   testWidgets('completed dice field uses the transparent dashed board state', (
     tester,
   ) async {

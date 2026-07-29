@@ -4,8 +4,9 @@
 
 ## Assets
 
-- `assets/images/schuppenschatz/parchment_board.png`: original generated parchment/wood background with quiet readable centre.
-- `assets/images/schuppenschatz/stone_dragon_card.png`: original generated carved-stone/gold card frame.
+- `assets/images/schuppenschatz/dragon_board.png`: original carved-walnut, brass and parchment board background with a deliberately calm central text zone.
+- `assets/images/schuppenschatz/rune_dragon_card.png`: original rune-lit dragon-scale frame with a blank live-widget card centre.
+- `assets/images/schuppenschatz/wood_action_frame.png`: original dark-wood/brass action-riegel with a clean parchment label inset.
 
 ## UI plan
 

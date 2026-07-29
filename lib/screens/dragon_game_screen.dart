@@ -236,8 +236,8 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
             ),
           ],
         ),
-        backgroundColor: _page,
-        iconTheme: const IconThemeData(color: _ink),
+        backgroundColor: const Color(0xFF1B100A),
+        iconTheme: const IconThemeData(color: _deepGold),
         surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
@@ -267,7 +267,7 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
           decoration: const BoxDecoration(
             image: DecorationImage(
               image: AssetImage(
-                'assets/images/schuppenschatz/parchment_board.png',
+                'assets/images/schuppenschatz/dragon_board.png',
               ),
               fit: BoxFit.cover,
               alignment: Alignment.topCenter,
@@ -382,63 +382,73 @@ class _StatusPanel extends StatelessWidget {
   final DragonGameState state;
 
   @override
-  Widget build(BuildContext context) => Container(
-    key: const Key('schuppenschatz-status'),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: _panel.withValues(alpha: .94),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: _gold.withValues(alpha: .8), width: 1.2),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x660E0703),
-          blurRadius: 9,
-          offset: Offset(0, 3),
+  Widget build(BuildContext context) => KeyedSubtree(
+    key: const Key('dragon-wood-status'),
+    child: Container(
+      key: const Key('schuppenschatz-status'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF5B321C), Color(0xFF241209)],
         ),
-      ],
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: const BoxDecoration(color: _gold, shape: BoxShape.circle),
-          child: const Icon(Icons.person_rounded, color: Colors.white),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const LocalizedText(
-                'Am Zug',
-                style: TextStyle(color: _muted, fontSize: 12),
-              ),
-              Text(
-                state.activePlayer.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                ),
-              ),
-            ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _gold, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x660E0703),
+            blurRadius: 9,
+            offset: Offset(0, 3),
           ),
-        ),
-        _MiniStat(
-          icon: Icons.style_rounded,
-          label: '${state.cardsRemaining}',
-          semanticLabel: '${state.cardsRemaining} Karten übrig',
-        ),
-        const SizedBox(width: 8),
-        _MiniStat(
-          icon: Icons.casino_rounded,
-          label: '${state.rollCount}',
-          semanticLabel: '${state.rollCount}. Wurf in diesem Zug',
-        ),
-      ],
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              color: _gold,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.person_rounded, color: Colors.white),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const LocalizedText(
+                  'Am Zug',
+                  style: TextStyle(color: _muted, fontSize: 12),
+                ),
+                Text(
+                  state.activePlayer.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _MiniStat(
+            icon: Icons.style_rounded,
+            label: '${state.cardsRemaining}',
+            semanticLabel: '${state.cardsRemaining} Karten übrig',
+          ),
+          const SizedBox(width: 8),
+          _MiniStat(
+            icon: Icons.casino_rounded,
+            label: '${state.rollCount}',
+            semanticLabel: '${state.rollCount}. Wurf in diesem Zug',
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -559,6 +569,7 @@ class _DragonChallengeCard extends StatelessWidget {
             state.sumFieldsReducedThisRoll.contains(i));
 
     return Container(
+      key: const Key('dragon-rune-card-frame'),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -582,7 +593,7 @@ class _DragonChallengeCard extends StatelessWidget {
             const Positioned.fill(
               child: Image(
                 image: AssetImage(
-                  'assets/images/schuppenschatz/stone_dragon_card.png',
+                  'assets/images/schuppenschatz/rune_dragon_card.png',
                 ),
                 fit: BoxFit.cover,
                 opacity: AlwaysStoppedAnimation(.96),
@@ -1526,6 +1537,7 @@ class _PlayerStrip extends StatelessWidget {
           final player = state.players[index];
           final active = index == state.activePlayerIndex;
           return Container(
+            key: Key('dragon-parchment-player-$index'),
             width: 142,
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
             decoration: BoxDecoration(
@@ -1648,37 +1660,40 @@ class _ActionBar extends StatelessWidget {
       }
     }
 
-    return Material(
-      key: const Key('dragon-action-bar'),
-      color: _panel,
-      elevation: 12,
-      child: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(12, 9, 12, 10),
-        child: actions.isEmpty
-            ? const LocalizedText(
-                'Wähle mindestens einen passenden Würfel.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
-              )
-            : stack
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < actions.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 8),
-                    _WoodActionFrame(child: actions[i]),
+    return KeyedSubtree(
+      key: const Key('dragon-action-frame'),
+      child: Material(
+        key: const Key('dragon-action-bar'),
+        color: _panel,
+        elevation: 12,
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+          child: actions.isEmpty
+              ? const LocalizedText(
+                  'Wähle mindestens einen passenden Würfel.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
+                )
+              : stack
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < actions.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 8),
+                      _WoodActionFrame(child: actions[i]),
+                    ],
                   ],
-                ],
-              )
-            : Row(
-                children: [
-                  for (var i = 0; i < actions.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 8),
-                    Expanded(child: _WoodActionFrame(child: actions[i])),
+                )
+              : Row(
+                  children: [
+                    for (var i = 0; i < actions.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 8),
+                      Expanded(child: _WoodActionFrame(child: actions[i])),
+                    ],
                   ],
-                ],
-              ),
+                ),
+        ),
       ),
     );
   }
@@ -1691,10 +1706,14 @@ class _WoodActionFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
+      image: const DecorationImage(
+        image: AssetImage('assets/images/schuppenschatz/wood_action_frame.png'),
+        fit: BoxFit.fill,
+      ),
       gradient: const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [Color(0xFF9B5B31), Color(0xFF3D1F13)],
+        colors: [Color(0x227E4728), Color(0x553D1F13)],
       ),
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: const Color(0xFF1D1512), width: 3),
