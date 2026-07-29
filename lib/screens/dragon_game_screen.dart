@@ -14,6 +14,7 @@ const _muted = Color(0xFFD0C6AB);
 const _gold = Color(0xFFFFD700);
 const _deepGold = Color(0xFFFFB77D);
 const _panel = Color(0xFF0F2131);
+const _surface = Color(0xFF253648);
 const _water = Color(0xFF006498);
 const _fire = Color(0xFFFD8B00);
 const _luck = Color(0xFF10B981);
@@ -216,9 +217,25 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     return Scaffold(
       backgroundColor: _page,
       appBar: AppBar(
-        title: const LocalizedText(
-          'Schuppenschatz',
-          style: TextStyle(color: _ink),
+        title: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LocalizedText(
+              'DRACHENZÄHMER',
+              style: TextStyle(
+                color: _gold,
+                fontFamily: 'serif',
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                letterSpacing: 2.2,
+              ),
+            ),
+            LocalizedText(
+              'Schuppenschatz',
+              style: TextStyle(color: _muted, fontSize: 11),
+            ),
+          ],
         ),
         backgroundColor: _page,
         iconTheme: const IconThemeData(color: _ink),
@@ -247,58 +264,68 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
       ),
       body: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
-          children: [
-            _StatusPanel(state: state),
-            if (_game.lastMessage case final message?) ...[
-              const SizedBox(height: 8),
-              _MessageBanner(message: message),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment(0, -.7),
+              radius: 1.15,
+              colors: [Color(0xFF064E3B), _page],
+              stops: [.0, .72],
+            ),
+          ),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            children: [
+              _StatusPanel(state: state),
+              if (_game.lastMessage case final message?) ...[
+                const SizedBox(height: 8),
+                _MessageBanner(message: message),
+              ],
+              const SizedBox(height: 10),
+              if (state.isBossCard)
+                _BossCard(
+                  key: const Key('dragon-boss-card'),
+                  state: state,
+                  manualMode: !isDigital,
+                  enabled: interactionEnabled,
+                  onFieldTap: (index) {
+                    if (!interactionEnabled) return;
+                    if (isDigital && state.selectedDieIndices.isNotEmpty) {
+                      _run(() => _game.placeSelectedOnField(index));
+                    } else if (!isDigital) {
+                      _placeManual(index);
+                    }
+                  },
+                )
+              else
+                _DragonChallengeCard(
+                  key: const Key('dragon-card'),
+                  state: state,
+                  game: _game,
+                  manualMode: !isDigital,
+                  enabled: interactionEnabled,
+                  onFieldTap: (index) {
+                    if (!interactionEnabled) return;
+                    if (isDigital && state.selectedDieIndices.isNotEmpty) {
+                      _run(() => _game.placeSelectedOnField(index));
+                    } else if (!isDigital) {
+                      _placeManual(index);
+                    }
+                  },
+                ),
+              const SizedBox(height: 10),
+              if (!state.isBossCard) _RiskPanel(state: state),
+              const SizedBox(height: 10),
+              if (isDigital)
+                _DigitalDiceArea(game: _game, onRun: _run)
+              else
+                const _BlockDiceHint(),
+              const SizedBox(height: 10),
+              _AbilityBar(game: _game, onRun: _run),
+              const SizedBox(height: 10),
+              _PlayerStrip(state: state),
             ],
-            const SizedBox(height: 10),
-            if (state.isBossCard)
-              _BossCard(
-                key: const Key('dragon-boss-card'),
-                state: state,
-                manualMode: !isDigital,
-                enabled: interactionEnabled,
-                onFieldTap: (index) {
-                  if (!interactionEnabled) return;
-                  if (isDigital && state.selectedDieIndices.isNotEmpty) {
-                    _run(() => _game.placeSelectedOnField(index));
-                  } else if (!isDigital) {
-                    _placeManual(index);
-                  }
-                },
-              )
-            else
-              _DragonChallengeCard(
-                key: const Key('dragon-card'),
-                state: state,
-                game: _game,
-                manualMode: !isDigital,
-                enabled: interactionEnabled,
-                onFieldTap: (index) {
-                  if (!interactionEnabled) return;
-                  if (isDigital && state.selectedDieIndices.isNotEmpty) {
-                    _run(() => _game.placeSelectedOnField(index));
-                  } else if (!isDigital) {
-                    _placeManual(index);
-                  }
-                },
-              ),
-            const SizedBox(height: 10),
-            if (!state.isBossCard) _RiskPanel(state: state),
-            const SizedBox(height: 10),
-            if (isDigital)
-              _DigitalDiceArea(game: _game, onRun: _run)
-            else
-              const _BlockDiceHint(),
-            const SizedBox(height: 10),
-            _AbilityBar(game: _game, onRun: _run),
-            const SizedBox(height: 10),
-            _PlayerStrip(state: state),
-          ],
+          ),
         ),
       ),
       bottomNavigationBar: _ActionBar(game: _game, onRun: _run),
@@ -617,7 +644,7 @@ class _DragonChallengeCard extends StatelessWidget {
                 ],
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 12),
             Center(
               child: Wrap(
                 alignment: WrapAlignment.center,
@@ -1227,19 +1254,27 @@ class _ColoredDieWidget extends StatelessWidget {
           width: 52,
           height: 52,
           decoration: BoxDecoration(
-            color: isWhite ? Colors.white : color.withValues(alpha: .15),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isWhite
+                  ? const [Color(0xFFF2F7FF), Color(0xFFB0BEC5)]
+                  : [color.withValues(alpha: .95), _typeLight(DragonType.luck)],
+            ),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected
                   ? _gold
-                  : isWhite
-                  ? _muted.withValues(alpha: .5)
-                  : color,
+                  : (isWhite ? _surface : const Color(0xFFFFF6DF)),
               width: selected ? 3 : 1.5,
             ),
-            boxShadow: selected
-                ? [BoxShadow(color: _gold.withValues(alpha: .4), blurRadius: 8)]
-                : null,
+            boxShadow: [
+              BoxShadow(
+                color: (selected ? _gold : Colors.black).withValues(alpha: .38),
+                blurRadius: selected ? 12 : 7,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1258,7 +1293,7 @@ class _ColoredDieWidget extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
-                  color: isWhite ? _ink : color,
+                  color: isWhite ? _page : Colors.white,
                 ),
               ),
             ],
