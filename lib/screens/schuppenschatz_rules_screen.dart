@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_theme.dart';
 import '../l10n/localized_text.dart';
+
+const _rulesPage = Color(0xFF241209);
+const _rulesInk = Color(0xFF2D160B);
+const _rulesGold = Color(0xFFD79B2D);
+const _rulesPanel = Color(0xFFF1D7A1);
 
 class SchuppenschatzRulesScreen extends StatelessWidget {
   const SchuppenschatzRulesScreen({super.key});
@@ -101,65 +105,88 @@ class SchuppenschatzRulesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const LocalizedText('Schuppenschatz · Regeln')),
-    body: SelectionArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        children: [
-          const Card(
-            color: Color(0xFFFFE7B3),
-            child: Padding(
-              padding: EdgeInsets.all(14),
-              child: LocalizedText(
-                'Eigenständige Würfelblock-Adaption für 2 bis 4 Personen. '
-                'Im Digitalmodus würfelt die App; im Blockmodus nutzt ihr fünf echte Würfel '
-                '(2 weiß, 1 blau, 1 grün, 1 schwarz).',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          for (final section in sections)
-            Card(
-              semanticContainer: false,
+    backgroundColor: _rulesPage,
+    appBar: AppBar(
+      title: const LocalizedText(
+        'Schuppenschatz · Regeln',
+        style: TextStyle(color: _rulesInk, fontWeight: FontWeight.w900),
+      ),
+      backgroundColor: _rulesPage,
+      foregroundColor: _rulesInk,
+      surfaceTintColor: Colors.transparent,
+    ),
+    body: DecoratedBox(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/schuppenschatz/parchment_board.png'),
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+        ),
+      ),
+      child: SelectionArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          children: [
+            const Card(
+              color: Color(0xFFFFE7B3),
               child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: AppColors.lavender,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Icon(section.$3, color: AppColors.plum),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Semantics(
-                            header: true,
-                            child: LocalizedText(
-                              section.$1,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w900),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          LocalizedText(section.$2),
-                        ],
-                      ),
-                    ),
-                  ],
+                padding: EdgeInsets.all(14),
+                child: LocalizedText(
+                  'Eigenständige Würfelblock-Adaption für 2 bis 4 Personen. '
+                  'Im Digitalmodus würfelt die App; im Blockmodus nutzt ihr fünf echte Würfel '
+                  '(2 weiß, 1 blau, 1 grün, 1 schwarz).',
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ),
-        ],
+            const SizedBox(height: 8),
+            for (final section in sections)
+              Card(
+                semanticContainer: false,
+                color: _rulesPanel.withValues(alpha: .94),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: BorderSide(color: _rulesGold.withValues(alpha: .45)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: _rulesGold.withValues(alpha: .28),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Icon(section.$3, color: _rulesInk),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Semantics(
+                              header: true,
+                              child: LocalizedText(
+                                section.$1,
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w900),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            LocalizedText(section.$2),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     ),
   );
