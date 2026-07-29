@@ -216,25 +216,17 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     return Scaffold(
       backgroundColor: _page,
       appBar: AppBar(
-        title: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LocalizedText(
-              'DRACHENZÄHMER',
-              style: TextStyle(
-                color: _gold,
-                fontFamily: 'serif',
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-                letterSpacing: 2.2,
-              ),
-            ),
-            LocalizedText(
-              'Schuppenschatz',
-              style: TextStyle(color: _muted, fontSize: 11),
-            ),
-          ],
+        title: const LocalizedText(
+          'Schuppenschatz',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: _gold,
+            fontFamily: 'serif',
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: 1.1,
+          ),
         ),
         backgroundColor: const Color(0xFF1B100A),
         flexibleSpace: const DecoratedBox(
@@ -420,15 +412,16 @@ class _StatusPanel extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-              color: _gold,
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: const Color(0xFF5C351B),
+              border: Border.all(color: _gold, width: 1.4),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.person_rounded, color: Colors.white),
+            child: const Icon(Icons.shield_rounded, color: _deepGold, size: 19),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 9),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -610,7 +603,7 @@ class _DragonChallengeCard extends StatelessWidget {
                   'assets/images/schuppenschatz/rune_dragon_card.png',
                 ),
                 fit: BoxFit.cover,
-                opacity: AlwaysStoppedAnimation(.96),
+                opacity: AlwaysStoppedAnimation(.84),
               ),
             ),
             Padding(
@@ -1100,11 +1093,18 @@ class _FieldSocket extends StatelessWidget {
             boxShadow: acceptsSelected
                 ? [
                     BoxShadow(
-                      color: _gold.withValues(alpha: .35),
-                      blurRadius: 10,
+                      color: _gold.withValues(alpha: .48),
+                      blurRadius: 13,
+                      spreadRadius: 1,
                     ),
                   ]
-                : null,
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: .42),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: Stack(
             alignment: Alignment.center,
@@ -1130,9 +1130,21 @@ class _FieldSocket extends StatelessWidget {
                     : null,
                 isFilled ? _placedLabel : _label,
                 style: TextStyle(
-                  color: isComplete && !isSum ? _muted : _ink,
-                  fontSize: isFilled ? 18 : 16,
+                  color: isComplete && !isSum
+                      ? const Color(0xFFD6B77A)
+                      : const Color(0xFFFFF2D1),
+                  fontSize: isFilled ? 20 : 21,
+                  height: .95,
                   fontWeight: FontWeight.w900,
+                  shadows: isComplete && !isSum
+                      ? null
+                      : const [
+                          Shadow(
+                            color: Color(0xFF080403),
+                            blurRadius: 3,
+                            offset: Offset(0, 1.5),
+                          ),
+                        ],
                   decoration: isComplete && !isSum
                       ? TextDecoration.underline
                       : TextDecoration.none,
@@ -1607,7 +1619,7 @@ class _PlayerStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     return SizedBox(
-      height: 74 + (textScale - 1).clamp(0, 1) * 34,
+      height: 58 + (textScale - 1).clamp(0, 1) * 30,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: state.players.length,
@@ -1653,9 +1665,30 @@ class _PlayerStrip extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  '${player.gold} Gold  ·  ${player.tamedCount} 🐉',
-                  style: const TextStyle(fontSize: 12, color: _muted),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.monetization_on_rounded,
+                      size: 14,
+                      color: _gold,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      '${player.gold}',
+                      style: const TextStyle(fontSize: 12, color: _muted),
+                    ),
+                    const SizedBox(width: 9),
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 13,
+                      color: _deepGold,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      '${player.tamedCount}',
+                      style: const TextStyle(fontSize: 12, color: _muted),
+                    ),
+                  ],
                 ),
               ],
             ),
