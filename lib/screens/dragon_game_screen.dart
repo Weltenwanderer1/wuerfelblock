@@ -1349,25 +1349,31 @@ class _ColoredDieWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
-          width: 52,
-          height: 52,
+          width: 64,
+          height: 64,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFFFFFCF2), Color(0xFFE6D8BC)],
+              colors: [Color(0xFFFFFFFF), Color(0xFFFFE8B0)],
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(15),
             border: Border.all(
-              color: selected ? _gold : color.withValues(alpha: .9),
-              width: selected ? 3 : 2,
+              color: selected ? const Color(0xFFFFD54A) : color,
+              width: selected ? 4 : 3,
             ),
             boxShadow: [
-              BoxShadow(
-                color: (selected ? _gold : Colors.black).withValues(alpha: .38),
-                blurRadius: selected ? 12 : 7,
-                offset: const Offset(0, 4),
+              const BoxShadow(
+                color: Color(0xCC000000),
+                blurRadius: 8,
+                offset: Offset(0, 4),
               ),
+              if (selected)
+                const BoxShadow(
+                  color: Color(0xCCFFD54A),
+                  blurRadius: 14,
+                  spreadRadius: 1,
+                ),
             ],
           ),
           child: Column(
@@ -1385,9 +1391,13 @@ class _ColoredDieWidget extends StatelessWidget {
               Text(
                 '${die.value}',
                 style: const TextStyle(
-                  fontSize: 24,
+                  fontSize: 31,
+                  height: .95,
                   fontWeight: FontWeight.w900,
-                  color: _ink,
+                  color: Color(0xFF1A0D08),
+                  shadows: [
+                    Shadow(color: Color(0x55FFFFFF), offset: Offset(0, 1)),
+                  ],
                 ),
               ),
             ],
