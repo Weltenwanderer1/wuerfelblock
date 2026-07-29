@@ -216,18 +216,7 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     return Scaffold(
       backgroundColor: _page,
       appBar: AppBar(
-        title: const LocalizedText(
-          'Schuppenschatz',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: _gold,
-            fontFamily: 'serif',
-            fontWeight: FontWeight.w900,
-            fontSize: 20,
-            letterSpacing: 1.1,
-          ),
-        ),
+        title: const Icon(Icons.auto_awesome_rounded, color: _gold, size: 24),
         backgroundColor: const Color(0xFF1B100A),
         flexibleSpace: const DecoratedBox(
           decoration: BoxDecoration(
@@ -1528,8 +1517,8 @@ class _AbilityBar extends StatelessWidget {
                     const SizedBox(width: 6),
                     Icon(_abilityIcon(ability), size: 16, color: _deepGold),
                     const SizedBox(width: 6),
-                    LocalizedText(
-                      ability.label,
+                    Text(
+                      _plainAbilityLabel(context, ability),
                       style: const TextStyle(
                         color: Color(0xFFFFE6A6),
                         fontWeight: FontWeight.w800,
@@ -1542,6 +1531,16 @@ class _AbilityBar extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  String _plainAbilityLabel(BuildContext context, DragonAbility ability) {
+    final english = Localizations.localeOf(context).languageCode == 'en';
+    return switch (ability) {
+      DragonAbility.reroll => english ? 'Reroll' : 'Neu würfeln',
+      DragonAbility.reduce => english ? 'Scale & Gold' : 'Reduzieren',
+      DragonAbility.handicap =>
+        english ? 'Weaken opponent' : 'Gegner schwächen',
+    };
   }
 
   IconData _abilityIcon(DragonAbility ability) => switch (ability) {
@@ -1647,7 +1646,7 @@ class _PlayerStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     return SizedBox(
-      height: 58 + (textScale - 1).clamp(0, 1) * 30,
+      height: 62 + (textScale - 1).clamp(0, 1) * 30,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: state.players.length,
@@ -1703,7 +1702,11 @@ class _PlayerStrip extends StatelessWidget {
                     const SizedBox(width: 3),
                     Text(
                       '${player.gold}',
-                      style: const TextStyle(fontSize: 12, color: _muted),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: _ink,
+                      ),
                     ),
                     const SizedBox(width: 9),
                     const Icon(
@@ -1714,7 +1717,11 @@ class _PlayerStrip extends StatelessWidget {
                     const SizedBox(width: 3),
                     Text(
                       '${player.tamedCount}',
-                      style: const TextStyle(fontSize: 12, color: _muted),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: _ink,
+                      ),
                     ),
                   ],
                 ),
@@ -1843,7 +1850,13 @@ class _ActionBar extends StatelessWidget {
                   children: [
                     for (var i = 0; i < actions.length; i++) ...[
                       if (i > 0) const SizedBox(width: 8),
-                      Expanded(child: _WoodActionFrame(child: actions[i])),
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.center,
+                          child: _WoodActionFrame(child: actions[i]),
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -1893,7 +1906,7 @@ class _WoodActionFrame extends StatelessWidget {
             textStyle: const TextStyle(
               fontFamily: 'serif',
               fontWeight: FontWeight.w900,
-              fontSize: 16,
+              fontSize: 13,
             ),
           ),
         ),
@@ -1907,7 +1920,7 @@ class _WoodActionFrame extends StatelessWidget {
             textStyle: const TextStyle(
               fontFamily: 'serif',
               fontWeight: FontWeight.w900,
-              fontSize: 16,
+              fontSize: 13,
             ),
           ),
         ),
