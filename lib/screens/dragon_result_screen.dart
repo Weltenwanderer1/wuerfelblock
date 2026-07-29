@@ -60,7 +60,7 @@ class _DragonResultScreenState extends State<DragonResultScreen> {
         appBar: AppBar(
           title: const LocalizedText(
             'Schuppenschatz · Ergebnis',
-            style: TextStyle(color: _ink),
+            style: TextStyle(color: _ink, fontWeight: FontWeight.w900),
           ),
           automaticallyImplyLeading: false,
           backgroundColor: _page,
