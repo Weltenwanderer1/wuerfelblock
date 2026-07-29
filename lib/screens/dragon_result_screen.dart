@@ -5,13 +5,13 @@ import '../l10n/localized_text.dart';
 import '../models/dragon_models.dart';
 import 'schuppenschatz_rules_screen.dart';
 
-const _page = Color(0xFF031425);
-const _ink = Color(0xFFD2E4FB);
-const _muted = Color(0xFFD0C6AB);
-const _gold = Color(0xFFFFD700);
-const _deepGold = Color(0xFFFFB77D);
-const _panel = Color(0xFF0F2131);
-const _surface = Color(0xFF1A2B3C);
+const _page = Color(0xFF241209);
+const _ink = Color(0xFF2D160B);
+const _muted = Color(0xFF714224);
+const _gold = Color(0xFFD79B2D);
+const _deepGold = Color(0xFFF0C56A);
+const _panel = Color(0xFFF1D7A1);
+const _surface = Color(0xFFE2B96F);
 
 class DragonResultScreen extends StatefulWidget {
   const DragonResultScreen({required this.game, super.key});
@@ -76,62 +76,73 @@ class _DragonResultScreenState extends State<DragonResultScreen> {
           ],
         ),
         body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
-            children: [
-              _WinnerSummary(state: state),
-              const SizedBox(height: 16),
-              Semantics(
-                header: true,
-                child: LocalizedText(
-                  'Rangliste',
-                  style: Theme.of(context).textTheme.titleLarge,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(
+                  'assets/images/schuppenschatz/parchment_board.png',
                 ),
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
               ),
-              const SizedBox(height: 8),
-              for (var i = 0; i < ranking.length; i++)
-                _ResultRow(
-                  key: Key('dragon-result-row-$i'),
-                  rank: i + 1,
-                  player: ranking[i],
-                  isBonusWinner:
-                      state.bonusWinnerIndex != null &&
-                      state.players[state.bonusWinnerIndex!] == ranking[i],
-                  isWinner: state.winners.contains(ranking[i]),
-                ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF690005),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: const Color(0xFF93000A).withValues(alpha: .6),
-                    ),
-                  ),
+            ),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
+              children: [
+                _WinnerSummary(state: state),
+                const SizedBox(height: 16),
+                Semantics(
+                  header: true,
                   child: LocalizedText(
-                    _error!,
-                    style: const TextStyle(
-                      color: _deepGold,
-                      fontWeight: FontWeight.w800,
+                    'Rangliste',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                for (var i = 0; i < ranking.length; i++)
+                  _ResultRow(
+                    key: Key('dragon-result-row-$i'),
+                    rank: i + 1,
+                    player: ranking[i],
+                    isBonusWinner:
+                        state.bonusWinnerIndex != null &&
+                        state.players[state.bonusWinnerIndex!] == ranking[i],
+                    isWinner: state.winners.contains(ranking[i]),
+                  ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF690005),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(0xFF93000A).withValues(alpha: .6),
+                      ),
+                    ),
+                    child: LocalizedText(
+                      _error!,
+                      style: const TextStyle(
+                        color: _deepGold,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
+                ],
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  key: const Key('dragon-finish'),
+                  onPressed: _busy ? null : _close,
+                  icon: _busy
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.home_rounded),
+                  label: const LocalizedText('Zur Startseite'),
                 ),
               ],
-              const SizedBox(height: 18),
-              FilledButton.icon(
-                key: const Key('dragon-finish'),
-                onPressed: _busy ? null : _close,
-                icon: _busy
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.home_rounded),
-                label: const LocalizedText('Zur Startseite'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -153,10 +164,10 @@ class _WinnerSummary extends StatelessWidget {
       key: const Key('dragon-result-summary'),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_panel, const Color(0xFF2A3B4C)],
+          colors: [_panel, _surface],
         ),
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
