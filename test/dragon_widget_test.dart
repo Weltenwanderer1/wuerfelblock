@@ -212,6 +212,36 @@ void main() {
     expect(game.state.dice, hasLength(4));
   });
 
+  testWidgets('completed dice field uses the transparent dashed board state', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    const card = DragonCard(
+      id: 11,
+      type: DragonType.water,
+      fields: [DragonField.number(1), DragonField.empty()],
+    );
+    final values = [1, 2, 3, 4, 5];
+    final game = DragonController.newGame(
+      names: ['Ada', 'Bob'],
+      mode: GameMode.digital,
+      repository: MemoryGameRepository(),
+      shuffledCards: const [card],
+      roller: () => values.removeAt(0),
+    );
+    await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
+
+    await tester.tap(find.byKey(const Key('dragon-roll')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dragon-die-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dragon-field-0')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('dragon-field-done-0')), findsOneWidget);
+    expect(find.byKey(const Key('dragon-field-dashed-0')), findsOneWidget);
+  });
+
   testWidgets('block screen records the color of a physical die', (
     tester,
   ) async {

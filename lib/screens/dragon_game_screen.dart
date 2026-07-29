@@ -14,7 +14,6 @@ const _muted = Color(0xFF714224);
 const _gold = Color(0xFFD79B2D);
 const _deepGold = Color(0xFFF0C56A);
 const _panel = Color(0xFFF1D7A1);
-const _surface = Color(0xFFE2B96F);
 const _water = Color(0xFF006498);
 const _fire = Color(0xFFFD8B00);
 const _luck = Color(0xFF10B981);
@@ -1041,40 +1040,29 @@ class _FieldSocket extends StatelessWidget {
       child: InkWell(
         key: Key('dragon-field-$index'),
         onTap: onTap,
-        customBorder: const CircleBorder(),
+        borderRadius: BorderRadius.circular(14),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           width: 64,
           height: 64,
-          decoration: ShapeDecoration(
-            shape: field.mandatory && !isFilled
-                ? StarBorder(
-                    points: 5,
-                    rotation: 0,
-                    innerRadiusRatio: 0.45,
-                    side: BorderSide(
-                      color: acceptsSelected
-                          ? _gold
-                          : accent.withValues(alpha: .65),
-                      width: acceptsSelected ? 3 : 1.5,
-                    ),
-                  )
-                : CircleBorder(
-                    side: BorderSide(
-                      color: acceptsSelected
-                          ? _gold
-                          : accent.withValues(alpha: .65),
-                      width: acceptsSelected ? 3 : 1.5,
-                    ),
-                  ),
+          decoration: BoxDecoration(
             color: isComplete && !isSum
-                ? accent.withValues(alpha: .15)
+                ? Colors.transparent
                 : isPartial
-                ? accent.withValues(alpha: .5)
+                ? accent.withValues(alpha: .22)
                 : acceptsSelected
                 ? _gold.withValues(alpha: .25)
                 : _fieldBgColor(field),
-            shadows: acceptsSelected
+            borderRadius: BorderRadius.circular(14),
+            border: isComplete && !isSum
+                ? null
+                : Border.all(
+                    color: acceptsSelected
+                        ? _gold
+                        : accent.withValues(alpha: .72),
+                    width: acceptsSelected ? 3 : 1.6,
+                  ),
+            boxShadow: acceptsSelected
                 ? [
                     BoxShadow(
                       color: _gold.withValues(alpha: .35),
@@ -1086,7 +1074,25 @@ class _FieldSocket extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
+              if (isComplete && !isSum)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      key: Key('dragon-field-dashed-$index'),
+                      painter: _DashedRoundedBorderPainter(color: accent),
+                    ),
+                  ),
+                ),
+              if (field.mandatory && !isFilled)
+                const Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Icon(Icons.star_rounded, color: _gold, size: 13),
+                ),
               Text(
+                key: isComplete && !isSum
+                    ? Key('dragon-field-done-$index')
+                    : null,
                 isFilled ? _placedLabel : _label,
                 style: TextStyle(
                   color: isComplete && !isSum ? _muted : _ink,
@@ -1146,6 +1152,32 @@ class _FieldSocket extends StatelessWidget {
     }
     return const Color(0xFF1A2B3C);
   }
+}
+
+class _DashedRoundedBorderPainter extends CustomPainter {
+  const _DashedRoundedBorderPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(14)),
+      );
+    final paint = Paint()
+      ..color = color.withValues(alpha: .88)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (final metric in path.computeMetrics()) {
+      for (var distance = 0.0; distance < metric.length; distance += 8) {
+        canvas.drawPath(metric.extractPath(distance, distance + 4), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRoundedBorderPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 // ─── Risk Panel ───────────────────────────────────────────────────────────────
@@ -1285,19 +1317,15 @@ class _ColoredDieWidget extends StatelessWidget {
           width: 52,
           height: 52,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: isWhite
-                  ? const [Color(0xFFF2F7FF), Color(0xFFB0BEC5)]
-                  : [color.withValues(alpha: .95), _typeLight(DragonType.luck)],
+              colors: [Color(0xFFFFFCF2), Color(0xFFE6D8BC)],
             ),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected
-                  ? _gold
-                  : (isWhite ? _surface : const Color(0xFFFFF6DF)),
-              width: selected ? 3 : 1.5,
+              color: selected ? _gold : color.withValues(alpha: .9),
+              width: selected ? 3 : 2,
             ),
             boxShadow: [
               BoxShadow(
@@ -1321,10 +1349,10 @@ class _ColoredDieWidget extends StatelessWidget {
                 ),
               Text(
                 '${die.value}',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
-                  color: isWhite ? _page : Colors.white,
+                  color: _ink,
                 ),
               ),
             ],
@@ -1639,7 +1667,7 @@ class _ActionBar extends StatelessWidget {
                 children: [
                   for (var i = 0; i < actions.length; i++) ...[
                     if (i > 0) const SizedBox(height: 8),
-                    actions[i],
+                    _WoodActionFrame(child: actions[i]),
                   ],
                 ],
               )
@@ -1647,13 +1675,73 @@ class _ActionBar extends StatelessWidget {
                 children: [
                   for (var i = 0; i < actions.length; i++) ...[
                     if (i > 0) const SizedBox(width: 8),
-                    Expanded(child: actions[i]),
+                    Expanded(child: _WoodActionFrame(child: actions[i])),
                   ],
                 ],
               ),
       ),
     );
   }
+}
+
+class _WoodActionFrame extends StatelessWidget {
+  const _WoodActionFrame({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF9B5B31), Color(0xFF3D1F13)],
+      ),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: const Color(0xFF1D1512), width: 3),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x77000000),
+          blurRadius: 4,
+          offset: Offset(0, 3),
+        ),
+      ],
+    ),
+    child: Theme(
+      data: Theme.of(context).copyWith(
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            foregroundColor: const Color(0xFFFFE8BC),
+            disabledForegroundColor: const Color(0xFFB7A28A),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9),
+            ),
+            textStyle: const TextStyle(
+              fontFamily: 'serif',
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFFFFE8BC),
+            side: BorderSide.none,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9),
+            ),
+            textStyle: const TextStyle(
+              fontFamily: 'serif',
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      ),
+      child: child,
+    ),
+  );
 }
 
 // ─── Dialogs ──────────────────────────────────────────────────────────────────
