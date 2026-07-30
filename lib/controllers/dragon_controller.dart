@@ -73,8 +73,7 @@ class DragonController extends ChangeNotifier {
       !state.isComplete &&
       !state.isBossCard &&
       state.placementsSinceRoll > 0 &&
-      (state.attempt?.placedCount ?? 0) <
-          (state.currentCard?.fields.length ?? 0);
+      (state.attempt?.openFieldIndices.isNotEmpty ?? false);
 
   bool get canBossEndTurn =>
       !state.isComplete && state.isBossCard && state.placementsSinceRoll > 0;

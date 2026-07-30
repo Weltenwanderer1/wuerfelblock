@@ -261,7 +261,7 @@ void main() {
         isFalse,
       );
     });
-    test('sum fields enforce target and die-count range', () {
+    test('sum fields enforce target but allow unlimited attempts', () {
       const field = DragonField.sum(10, sumMinDice: 2, sumMaxDice: 3);
       expect(field.kind, DragonFieldKind.sum);
       expect(field.sumTarget, 10);
@@ -283,6 +283,7 @@ void main() {
         isFalse, // 1 die, sum=4 — not complete yet
       );
       expect(field.isSumComplete(10, 2), isTrue);
+      expect(field.isSumComplete(10, 4), isTrue);
       expect(
         field.acceptsSum(
           const [DieRoll(5, DieColor.blue)],
@@ -291,6 +292,15 @@ void main() {
           existingCount: 1,
         ),
         isTrue, // the next roll may reduce the remaining target
+      );
+      expect(
+        field.acceptsSum(
+          const [DieRoll(1, DieColor.white)],
+          card: normal,
+          existingSum: 9,
+          existingCount: 12,
+        ),
+        isTrue,
       );
       expect(
         field.isSumComplete(9, 2),

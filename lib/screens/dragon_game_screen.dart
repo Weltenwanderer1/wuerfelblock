@@ -214,22 +214,21 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
     final interactionEnabled = !_game.isBusy && !_game.needsDigitalSaveRetry;
 
     return Scaffold(
-      backgroundColor: _page,
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: AppBar(
         title: const Icon(Icons.auto_awesome_rounded, color: _gold, size: 24),
-        backgroundColor: const Color(0xFF1B100A),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         flexibleSpace: const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFF4B2A16), Color(0xFF1A0D08)],
+              colors: [Color(0xCC241209), Color(0x66241209)],
             ),
-            border: Border(
-              top: BorderSide(color: Color(0xFFDDAE4B), width: 1.4),
-              bottom: BorderSide(color: Color(0xFF080403), width: 3),
-            ),
-            boxShadow: [BoxShadow(color: Color(0x99000000), blurRadius: 10)],
+            border: Border(bottom: BorderSide(color: Color(0x99DDAE4B))),
           ),
         ),
         iconTheme: const IconThemeData(color: _deepGold),
@@ -256,18 +255,16 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        bottom: false,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage(
-                'assets/images/schuppenschatz/dragon_board.png',
-              ),
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-            ),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/schuppenschatz/dragon_board.png'),
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
           ),
+        ),
+        child: SafeArea(
+          bottom: false,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             children: [
@@ -1366,6 +1363,20 @@ class _ColoredDieWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _dieColor(die.color);
     final isWhite = die.color == DieColor.white;
+    final surfaceGradient = isWhite
+        ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFFF8DF), Color(0xFFE5CF9E), Color(0xFFF8E7BE)],
+          )
+        : LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withValues(alpha: .82),
+              color.withValues(alpha: .42),
+            ],
+          );
     return Semantics(
       label:
           '${die.color.label}er Würfel: ${die.value}${selected ? ', ausgewählt' : ''}',
@@ -1378,11 +1389,7 @@ class _ColoredDieWidget extends StatelessWidget {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFFFFFFF), Color(0xFFFFE8B0)],
-            ),
+            gradient: surfaceGradient,
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
               color: selected ? const Color(0xFFFFD54A) : color,
@@ -1402,29 +1409,39 @@ class _ColoredDieWidget extends StatelessWidget {
                 ),
             ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              if (!isWhite)
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
+              if (isWhite)
+                const IgnorePointer(
+                  child: CustomPaint(painter: _BoneMarblePainter()),
+                ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (!isWhite)
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white70),
+                      ),
+                    ),
+                  Text(
+                    '${die.value}',
+                    style: TextStyle(
+                      fontSize: 31,
+                      height: .95,
+                      fontWeight: FontWeight.w900,
+                      color: isWhite ? const Color(0xFF241209) : Colors.white,
+                      shadows: const [
+                        Shadow(color: Color(0x99FFFFFF), offset: Offset(0, 1)),
+                      ],
+                    ),
                   ),
-                ),
-              Text(
-                '${die.value}',
-                style: const TextStyle(
-                  fontSize: 31,
-                  height: .95,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1A0D08),
-                  shadows: [
-                    Shadow(color: Color(0x55FFFFFF), offset: Offset(0, 1)),
-                  ],
-                ),
+                ],
               ),
             ],
           ),
@@ -1432,6 +1449,39 @@ class _ColoredDieWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BoneMarblePainter extends CustomPainter {
+  const _BoneMarblePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final vein = Paint()
+      ..color = const Color(0x33704A2A)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final highlight = Paint()
+      ..color = const Color(0x66FFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final path = Path()
+      ..moveTo(-4, size.height * .25)
+      ..cubicTo(
+        size.width * .28,
+        size.height * .12,
+        size.width * .42,
+        size.height * .72,
+        size.width + 4,
+        size.height * .48,
+      );
+    canvas.drawPath(path, vein);
+    canvas.drawPath(path.shift(const Offset(0, 1.5)), highlight);
+    canvas.drawCircle(Offset(size.width * .2, size.height * .72), 1.4, vein);
+    canvas.drawCircle(Offset(size.width * .77, size.height * .22), 1, vein);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BoneMarblePainter oldDelegate) => false;
 }
 
 // ─── Block Dice Hint ──────────────────────────────────────────────────────────
@@ -1791,7 +1841,7 @@ class _ActionBar extends StatelessWidget {
             key: const Key('dragon-continue'),
             onPressed: game.isBusy ? null : () => onRun(game.continueRolling),
             icon: const Icon(Icons.casino_rounded),
-            label: const LocalizedText('Weiter würfeln'),
+            label: const LocalizedText('Würfeln'),
           ),
         );
       }
@@ -1802,9 +1852,7 @@ class _ActionBar extends StatelessWidget {
             key: const Key('dragon-end-turn'),
             onPressed: game.isBusy ? null : () => onRun(game.endTurn),
             icon: const Icon(Icons.savings_outlined),
-            label: LocalizedText(
-              '${state.attempt?.diceGold ?? 0} Gold sichern',
-            ),
+            label: LocalizedText('${state.attempt?.diceGold ?? 0} sichern'),
           ),
         );
       }
@@ -1825,8 +1873,8 @@ class _ActionBar extends StatelessWidget {
       key: const Key('dragon-action-frame'),
       child: Material(
         key: const Key('dragon-action-bar'),
-        color: _panel,
-        elevation: 12,
+        color: Colors.transparent,
+        elevation: 0,
         child: SafeArea(
           minimum: const EdgeInsets.fromLTRB(12, 9, 12, 10),
           child: actions.isEmpty

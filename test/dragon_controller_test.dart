@@ -181,6 +181,32 @@ void main() {
     },
   );
 
+  test('sum field remains playable beyond its legacy dice maximum', () async {
+    const card = DragonCard(
+      id: 11,
+      type: DragonType.fire,
+      fields: [DragonField.sum(10, sumMinDice: 2, sumMaxDice: 2)],
+    );
+    final game = digital(
+      rolls: [1, 4, 4, 5, 3, 2, 4, 4, 5, 3, 3, 4, 4, 5, 2, 4, 4, 5, 3, 2],
+      cards: const [card],
+    );
+
+    await game.rollDigital();
+    for (final value in [1, 2, 3]) {
+      await game.toggleDie(
+        game.state.dice.indexWhere((die) => die.value == value),
+      );
+      await game.placeSelectedOnField(0);
+      await game.continueRolling();
+    }
+    await game.toggleDie(game.state.dice.indexWhere((die) => die.value == 4));
+    await game.placeSelectedOnField(0);
+
+    expect(game.state.players.first.tamedDragonIds, [11]);
+    expect(game.state.players.first.gold, 10);
+  });
+
   test('block sum field also accepts one die per physical roll', () async {
     const card = DragonCard(
       id: 10,

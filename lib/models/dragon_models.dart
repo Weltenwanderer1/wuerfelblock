@@ -115,7 +115,8 @@ class DragonField {
       sumMaxDice = 0,
       bossHp = null;
 
-  /// Summenfeld: 2–4 (bzw. minDice–maxDice) Würfel müssen exakt die Zielsumme ergeben.
+  /// Summenfeld: Die Zielsumme wird über beliebig viele Würfe aufgebaut.
+  /// [sumMaxDice] bleibt nur als Metadatum für alte Karten erhalten.
   const DragonField.sum(
     this.sumTarget, {
     this.sumMinDice = 2,
@@ -183,8 +184,6 @@ class DragonField {
   }) {
     if (kind != DragonFieldKind.sum) return false;
     if (dice.length != 1) return false;
-    final totalCount = existingCount + dice.length;
-    if (totalCount > sumMaxDice) return false;
     final totalSum = existingSum + dice.fold(0, (a, d) => a + d.value);
     final target = (sumTarget ?? 0) - reduction;
     if (totalSum > target) return false;
@@ -196,9 +195,7 @@ class DragonField {
   bool isSumComplete(int currentSum, int currentCount, {int reduction = 0}) {
     if (kind != DragonFieldKind.sum) return false;
     final target = (sumTarget ?? 0) - reduction;
-    return currentCount >= sumMinDice &&
-        currentCount <= sumMaxDice &&
-        currentSum == target;
+    return currentCount >= sumMinDice && currentSum == target;
   }
 
   /// Restliche Zielsumme für dieses Feld.
