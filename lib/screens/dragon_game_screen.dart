@@ -56,6 +56,22 @@ LinearGradient _typeCardGradient(DragonType type) => switch (type) {
   ),
 };
 
+String _typeBackgroundAsset(DragonType type) => switch (type) {
+  DragonType.water => 'assets/images/schuppenschatz/card_water_dragon.png',
+  DragonType.fire => 'assets/images/schuppenschatz/card_fire_dragon.png',
+  DragonType.luck => 'assets/images/schuppenschatz/card_luck_dragon.png',
+  DragonType.ghost => 'assets/images/schuppenschatz/card_ghost_dragon.png',
+  DragonType.boss => 'assets/images/schuppenschatz/rune_dragon_card.png',
+};
+
+String _typeIconAsset(DragonType type) => switch (type) {
+  DragonType.water => 'assets/images/schuppenschatz/icon_water_dragon.png',
+  DragonType.fire => 'assets/images/schuppenschatz/icon_fire_dragon.png',
+  DragonType.luck => 'assets/images/schuppenschatz/icon_luck_dragon.png',
+  DragonType.ghost => 'assets/images/schuppenschatz/icon_ghost_dragon.png',
+  DragonType.boss => 'assets/images/schuppenschatz/rune_dragon_card.png',
+};
+
 Color _typeLight(DragonType type) => switch (type) {
   DragonType.water => const Color(0xFF001D31),
   DragonType.fire => const Color(0xFF2F1500),
@@ -609,8 +625,11 @@ class _DragonChallengeCard extends StatelessWidget {
           children: [
             Positioned.fill(
               child: IgnorePointer(
-                child: CustomPaint(
-                  painter: _DragonTypeBackgroundPainter(card.type),
+                child: Image.asset(
+                  _typeBackgroundAsset(card.type),
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.high,
+                  opacity: const AlwaysStoppedAnimation(.9),
                 ),
               ),
             ),
@@ -628,10 +647,17 @@ class _DragonChallengeCard extends StatelessWidget {
                           color: color,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
-                          _typeIcon(card.type),
-                          color: Colors.white,
-                          size: 27,
+                        child: ClipOval(
+                          child: Image.asset(
+                            _typeIconAsset(card.type),
+                            fit: BoxFit.cover,
+                            filterQuality: FilterQuality.high,
+                            errorBuilder: (_, _, _) => Icon(
+                              _typeIcon(card.type),
+                              color: Colors.white,
+                              size: 27,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 11),
@@ -807,87 +833,6 @@ class _DragonChallengeCard extends StatelessWidget {
     DragonType.ghost => 'Schwarzes Feld + Summe über mehrere Würfe.',
     DragonType.boss => '',
   };
-}
-
-class _DragonTypeBackgroundPainter extends CustomPainter {
-  const _DragonTypeBackgroundPainter(this.type);
-  final DragonType type;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    final fill = Paint()..style = PaintingStyle.fill;
-    switch (type) {
-      case DragonType.water:
-        stroke.color = const Color(0x55D9FBFF);
-        for (var y = size.height * .25; y < size.height; y += 30) {
-          final wave = Path()..moveTo(0, y);
-          for (var x = 0.0; x < size.width; x += 42) {
-            wave.quadraticBezierTo(x + 10, y - 10, x + 21, y);
-            wave.quadraticBezierTo(x + 31, y + 10, x + 42, y);
-          }
-          canvas.drawPath(wave, stroke);
-        }
-      case DragonType.fire:
-        fill.color = const Color(0x44FFE0A0);
-        for (var x = 10.0; x < size.width; x += 38) {
-          final flame = Path()
-            ..moveTo(x, size.height)
-            ..quadraticBezierTo(
-              x - 12,
-              size.height * .56,
-              x + 4,
-              size.height * .28,
-            )
-            ..quadraticBezierTo(x + 28, size.height * .64, x + 22, size.height);
-          canvas.drawPath(flame, fill);
-        }
-      case DragonType.luck:
-        fill.color = const Color(0x55FFF4A8);
-        for (var x = 20.0; x < size.width; x += 48) {
-          for (var y = 22.0; y < size.height; y += 46) {
-            canvas.drawCircle(Offset(x + (y ~/ 46 % 2) * 14, y), 2.3, fill);
-          }
-        }
-      case DragonType.ghost:
-        stroke.color = const Color(0x55EEE6FF);
-        for (var y = 22.0; y < size.height; y += 36) {
-          final mist = Path()
-            ..moveTo(-8, y)
-            ..cubicTo(
-              size.width * .18,
-              y - 12,
-              size.width * .38,
-              y + 14,
-              size.width * .56,
-              y,
-            )
-            ..cubicTo(
-              size.width * .76,
-              y - 14,
-              size.width * .9,
-              y + 10,
-              size.width + 8,
-              y - 4,
-            );
-          canvas.drawPath(mist, stroke);
-        }
-      case DragonType.boss:
-        stroke.color = const Color(0x55FFD59C);
-        for (var y = 16.0; y < size.height; y += 28) {
-          for (var x = 0.0; x < size.width; x += 28) {
-            canvas.drawCircle(Offset(x + (y ~/ 28 % 2) * 14, y), 13, stroke);
-          }
-        }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DragonTypeBackgroundPainter oldDelegate) =>
-      oldDelegate.type != type;
 }
 
 // ─── Boss-Karte ───────────────────────────────────────────────────────────────
@@ -1116,9 +1061,7 @@ class _BossHpField extends StatelessWidget {
                       : usedThisRoll
                       ? _muted
                       : _boss,
-                  decoration: usedThisRoll
-                      ? TextDecoration.underline
-                      : TextDecoration.none,
+                  decoration: TextDecoration.none,
                   decorationColor: _boss,
                   decorationThickness: 2.5,
                 ),
@@ -1260,9 +1203,7 @@ class _FieldSocket extends StatelessWidget {
                             offset: Offset(0, 1.5),
                           ),
                         ],
-                  decoration: isComplete && !isSum
-                      ? TextDecoration.underline
-                      : TextDecoration.none,
+                  decoration: TextDecoration.none,
                   decorationColor: accent,
                   decorationThickness: 2.5,
                 ),
