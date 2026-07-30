@@ -28,34 +28,6 @@ Color _typeColor(DragonType type) => switch (type) {
   DragonType.boss => _boss,
 };
 
-LinearGradient _typeCardGradient(DragonType type) => switch (type) {
-  DragonType.water => const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF073F61), Color(0xFF70C5D2)],
-  ),
-  DragonType.fire => const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF64180C), Color(0xFFF09A32)],
-  ),
-  DragonType.luck => const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF165238), Color(0xFFD9C250)],
-  ),
-  DragonType.ghost => const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF29223D), Color(0xFF9388AF)],
-  ),
-  DragonType.boss => const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF4C080B), Color(0xFFC6422F)],
-  ),
-};
-
 String _typeBackgroundAsset(DragonType type) => switch (type) {
   DragonType.water => 'assets/images/schuppenschatz/card_water_dragon.png',
   DragonType.fire => 'assets/images/schuppenschatz/card_fire_dragon.png',
@@ -605,20 +577,11 @@ class _DragonChallengeCard extends StatelessWidget {
         !(card.fields[i].kind == DragonFieldKind.sum &&
             state.sumFieldsReducedThisRoll.contains(i));
 
+    final artHeight = MediaQuery.sizeOf(context).height < 900 ? 92.0 : 175.0;
+
     return Container(
       key: const Key('dragon-rune-card-frame'),
-      decoration: BoxDecoration(
-        gradient: _typeCardGradient(card.type),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: color.withValues(alpha: .55), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: .16),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
+      decoration: const BoxDecoration(),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(26),
         child: Stack(
@@ -627,13 +590,16 @@ class _DragonChallengeCard extends StatelessWidget {
               left: 0,
               right: 0,
               bottom: 0,
-              height: 92,
+              height: artHeight,
               child: IgnorePointer(
-                child: Image.asset(
-                  _typeBackgroundAsset(card.type),
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                  opacity: const AlwaysStoppedAnimation(.9),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(26),
+                  child: Image.asset(
+                    _typeBackgroundAsset(card.type),
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.high,
+                    opacity: const AlwaysStoppedAnimation(1),
+                  ),
                 ),
               ),
             ),
@@ -675,14 +641,7 @@ class _DragonChallengeCard extends StatelessWidget {
                                 fontSize: 21,
                                 height: .95,
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFFF0CD),
-                                shadows: [
-                                  Shadow(
-                                    color: Color(0xFF0B0604),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
+                                color: _ink,
                               ),
                             ),
                             LocalizedText(
@@ -690,13 +649,7 @@ class _DragonChallengeCard extends StatelessWidget {
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFFFFDFA6),
-                                shadows: [
-                                  Shadow(
-                                    color: Color(0xFF0B0604),
-                                    blurRadius: 2,
-                                  ),
-                                ],
+                                color: _muted,
                               ),
                             ),
                           ],
@@ -744,7 +697,7 @@ class _DragonChallengeCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 92,
+                    height: artHeight,
                     child: Center(
                       child: Wrap(
                         alignment: WrapAlignment.center,
