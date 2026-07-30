@@ -337,6 +337,21 @@ void main() {
       expect(game.state.attempt!.placedCount, 1);
     });
 
+    test('reduce also weakens a selected boss HP field', () async {
+      const boss = DragonCard(
+        id: 37,
+        type: DragonType.boss,
+        fields: [DragonField.bossHp(5), DragonField.bossHp(7)],
+      );
+      final game = digital(rolls: [1, 2, 3, 4, 5], cards: const [boss]);
+
+      await game.useAbility(DragonAbility.reduce, fieldIndex: 1, reduction: 3);
+
+      expect(game.state.bossRemainingHp, [5, 4]);
+      expect(game.state.activePlayer.usedAbilities, [DragonAbility.reduce]);
+      expect(game.lastMessage, contains('Boss-Feld'));
+    });
+
     test('reduce on a sum field lowers the target', () async {
       const card = DragonCard(
         id: 10,

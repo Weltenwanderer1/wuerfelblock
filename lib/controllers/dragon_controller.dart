@@ -580,10 +580,26 @@ class DragonController extends ChangeNotifier {
             if (reduction < 1 || reduction > 3) {
               throw ArgumentError('Reduktion: 1–3.');
             }
-            final reds = List<int>.of(state.fieldReductions);
-            reds[fieldIndex] += reduction;
-            changed = changed.copyWith(fieldReductions: reds);
-            lastMessage = '📉 Vorgabe um $reduction gesenkt!';
+            if (fieldIndex < 0 ||
+                fieldIndex >= state.currentCard!.fields.length) {
+              throw RangeError.index(fieldIndex, state.currentCard!.fields);
+            }
+            if (state.isBossCard) {
+              final hp = List<int>.of(state.bossRemainingHp);
+              hp[fieldIndex] = max(0, hp[fieldIndex] - reduction);
+              changed = changed.copyWith(bossRemainingHp: hp);
+              if (hp.every((value) => value == 0)) {
+                changed = _bossDefeated(changed);
+                lastMessage = '📉 Boss geschwächt und besiegt! 20 Gold!';
+              } else {
+                lastMessage = '📉 Boss-Feld um $reduction HP geschwächt!';
+              }
+            } else {
+              final reds = List<int>.of(state.fieldReductions);
+              reds[fieldIndex] += reduction;
+              changed = changed.copyWith(fieldReductions: reds);
+              lastMessage = '📉 Vorgabe um $reduction gesenkt!';
+            }
           case DragonAbility.handicap:
             final nextIdx =
                 (state.activePlayerIndex + 1) % state.players.length;

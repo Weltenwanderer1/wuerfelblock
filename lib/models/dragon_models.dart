@@ -328,7 +328,8 @@ abstract final class DragonDeck {
       _n2 = DragonField.number(2),
       _n3 = DragonField.number(3),
       _n4 = DragonField.number(4),
-      _n5 = DragonField.number(5);
+      _n5 = DragonField.number(5),
+      _n6 = DragonField.number(6);
   static const _e = DragonField.empty();
   static const _m1 = DragonField.number(1, mandatory: true),
       _m2 = DragonField.number(2, mandatory: true),
@@ -336,28 +337,31 @@ abstract final class DragonDeck {
       _m4 = DragonField.number(4, mandatory: true);
   static const _b1 = DragonField.coloredDie(DieColor.blue, 1),
       _b2 = DragonField.coloredDie(DieColor.blue, 2),
-      _b3 = DragonField.coloredDie(DieColor.blue, 3);
+      _b3 = DragonField.coloredDie(DieColor.blue, 3),
+      _b4 = DragonField.coloredDie(DieColor.blue, 4),
+      _b5 = DragonField.coloredDie(DieColor.blue, 5);
   static const _g1 = DragonField.coloredDie(DieColor.green, 1),
       _g2 = DragonField.coloredDie(DieColor.green, 2),
       _g3 = DragonField.coloredDie(DieColor.green, 3),
-      _g4 = DragonField.coloredDie(DieColor.green, 4);
+      _g5 = DragonField.coloredDie(DieColor.green, 5),
+      _g6 = DragonField.coloredDie(DieColor.green, 6);
   static const _k1 = DragonField.coloredDie(DieColor.black, 1),
       _k2 = DragonField.coloredDie(DieColor.black, 2),
       _k3 = DragonField.coloredDie(DieColor.black, 3),
       _k4 = DragonField.coloredDie(DieColor.black, 4),
-      _k5 = DragonField.coloredDie(DieColor.black, 5);
+      _k6 = DragonField.coloredDie(DieColor.black, 6);
 
   static const normalCards = <DragonCard>[
     // ── Wasserdrachen (1–9): Einfach, 2–3 Felder, max ~8–12 Gold
     DragonCard(id: 1, type: DragonType.water, fields: [_b2, _e]),
     DragonCard(id: 2, type: DragonType.water, fields: [_n3, _b2]),
-    DragonCard(id: 3, type: DragonType.water, fields: [_b1, _e, _n4]),
+    DragonCard(id: 3, type: DragonType.water, fields: [_b4, _e, _n4]),
     DragonCard(id: 4, type: DragonType.water, fields: [_n2, _b3, _e]),
-    DragonCard(id: 5, type: DragonType.water, fields: [_n5, _b2]),
+    DragonCard(id: 5, type: DragonType.water, fields: [_n6, _b5]),
     DragonCard(id: 6, type: DragonType.water, fields: [_b3, _e, _n3]),
     DragonCard(id: 7, type: DragonType.water, fields: [_n4, _b1, _n2]),
     DragonCard(id: 8, type: DragonType.water, fields: [_n4, _b3, _e]),
-    DragonCard(id: 9, type: DragonType.water, fields: [_b1, _n4, _e, _n3]),
+    DragonCard(id: 9, type: DragonType.water, fields: [_b4, _n6, _e, _n3]),
 
     // ── Feuerdrachen (10–18): Mittelschwer, Summenfeld 6–12 + 1–2 Zahlen, max ~10–16
     DragonCard(
@@ -388,7 +392,7 @@ abstract final class DragonDeck {
     DragonCard(
       id: 15,
       type: DragonType.fire,
-      fields: [_n1, DragonField.sum(10, sumMaxDice: 3), _n4],
+      fields: [_n1, DragonField.sum(10, sumMaxDice: 3), _n5],
     ),
     DragonCard(
       id: 16,
@@ -403,7 +407,7 @@ abstract final class DragonDeck {
     DragonCard(
       id: 18,
       type: DragonType.fire,
-      fields: [DragonField.sum(12, sumMaxDice: 3), _n4, _n2],
+      fields: [DragonField.sum(12, sumMaxDice: 3), _n6, _n4],
     ),
 
     // ── Glücksdrachen (19–27): Mittel–schwer, Pflichtfelder + grün, max ~10–16
@@ -411,11 +415,11 @@ abstract final class DragonDeck {
     DragonCard(id: 20, type: DragonType.luck, fields: [_m2, _g3, _e]),
     DragonCard(id: 21, type: DragonType.luck, fields: [_g1, _m3, _n3]),
     DragonCard(id: 22, type: DragonType.luck, fields: [_m3, _g3, _m1]),
-    DragonCard(id: 23, type: DragonType.luck, fields: [_g4, _m2, _e]),
+    DragonCard(id: 23, type: DragonType.luck, fields: [_g5, _m4, _e]),
     DragonCard(id: 24, type: DragonType.luck, fields: [_m1, _g3, _m3]),
     DragonCard(id: 25, type: DragonType.luck, fields: [_g2, _m4, _n3, _e]),
     DragonCard(id: 26, type: DragonType.luck, fields: [_m2, _g2, _m3]),
-    DragonCard(id: 27, type: DragonType.luck, fields: [_g4, _m2, _m3, _e]),
+    DragonCard(id: 27, type: DragonType.luck, fields: [_g6, _m4, _m3, _e]),
 
     // ── Geisterdrachen (28–36): Schwer, Farbwürfel + Summe 10–14 + Bonus, max ~16–22
     DragonCard(
@@ -451,7 +455,7 @@ abstract final class DragonDeck {
     DragonCard(
       id: 33,
       type: DragonType.ghost,
-      fields: [_k5, DragonField.sum(12), _n1],
+      fields: [_k6, DragonField.sum(12), _n5],
       bonusPoints: 10,
     ),
     DragonCard(

@@ -28,6 +28,34 @@ Color _typeColor(DragonType type) => switch (type) {
   DragonType.boss => _boss,
 };
 
+LinearGradient _typeCardGradient(DragonType type) => switch (type) {
+  DragonType.water => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF073F61), Color(0xFF70C5D2)],
+  ),
+  DragonType.fire => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF64180C), Color(0xFFF09A32)],
+  ),
+  DragonType.luck => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF165238), Color(0xFFD9C250)],
+  ),
+  DragonType.ghost => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF29223D), Color(0xFF9388AF)],
+  ),
+  DragonType.boss => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF4C080B), Color(0xFFC6422F)],
+  ),
+};
+
 Color _typeLight(DragonType type) => switch (type) {
   DragonType.water => const Color(0xFF001D31),
   DragonType.fire => const Color(0xFF2F1500),
@@ -564,11 +592,7 @@ class _DragonChallengeCard extends StatelessWidget {
     return Container(
       key: const Key('dragon-rune-card-frame'),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [_typeLight(card.type), _panel],
-        ),
+        gradient: _typeCardGradient(card.type),
         borderRadius: BorderRadius.circular(26),
         border: Border.all(color: color.withValues(alpha: .55), width: 1.5),
         boxShadow: [
@@ -583,13 +607,11 @@ class _DragonChallengeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(26),
         child: Stack(
           children: [
-            const Positioned.fill(
-              child: Image(
-                image: AssetImage(
-                  'assets/images/schuppenschatz/rune_dragon_card.png',
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _DragonTypeBackgroundPainter(card.type),
                 ),
-                fit: BoxFit.cover,
-                opacity: AlwaysStoppedAnimation(.84),
               ),
             ),
             Padding(
@@ -780,11 +802,92 @@ class _DragonChallengeCard extends StatelessWidget {
 
   String _typeHint(DragonType type) => switch (type) {
     DragonType.water => 'Blaues Feld braucht den blauen Würfel.',
-    DragonType.fire => 'Summenfeld: ein Würfel pro Wurf, über 2–3 Würfe.',
+    DragonType.fire => 'Summenfeld: ein Würfel pro Wurf, beliebig oft.',
     DragonType.luck => '★ Pflichtfelder + grünes Würfelfeld.',
-    DragonType.ghost => 'Schwarzes Feld + Summe aus 2–4 Würfeln.',
+    DragonType.ghost => 'Schwarzes Feld + Summe über mehrere Würfe.',
     DragonType.boss => '',
   };
+}
+
+class _DragonTypeBackgroundPainter extends CustomPainter {
+  const _DragonTypeBackgroundPainter(this.type);
+  final DragonType type;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    final fill = Paint()..style = PaintingStyle.fill;
+    switch (type) {
+      case DragonType.water:
+        stroke.color = const Color(0x55D9FBFF);
+        for (var y = size.height * .25; y < size.height; y += 30) {
+          final wave = Path()..moveTo(0, y);
+          for (var x = 0.0; x < size.width; x += 42) {
+            wave.quadraticBezierTo(x + 10, y - 10, x + 21, y);
+            wave.quadraticBezierTo(x + 31, y + 10, x + 42, y);
+          }
+          canvas.drawPath(wave, stroke);
+        }
+      case DragonType.fire:
+        fill.color = const Color(0x44FFE0A0);
+        for (var x = 10.0; x < size.width; x += 38) {
+          final flame = Path()
+            ..moveTo(x, size.height)
+            ..quadraticBezierTo(
+              x - 12,
+              size.height * .56,
+              x + 4,
+              size.height * .28,
+            )
+            ..quadraticBezierTo(x + 28, size.height * .64, x + 22, size.height);
+          canvas.drawPath(flame, fill);
+        }
+      case DragonType.luck:
+        fill.color = const Color(0x55FFF4A8);
+        for (var x = 20.0; x < size.width; x += 48) {
+          for (var y = 22.0; y < size.height; y += 46) {
+            canvas.drawCircle(Offset(x + (y ~/ 46 % 2) * 14, y), 2.3, fill);
+          }
+        }
+      case DragonType.ghost:
+        stroke.color = const Color(0x55EEE6FF);
+        for (var y = 22.0; y < size.height; y += 36) {
+          final mist = Path()
+            ..moveTo(-8, y)
+            ..cubicTo(
+              size.width * .18,
+              y - 12,
+              size.width * .38,
+              y + 14,
+              size.width * .56,
+              y,
+            )
+            ..cubicTo(
+              size.width * .76,
+              y - 14,
+              size.width * .9,
+              y + 10,
+              size.width + 8,
+              y - 4,
+            );
+          canvas.drawPath(mist, stroke);
+        }
+      case DragonType.boss:
+        stroke.color = const Color(0x55FFD59C);
+        for (var y = 16.0; y < size.height; y += 28) {
+          for (var x = 0.0; x < size.width; x += 28) {
+            canvas.drawCircle(Offset(x + (y ~/ 28 % 2) * 14, y), 13, stroke);
+          }
+        }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DragonTypeBackgroundPainter oldDelegate) =>
+      oldDelegate.type != type;
 }
 
 // ─── Boss-Karte ───────────────────────────────────────────────────────────────
@@ -1672,7 +1775,8 @@ class _ReduceDialog extends StatelessWidget {
         for (var i = 0; i < card.fields.length; i++)
           if (card.fields[i].kind == DragonFieldKind.number ||
               card.fields[i].kind == DragonFieldKind.coloredDie ||
-              card.fields[i].kind == DragonFieldKind.sum)
+              card.fields[i].kind == DragonFieldKind.sum ||
+              card.fields[i].kind == DragonFieldKind.bossHp)
             ListTile(
               dense: true,
               title: Text('Feld ${i + 1}: ${card.fields[i].symbol}'),
@@ -1921,21 +2025,17 @@ class _WoodActionFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      image: const DecorationImage(
-        image: AssetImage('assets/images/schuppenschatz/wood_action_frame.png'),
-        fit: BoxFit.fill,
-      ),
       gradient: const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0x227E4728), Color(0x553D1F13)],
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [Color(0xFFF8E8B8), Color(0xFFFFF4D5), Color(0xFFE7C77D)],
       ),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFF1D1512), width: 3),
+      border: Border.all(color: const Color(0xFF4A260E), width: 3),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x77000000),
-          blurRadius: 4,
+          color: Color(0x990A0503),
+          blurRadius: 5,
           offset: Offset(0, 3),
         ),
       ],
@@ -1945,8 +2045,8 @@ class _WoodActionFrame extends StatelessWidget {
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: Colors.transparent,
-            foregroundColor: const Color(0xFFFFE8BC),
-            disabledForegroundColor: const Color(0xFFB7A28A),
+            foregroundColor: const Color(0xFF4A260E),
+            disabledForegroundColor: const Color(0xFF8C7255),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(9),
@@ -1960,7 +2060,7 @@ class _WoodActionFrame extends StatelessWidget {
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFFFFE8BC),
+            foregroundColor: const Color(0xFF4A260E),
             side: BorderSide.none,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(9),
