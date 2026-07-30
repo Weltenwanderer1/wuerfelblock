@@ -247,7 +247,7 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
             border: Border(bottom: BorderSide(color: Color(0x99DDAE4B))),
           ),
         ),
-        iconTheme: const IconThemeData(color: _deepGold),
+        iconTheme: const IconThemeData(color: _ink),
         surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
@@ -330,7 +330,7 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
                 const _BlockDiceHint(),
               const SizedBox(height: 10),
               _AbilityBar(game: _game, onRun: _run),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
               _PlayerStrip(state: state),
             ],
           ),
@@ -577,7 +577,10 @@ class _DragonChallengeCard extends StatelessWidget {
         !(card.fields[i].kind == DragonFieldKind.sum &&
             state.sumFieldsReducedThisRoll.contains(i));
 
-    final artHeight = MediaQuery.sizeOf(context).height < 900 ? 92.0 : 175.0;
+    final availableWidth = MediaQuery.sizeOf(context).width - 64;
+    final compact = MediaQuery.sizeOf(context).height < 900;
+    final artHeight = compact ? 92.0 : availableWidth * 9 / 16;
+    final artWidth = compact ? artHeight * 16 / 9 : availableWidth;
 
     return Container(
       key: const Key('dragon-rune-card-frame'),
@@ -587,8 +590,8 @@ class _DragonChallengeCard extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              left: 0,
-              right: 0,
+              left: (availableWidth - artWidth) / 2,
+              width: artWidth,
               bottom: 0,
               height: artHeight,
               child: IgnorePointer(
@@ -1704,6 +1707,9 @@ class _PlayerStrip extends StatelessWidget {
       height: 62 + (textScale - 1).clamp(0, 1) * 30,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(
+          horizontal: state.players.length == 1 ? 72 : 2,
+        ),
         itemCount: state.players.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
@@ -1882,7 +1888,7 @@ class _ActionBar extends StatelessWidget {
         color: Colors.transparent,
         elevation: 0,
         child: SafeArea(
-          minimum: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+          minimum: const EdgeInsets.fromLTRB(12, 6, 12, 18),
           child: actions.isEmpty
               ? const LocalizedText(
                   'Wähle mindestens einen passenden Würfel.',
