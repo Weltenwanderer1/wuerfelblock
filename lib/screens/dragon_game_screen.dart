@@ -282,7 +282,7 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
         child: SafeArea(
           bottom: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(32, 12, 32, 16),
+            padding: const EdgeInsets.fromLTRB(32, 10, 32, 12),
             children: [
               _StatusPanel(state: state),
               if (_game.lastMessage case final message?) ...[
@@ -321,16 +321,16 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
                     }
                   },
                 ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               if (!state.isBossCard) _RiskPanel(state: state),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               if (isDigital)
                 _DigitalDiceArea(game: _game, onRun: _run)
               else
                 const _BlockDiceHint(),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               _AbilityBar(game: _game, onRun: _run),
-              const SizedBox(height: 14),
+              const SizedBox(height: 22),
               _PlayerStrip(state: state),
             ],
           ),
@@ -394,7 +394,7 @@ class _StatusPanel extends StatelessWidget {
     key: const Key('dragon-wood-status'),
     child: Container(
       key: const Key('schuppenschatz-status'),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
@@ -414,14 +414,14 @@ class _StatusPanel extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
               color: const Color(0xFF5C351B),
               border: Border.all(color: _gold, width: 1.4),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.shield_rounded, color: _deepGold, size: 19),
+            child: const Icon(Icons.shield_rounded, color: _deepGold, size: 17),
           ),
           const SizedBox(width: 9),
           Expanded(
@@ -430,7 +430,7 @@ class _StatusPanel extends StatelessWidget {
               children: [
                 const LocalizedText(
                   'Am Zug',
-                  style: TextStyle(color: _muted, fontSize: 12),
+                  style: TextStyle(color: Color(0xFFE1C797), fontSize: 11),
                 ),
                 Text(
                   state.activePlayer.name,
@@ -439,7 +439,7 @@ class _StatusPanel extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 18,
+                    fontSize: 17,
                   ),
                 ),
               ],
@@ -479,8 +479,8 @@ class _MiniStat extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: _gold),
-        const SizedBox(height: 2),
+        Icon(icon, size: 16, color: _gold),
+        const SizedBox(height: 1),
         Text(
           label,
           maxLines: 1,
@@ -578,9 +578,11 @@ class _DragonChallengeCard extends StatelessWidget {
             state.sumFieldsReducedThisRoll.contains(i));
 
     final availableWidth = MediaQuery.sizeOf(context).width - 64;
-    final compact = MediaQuery.sizeOf(context).height < 900;
-    final artHeight = compact ? 92.0 : availableWidth * 9 / 16;
-    final artWidth = compact ? artHeight * 16 / 9 : availableWidth;
+    final compact =
+        MediaQuery.sizeOf(context).height < 900 ||
+        MediaQuery.textScalerOf(context).scale(1) > 1.35;
+    final artWidth = compact ? 92 * 959 / 540 : availableWidth;
+    final artHeight = artWidth * 540 / 959;
 
     return Container(
       key: const Key('dragon-rune-card-frame'),
@@ -599,7 +601,7 @@ class _DragonChallengeCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(26),
                   child: Image.asset(
                     _typeBackgroundAsset(card.type),
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     filterQuality: FilterQuality.high,
                     opacity: const AlwaysStoppedAnimation(1),
                   ),
@@ -607,15 +609,15 @@ class _DragonChallengeCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 14, 24, 16),
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
-                        width: 46,
-                        height: 46,
+                        width: 42,
+                        height: 42,
                         decoration: BoxDecoration(
                           color: color,
                           shape: BoxShape.circle,
@@ -628,7 +630,7 @@ class _DragonChallengeCard extends StatelessWidget {
                             errorBuilder: (_, _, _) => Icon(
                               _typeIcon(card.type),
                               color: Colors.white,
-                              size: 27,
+                              size: 24,
                             ),
                           ),
                         ),
@@ -641,8 +643,8 @@ class _DragonChallengeCard extends StatelessWidget {
                             LocalizedText(
                               card.type.label,
                               style: const TextStyle(
-                                fontSize: 21,
-                                height: .95,
+                                fontSize: 20,
+                                height: 1,
                                 fontWeight: FontWeight.w900,
                                 color: _ink,
                               ),
@@ -650,7 +652,8 @@ class _DragonChallengeCard extends StatelessWidget {
                             LocalizedText(
                               _typeHint(card.type),
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
+                                height: 1.15,
                                 fontWeight: FontWeight.w700,
                                 color: _muted,
                               ),
@@ -698,14 +701,14 @@ class _DragonChallengeCard extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   SizedBox(
                     height: artHeight,
                     child: Center(
                       child: Wrap(
                         alignment: WrapAlignment.center,
-                        spacing: 10,
-                        runSpacing: 10,
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
                           for (var i = 0; i < card.fields.length; i++)
                             _FieldSocket(
@@ -1081,8 +1084,8 @@ class _FieldSocket extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          width: 54,
-          height: 54,
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
             color: isComplete && !isSum
                 ? Colors.transparent
@@ -1154,7 +1157,7 @@ class _FieldSocket extends StatelessWidget {
                   color: isComplete && !isSum
                       ? const Color(0xFFD6B77A)
                       : const Color(0xFFFFF2D1),
-                  fontSize: isFilled ? 20 : 21,
+                  fontSize: isFilled ? 18 : 19,
                   height: .95,
                   fontWeight: FontWeight.w900,
                   shadows: isComplete && !isSum
@@ -1258,16 +1261,16 @@ class _RiskPanel extends StatelessWidget {
     final total = state.currentCard?.fields.length ?? 0;
     return Container(
       key: const Key('schuppenschatz-risk'),
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: _panel,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _muted.withValues(alpha: .3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.savings_rounded, color: _gold, size: 28),
-          const SizedBox(width: 10),
+          const Icon(Icons.savings_rounded, color: _gold, size: 23),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1281,7 +1284,7 @@ class _RiskPanel extends StatelessWidget {
                 ),
                 LocalizedText(
                   '$filled von $total Feldern · ${state.cardGold} Gold auf der Karte',
-                  style: const TextStyle(fontSize: 12, color: _muted),
+                  style: const TextStyle(fontSize: 11, color: _muted),
                 ),
               ],
             ),
@@ -1543,41 +1546,48 @@ class _AbilityBar extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: () => _showAbilityDialog(context, ability),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(99),
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0xFF8A4A22), Color(0xFF30140A)],
+                    colors: ability == DragonAbility.reroll
+                        ? const [Color(0xFF8A4A22), Color(0xFF30140A)]
+                        : const [Color(0xFFFFE8B0), Color(0xFFD5A75C)],
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(99),
                   border: Border.all(
-                    color: const Color(0xFFDDAE4B),
-                    width: 1.4,
+                    color: ability == DragonAbility.reroll
+                        ? const Color(0xFFDDAE4B)
+                        : const Color(0xFF653514),
+                    width: 1.2,
                   ),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x77000000),
-                      blurRadius: 5,
-                      offset: Offset(0, 3),
+                      color: Color(0x44000000),
+                      blurRadius: 3,
+                      offset: Offset(0, 2),
                     ),
                   ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(width: 6),
-                    Icon(_abilityIcon(ability), size: 16, color: _deepGold),
-                    const SizedBox(width: 6),
+                    Icon(
+                      _abilityIcon(ability),
+                      size: 15,
+                      color: ability == DragonAbility.reroll ? _deepGold : _ink,
+                    ),
+                    const SizedBox(width: 5),
                     Text(
                       _plainAbilityLabel(context, ability),
-                      style: const TextStyle(
-                        color: Color(0xFFFFE6A6),
+                      style: TextStyle(
+                        color: ability == DragonAbility.reroll
+                            ? const Color(0xFFFFE6A6)
+                            : _ink,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1703,94 +1713,121 @@ class _PlayerStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
+    const itemWidth = 142.0;
+    const gap = 8.0;
+    final contentWidth =
+        state.players.length * itemWidth +
+        (state.players.length - 1).clamp(0, 99) * gap;
+    final maxWidth = MediaQuery.sizeOf(context).width - 64;
+    final stripWidth = contentWidth < maxWidth ? contentWidth : maxWidth;
     return SizedBox(
       height: 62 + (textScale - 1).clamp(0, 1) * 30,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(
-          horizontal: state.players.length == 1 ? 72 : 2,
-        ),
-        itemCount: state.players.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final player = state.players[index];
-          final active = index == state.activePlayerIndex;
-          return Container(
-            key: Key('dragon-parchment-player-$index'),
-            width: 142,
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: active
-                    ? [const Color(0xFFFFE0A1), const Color(0xFFC98A36)]
-                    : [const Color(0xFFF5D493), const Color(0xFFB97832)],
-              ),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: active ? _deepGold : const Color(0xFF52290F),
-                width: active ? 2 : 1.3,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x66000000),
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
+      child: Center(
+        child: SizedBox(
+          width: stripWidth,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: state.players.length,
+            separatorBuilder: (_, _) => const SizedBox(width: gap),
+            itemBuilder: (context, index) {
+              final player = state.players[index];
+              final active = index == state.activePlayerIndex;
+              return Container(
+                key: Key('dragon-parchment-player-$index'),
+                width: 142,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 8,
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  player.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: _ink,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFF5D493), Color(0xFFB97832)],
                   ),
-                ),
-                const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.monetization_on_rounded,
-                      size: 14,
-                      color: _gold,
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      '${player.gold}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: _ink,
-                      ),
-                    ),
-                    const SizedBox(width: 9),
-                    const Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 13,
-                      color: _deepGold,
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      '${player.tamedCount}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: _ink,
-                      ),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFF52290F),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: active
+                          ? _deepGold.withValues(alpha: .75)
+                          : const Color(0x66000000),
+                      blurRadius: active ? 8 : 5,
+                      offset: Offset(0, 3),
                     ),
                   ],
                 ),
-              ],
-            ),
-          );
-        },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (active) ...[
+                          const Icon(
+                            Icons.shield_rounded,
+                            size: 13,
+                            color: _ink,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        Flexible(
+                          child: Text(
+                            player.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: _ink,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.monetization_on_rounded,
+                          size: 14,
+                          color: _gold,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          '${player.gold}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: _ink,
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        const Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 13,
+                          color: _deepGold,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          '${player.tamedCount}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: _ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
