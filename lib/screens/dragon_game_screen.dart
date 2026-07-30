@@ -310,7 +310,7 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
         child: SafeArea(
           bottom: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            padding: const EdgeInsets.fromLTRB(32, 12, 32, 16),
             children: [
               _StatusPanel(state: state),
               if (_game.lastMessage case final message?) ...[
@@ -623,18 +623,22 @@ class _DragonChallengeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(26),
         child: Stack(
           children: [
-            Positioned.fill(
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 92,
               child: IgnorePointer(
                 child: Image.asset(
                   _typeBackgroundAsset(card.type),
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   filterQuality: FilterQuality.high,
                   opacity: const AlwaysStoppedAnimation(.9),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(38, 42, 38, 46),
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -739,52 +743,55 @@ class _DragonChallengeCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Center(
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (var i = 0; i < card.fields.length; i++)
-                          _FieldSocket(
-                            index: i,
-                            field: card.fields[i],
-                            placed: attempt.placed[i],
-                            isOpen: fieldIsOpen(i),
-                            accent: color,
-                            reduction: state.fieldReductions.length > i
-                                ? state.fieldReductions[i]
-                                : 0,
-                            acceptsSelected:
-                                hasSelection &&
-                                fieldCanUseThisRoll(i) &&
-                                _fieldAcceptsSelection(
-                                  card.fields[i],
-                                  selectedDice,
-                                  card,
-                                  attempt.placed[i],
-                                  state.fieldReductions.length > i
-                                      ? state.fieldReductions[i]
-                                      : 0,
-                                ),
-                            onTap:
-                                fieldCanUseThisRoll(i) &&
-                                    enabled &&
-                                    (manualMode ||
-                                        (hasSelection &&
-                                            _fieldAcceptsSelection(
-                                              card.fields[i],
-                                              selectedDice,
-                                              card,
-                                              attempt.placed[i],
-                                              state.fieldReductions.length > i
-                                                  ? state.fieldReductions[i]
-                                                  : 0,
-                                            )))
-                                ? () => onFieldTap(i)
-                                : null,
-                          ),
-                      ],
+                  SizedBox(
+                    height: 92,
+                    child: Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (var i = 0; i < card.fields.length; i++)
+                            _FieldSocket(
+                              index: i,
+                              field: card.fields[i],
+                              placed: attempt.placed[i],
+                              isOpen: fieldIsOpen(i),
+                              accent: color,
+                              reduction: state.fieldReductions.length > i
+                                  ? state.fieldReductions[i]
+                                  : 0,
+                              acceptsSelected:
+                                  hasSelection &&
+                                  fieldCanUseThisRoll(i) &&
+                                  _fieldAcceptsSelection(
+                                    card.fields[i],
+                                    selectedDice,
+                                    card,
+                                    attempt.placed[i],
+                                    state.fieldReductions.length > i
+                                        ? state.fieldReductions[i]
+                                        : 0,
+                                  ),
+                              onTap:
+                                  fieldCanUseThisRoll(i) &&
+                                      enabled &&
+                                      (manualMode ||
+                                          (hasSelection &&
+                                              _fieldAcceptsSelection(
+                                                card.fields[i],
+                                                selectedDice,
+                                                card,
+                                                attempt.placed[i],
+                                                state.fieldReductions.length > i
+                                                    ? state.fieldReductions[i]
+                                                    : 0,
+                                              )))
+                                  ? () => onFieldTap(i)
+                                  : null,
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -1118,8 +1125,8 @@ class _FieldSocket extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          width: 64,
-          height: 64,
+          width: 54,
+          height: 54,
           decoration: BoxDecoration(
             color: isComplete && !isSum
                 ? Colors.transparent
@@ -1775,7 +1782,7 @@ class _PlayerStrip extends StatelessWidget {
               ],
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
                   player.name,
@@ -1788,6 +1795,7 @@ class _PlayerStrip extends StatelessWidget {
                 ),
                 const Spacer(),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(
                       Icons.monetization_on_rounded,
