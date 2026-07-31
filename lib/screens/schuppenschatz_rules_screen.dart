@@ -80,10 +80,9 @@ class SchuppenschatzRulesScreen extends StatelessWidget {
     (
       '🐉 Boss-Drache',
       'Alle 7 Karten erscheint ein Boss! Er hat 3–4 Felder mit hohen HP-Werten (z.B. 16/23/8).\n\n'
-          'Jeder Spieler würfelt und reduziert mit seinen Würfeln die HP der Felder. '
-          'Die Werte werden gespeichert und an den nächsten Spieler weitergegeben.\n\n'
-          'Wer das letzte Feld auf genau 0 bringt, besiegt den Boss und erhält 20 Gold!\n\n'
-          'Beispiel: Feld mit 16 HP → eine 6 reduziert auf 10, eine 4 auf 6, eine 6 auf 0 → besiegt!',
+          'In jedem Wurf musst du mindestens einen Würfel auf ein Boss-Feld legen. Danach darfst du mit den noch nicht gesetzten Würfeln neu würfeln oder den Boss weitergeben. Jedes Feld nur 1× pro Wurf.\n\n'
+          'Die HP werden gespeichert und an den nächsten Spieler weitergegeben. Wer das letzte Feld auf genau 0 bringt, besiegt den Boss und erhält 20 Gold!\n\n'
+          'Beispiel: Feld mit 16 HP → eine 6 reduziert auf 10, dann neu würfeln; eine 4 auf 6, dann neu würfeln; eine 6 auf 0 → besiegt!',
       Icons.cruelty_free_outlined,
     ),
     (

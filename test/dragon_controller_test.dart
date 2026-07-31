@@ -284,6 +284,44 @@ void main() {
         expect(game.lastMessage, contains('nächsten Spieler'));
       },
     );
+
+    test(
+      'boss reroll uses only the unplaced dice after at least one hit',
+      () async {
+        const boss = DragonCard(
+          id: 37,
+          type: DragonType.boss,
+          fields: [DragonField.bossHp(8)],
+        );
+        final game = digital(
+          rolls: [2, 1, 3, 4, 5, 6, 5, 4, 3],
+          cards: const [boss],
+        );
+        await game.rollDigital();
+        await game.toggleDie(0);
+        await game.placeSelectedOnField(0);
+
+        expect(game.canContinue, isTrue);
+        await game.continueRolling();
+
+        expect(game.state.dice.map((die) => die.value), [6, 5, 4, 3]);
+        expect(game.state.placementsSinceRoll, 0);
+        expect(game.state.bossFieldsUsedThisRoll, isEmpty);
+      },
+    );
+
+    test('boss cannot reroll before placing at least one die', () async {
+      const boss = DragonCard(
+        id: 37,
+        type: DragonType.boss,
+        fields: [DragonField.bossHp(8)],
+      );
+      final game = digital(rolls: [2, 1, 3, 4, 5], cards: const [boss]);
+      await game.rollDigital();
+
+      expect(game.canContinue, isFalse);
+      expect(game.continueRolling(), throwsStateError);
+    });
   });
 
   group('abilities', () {

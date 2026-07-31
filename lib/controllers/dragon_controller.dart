@@ -71,9 +71,10 @@ class DragonController extends ChangeNotifier {
 
   bool get canContinue =>
       !state.isComplete &&
-      !state.isBossCard &&
       state.placementsSinceRoll > 0 &&
-      (state.attempt?.openFieldIndices.isNotEmpty ?? false);
+      (state.isBossCard
+          ? state.mode == GameMode.block || state.dice.isNotEmpty
+          : (state.attempt?.openFieldIndices.isNotEmpty ?? false));
 
   bool get canBossEndTurn =>
       !state.isComplete && state.isBossCard && state.placementsSinceRoll > 0;
@@ -89,10 +90,11 @@ class DragonController extends ChangeNotifier {
 
   // ── Würfeln ────────────────────────────────────────────────────────────────
 
-  List<DieRoll> _rollDice() {
-    final count = max(1, standardDiceColors.length - state.handicapDice);
+  List<DieRoll> _rollDice({int? count}) {
+    final diceCount =
+        count ?? max(1, standardDiceColors.length - state.handicapDice);
     return List<DieRoll>.generate(
-      count,
+      diceCount,
       (i) => DieRoll(_roller(), standardDiceColors[i]),
     );
   }
@@ -411,7 +413,7 @@ class DragonController extends ChangeNotifier {
     );
   }
 
-  // ── Weiterwürfeln (normale Karten) ────────────────────────────────────────
+  // ── Weiterwürfeln ──────────────────────────────────────────────────────────
 
   Future<void> continueRolling() async {
     _ensureReady();
@@ -419,7 +421,6 @@ class DragonController extends ChangeNotifier {
     if (!canContinue) {
       throw StateError('Mindestens ein Würfel muss gelegt werden.');
     }
-    if (state.isBossCard) throw StateError('Boss-Karten: kein Weiterwürfeln.');
 
     if (state.mode == GameMode.block) {
       await _transactions.mutate(
@@ -437,7 +438,9 @@ class DragonController extends ChangeNotifier {
       return;
     }
 
-    final values = _rollDice();
+    final values = _rollDice(
+      count: state.isBossCard ? state.dice.length : null,
+    );
     var changed = state.copyWith(
       dice: values,
       selectedDieIndices: const [],
@@ -448,7 +451,7 @@ class DragonController extends ChangeNotifier {
       handicapDice: 0, // consumed
     );
     String? message;
-    if (!_hasAnyFit(changed)) {
+    if (!state.isBossCard && !_hasAnyFit(changed)) {
       final escapes =
           changed.triedPlayerIndices.length + 1 >= changed.players.length;
       changed = _failedNormalAttempt(changed);

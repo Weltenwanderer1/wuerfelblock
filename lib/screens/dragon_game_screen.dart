@@ -33,7 +33,7 @@ String _typeBackgroundAsset(DragonType type) => switch (type) {
   DragonType.fire => 'assets/images/schuppenschatz/card_fire_dragon.png',
   DragonType.luck => 'assets/images/schuppenschatz/card_luck_dragon.png',
   DragonType.ghost => 'assets/images/schuppenschatz/card_ghost_dragon.png',
-  DragonType.boss => 'assets/images/schuppenschatz/rune_dragon_card.png',
+  DragonType.boss => 'assets/images/schuppenschatz/card_boss_dragon.png',
 };
 
 String _typeIconAsset(DragonType type) => switch (type) {
@@ -41,15 +41,7 @@ String _typeIconAsset(DragonType type) => switch (type) {
   DragonType.fire => 'assets/images/schuppenschatz/icon_fire_dragon.png',
   DragonType.luck => 'assets/images/schuppenschatz/icon_luck_dragon.png',
   DragonType.ghost => 'assets/images/schuppenschatz/icon_ghost_dragon.png',
-  DragonType.boss => 'assets/images/schuppenschatz/rune_dragon_card.png',
-};
-
-Color _typeLight(DragonType type) => switch (type) {
-  DragonType.water => const Color(0xFF001D31),
-  DragonType.fire => const Color(0xFF2F1500),
-  DragonType.luck => const Color(0xFF064E3B),
-  DragonType.ghost => const Color(0xFF1A2B3C),
-  DragonType.boss => const Color(0xFF690005),
+  DragonType.boss => 'assets/images/schuppenschatz/icon_boss_dragon.png',
 };
 
 IconData _typeIcon(DragonType type) => switch (type) {
@@ -336,7 +328,7 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
                       if (isDigital)
                         _DigitalDiceArea(game: _game, onRun: _run)
                       else
-                        const _BlockDiceHint(),
+                        const SizedBox.shrink(),
                       const SizedBox(height: 8),
                       _AbilityBar(game: _game, onRun: _run),
                       const SizedBox(height: 8),
@@ -838,116 +830,145 @@ class _BossCard extends StatelessWidget {
         ? state.dice[state.selectedDieIndices.single].value
         : null;
 
-    return Container(
-      decoration: BoxDecoration(
-        image: const DecorationImage(
-          image: AssetImage(
-            'assets/images/schuppenschatz/rune_dragon_card.png',
-          ),
-          fit: BoxFit.cover,
-          opacity: .9,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(26),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: _boss.withValues(alpha: .6), width: 1.5),
+          borderRadius: BorderRadius.circular(26),
+          color: _panel,
         ),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _typeLight(DragonType.boss).withValues(alpha: .75),
-            _panel.withValues(alpha: .68),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: _boss.withValues(alpha: .6), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: _boss.withValues(alpha: .2),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: const BoxDecoration(
-                    color: _boss,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.cruelty_free_rounded,
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      LocalizedText(
-                        'Boss-Drache',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: _boss,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: const BoxDecoration(
+                      color: _boss,
+                      shape: BoxShape.circle,
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        _typeIconAsset(DragonType.boss),
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (_, _, _) => const Icon(
+                          Icons.cruelty_free_rounded,
+                          color: Colors.white,
+                          size: 24,
                         ),
                       ),
-                      LocalizedText(
-                        'Jedes Feld 1× pro Wurf · Würfel weitergeben',
-                        style: TextStyle(fontSize: 12, color: _muted),
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LocalizedText(
+                          'Boss-Drache',
+                          style: TextStyle(
+                            fontSize: 20,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            color: _ink,
+                          ),
+                        ),
+                        LocalizedText(
+                          'Mindestens 1 Würfel legen · Rest neu würfeln oder weitergeben',
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.15,
+                            fontWeight: FontWeight.w700,
+                            color: _muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _gold.withValues(alpha: .25),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: const Text(
+                      '20 🪙',
+                      style: TextStyle(
+                        color: _gold,
+                        fontWeight: FontWeight.w900,
                       ),
-                    ],
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _gold.withValues(alpha: .25),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: const Text(
-                    '20 🪙',
-                    style: TextStyle(color: _gold, fontWeight: FontWeight.w900),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < state.bossRemainingHp.length; i++) ...{
-                  if (i > 0) const SizedBox(width: 12),
-                  _BossHpField(
-                    key: Key('dragon-boss-field-$i'),
-                    index: i,
-                    hp: state.bossRemainingHp[i],
-                    maxHp: card.fields[i].bossHp ?? 0,
-                    usedThisRoll: state.bossFieldsUsedThisRoll.contains(i),
-                    acceptsSelected:
-                        selectedValue != null &&
-                        selectedValue <= state.bossRemainingHp[i] &&
-                        !state.bossFieldsUsedThisRoll.contains(i),
-                    onTap:
-                        enabled &&
-                            state.bossRemainingHp[i] > 0 &&
-                            !state.bossFieldsUsedThisRoll.contains(i) &&
-                            (manualMode ||
-                                (selectedValue != null &&
-                                    selectedValue <= state.bossRemainingHp[i]))
-                        ? () => onFieldTap(i)
-                        : null,
-                  ),
-                },
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) => SizedBox(
+                width: constraints.maxWidth,
+                height: constraints.maxWidth * 540 / 959,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Image.asset(
+                        _typeBackgroundAsset(DragonType.boss),
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.high,
+                      ),
+                    ),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            for (
+                              var i = 0;
+                              i < state.bossRemainingHp.length;
+                              i++
+                            )
+                              _BossHpField(
+                                key: Key('dragon-boss-field-$i'),
+                                index: i,
+                                hp: state.bossRemainingHp[i],
+                                maxHp: card.fields[i].bossHp ?? 0,
+                                usedThisRoll: state.bossFieldsUsedThisRoll
+                                    .contains(i),
+                                acceptsSelected:
+                                    selectedValue != null &&
+                                    selectedValue <= state.bossRemainingHp[i] &&
+                                    !state.bossFieldsUsedThisRoll.contains(i),
+                                onTap:
+                                    enabled &&
+                                        state.bossRemainingHp[i] > 0 &&
+                                        !state.bossFieldsUsedThisRoll.contains(
+                                          i,
+                                        ) &&
+                                        (manualMode ||
+                                            (selectedValue != null &&
+                                                selectedValue <=
+                                                    state.bossRemainingHp[i]))
+                                    ? () => onFieldTap(i)
+                                    : null,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -1507,28 +1528,6 @@ class _BoneMarblePainter extends CustomPainter {
   bool shouldRepaint(covariant _BoneMarblePainter oldDelegate) => false;
 }
 
-// ─── Block Dice Hint ──────────────────────────────────────────────────────────
-
-class _BlockDiceHint extends StatelessWidget {
-  const _BlockDiceHint();
-
-  @override
-  Widget build(BuildContext context) => const Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(Icons.touch_app_rounded, color: _deepGold),
-      SizedBox(width: 8),
-      Flexible(
-        child: LocalizedText(
-          'Passendes Feld antippen und den echten Würfelwert wählen.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontWeight: FontWeight.w700, color: _ink),
-        ),
-      ),
-    ],
-  );
-}
-
 // ─── Ability Bar ──────────────────────────────────────────────────────────────
 
 class _AbilityBar extends StatelessWidget {
@@ -1566,15 +1565,11 @@ class _AbilityBar extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: ability == DragonAbility.reroll
-                        ? const [Color(0xFF8A4A22), Color(0xFF30140A)]
-                        : const [Color(0xFFFFE8B0), Color(0xFFD5A75C)],
+                    colors: const [Color(0xFFFFE8B0), Color(0xFFD5A75C)],
                   ),
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(
-                    color: ability == DragonAbility.reroll
-                        ? const Color(0xFFDDAE4B)
-                        : const Color(0xFF653514),
+                    color: const Color(0xFF653514),
                     width: 1.2,
                   ),
                   boxShadow: const [
@@ -1588,11 +1583,7 @@ class _AbilityBar extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      _abilityIcon(ability),
-                      size: 15,
-                      color: ability == DragonAbility.reroll ? _deepGold : _ink,
-                    ),
+                    Icon(_abilityIcon(ability), size: 15, color: _ink),
                     const SizedBox(width: 5),
                     Flexible(
                       child: Text(
@@ -1600,9 +1591,7 @@ class _AbilityBar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                         style: TextStyle(
-                          color: ability == DragonAbility.reroll
-                              ? const Color(0xFFFFE6A6)
-                              : _ink,
+                          color: _ink,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
