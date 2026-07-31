@@ -1637,15 +1637,20 @@ class _AbilityBar extends StatelessWidget {
       if (fieldIdx == null || !context.mounted) return;
       final reduction = await showDialog<int>(
         context: context,
-        builder: (ctx) => SimpleDialog(
-          title: const LocalizedText('Um wie viel senken?'),
-          children: [
-            for (final r in [1, 2, 3])
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(ctx, r),
-                child: Text('−$r'),
-              ),
-          ],
+        builder: (ctx) => _DragonRuneDialog(
+          title: 'Um wie viel senken?',
+          icon: Icons.vertical_align_bottom_rounded,
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 10,
+            children: [
+              for (final r in [1, 2, 3])
+                _RuneChoiceButton(
+                  label: '−$r',
+                  onPressed: () => Navigator.pop(ctx, r),
+                ),
+            ],
+          ),
         ),
       );
       if (reduction == null) return;
@@ -1659,19 +1664,25 @@ class _AbilityBar extends StatelessWidget {
     } else {
       final confirm = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: LocalizedText(ability.label),
-          content: LocalizedText(ability.description),
+        builder: (ctx) => _DragonRuneDialog(
+          title: ability.label,
+          icon: _abilityIcon(ability),
           actions: [
-            TextButton(
+            _RuneTextAction(
+              label: 'Abbrechen',
               onPressed: () => Navigator.pop(ctx, false),
-              child: const LocalizedText('Abbrechen'),
             ),
-            FilledButton(
+            _RuneTextAction(
+              label: 'Einsetzen',
+              emphasized: true,
               onPressed: () => Navigator.pop(ctx, true),
-              child: const LocalizedText('Einsetzen'),
             ),
           ],
+          child: LocalizedText(
+            ability.description,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _ink, height: 1.25),
+          ),
         ),
       );
       if (confirm == true) {
@@ -1687,9 +1698,10 @@ class _ReduceDialog extends StatelessWidget {
   final List<int> reductions;
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const LocalizedText('Welches Feld senken?'),
-    content: Column(
+  Widget build(BuildContext context) => _DragonRuneDialog(
+    title: 'Welches Feld senken?',
+    icon: Icons.vertical_align_bottom_rounded,
+    child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < card.fields.length; i++)
@@ -1697,12 +1709,9 @@ class _ReduceDialog extends StatelessWidget {
               card.fields[i].kind == DragonFieldKind.coloredDie ||
               card.fields[i].kind == DragonFieldKind.sum ||
               card.fields[i].kind == DragonFieldKind.bossHp)
-            ListTile(
-              dense: true,
-              title: Text('Feld ${i + 1}: ${card.fields[i].symbol}'),
-              subtitle: reductions[i] > 0
-                  ? Text('Bereits −${reductions[i]}')
-                  : null,
+            _RuneFieldChoice(
+              label: 'Feld ${i + 1}: ${card.fields[i].symbol}',
+              subtitle: reductions[i] > 0 ? 'Bereits −${reductions[i]}' : null,
               onTap: () => Navigator.pop(context, i),
             ),
       ],
@@ -2041,20 +2050,225 @@ class _ManualValueDialog extends StatelessWidget {
   final List<int> validValues;
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const LocalizedText('Passenden Würfel wählen'),
-    content: Wrap(
-      spacing: 8,
-      runSpacing: 8,
+  Widget build(BuildContext context) => _DragonRuneDialog(
+    title: 'Passenden Würfel wählen',
+    icon: Icons.casino_rounded,
+    child: Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 10,
+      runSpacing: 10,
       children: [
         for (final value in validValues)
-          FilledButton(
+          _RuneChoiceButton(
             key: Key('dragon-manual-value-$value'),
+            label: '$value',
             onPressed: () => Navigator.pop(context, value),
-            style: FilledButton.styleFrom(minimumSize: const Size(54, 54)),
-            child: Text('$value', style: const TextStyle(fontSize: 20)),
           ),
       ],
+    ),
+  );
+}
+
+class _DragonRuneDialog extends StatelessWidget {
+  const _DragonRuneDialog({
+    required this.title,
+    required this.icon,
+    required this.child,
+    this.actions = const [],
+  });
+  final String title;
+  final IconData icon;
+  final Widget child;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    key: const Key('dragon-rune-dialog'),
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 430),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          image: const DecorationImage(
+            image: AssetImage(
+              'assets/images/schuppenschatz/rune_dialog_frame.png',
+            ),
+            fit: BoxFit.cover,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _deepGold, width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0xCC100703),
+              blurRadius: 28,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _ink,
+                  border: Border.all(color: _gold, width: 2),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x997E4B16), blurRadius: 10),
+                  ],
+                ),
+                child: Icon(icon, color: _deepGold, size: 25),
+              ),
+              const SizedBox(height: 10),
+              LocalizedText(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 22,
+                  height: 1.05,
+                  fontFamily: 'serif',
+                  fontWeight: FontWeight.w900,
+                  color: _ink,
+                ),
+              ),
+              const SizedBox(height: 18),
+              child,
+              if (actions.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: actions,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _RuneChoiceButton extends StatelessWidget {
+  const _RuneChoiceButton({
+    required this.label,
+    required this.onPressed,
+    super.key,
+  });
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        width: 62,
+        height: 62,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF9F6237), Color(0xFF4A210D)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _deepGold, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x660F0602),
+              blurRadius: 5,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFFFFEDB5),
+              fontSize: 23,
+              fontFamily: 'serif',
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _RuneTextAction extends StatelessWidget {
+  const _RuneTextAction({
+    required this.label,
+    required this.onPressed,
+    this.emphasized = false,
+  });
+  final String label;
+  final VoidCallback onPressed;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(left: 8),
+    child: TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: emphasized ? const Color(0xFFFFEDB5) : _ink,
+        backgroundColor: emphasized ? _ink : _gold.withValues(alpha: .25),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      child: LocalizedText(label),
+    ),
+  );
+}
+
+class _RuneFieldChoice extends StatelessWidget {
+  const _RuneFieldChoice({
+    required this.label,
+    required this.onTap,
+    this.subtitle,
+  });
+  final String label;
+  final String? subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xCCFFF0BF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF70411B)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(color: _ink, fontWeight: FontWeight.w900),
+            ),
+            if (subtitle != null)
+              Text(
+                subtitle!,
+                style: const TextStyle(color: _muted, fontSize: 12),
+              ),
+          ],
+        ),
+      ),
     ),
   );
 }

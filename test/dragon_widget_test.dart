@@ -296,6 +296,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('dragon-field-0')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('dragon-rune-dialog')), findsOneWidget);
     await tester.tap(find.byKey(const Key('dragon-manual-value-4')));
     await tester.pumpAndSettle();
 
