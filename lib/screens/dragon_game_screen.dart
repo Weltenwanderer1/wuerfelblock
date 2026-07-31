@@ -577,152 +577,147 @@ class _DragonChallengeCard extends StatelessWidget {
         !(card.fields[i].kind == DragonFieldKind.sum &&
             state.sumFieldsReducedThisRoll.contains(i));
 
-    return Container(
+    return ClipRRect(
       key: const Key('dragon-rune-card-frame'),
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(_typeBackgroundAsset(card.type)),
-          fit: BoxFit.cover,
-          opacity: 0.55,
+      borderRadius: BorderRadius.circular(26),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withValues(alpha: .4), width: 1.5),
+          borderRadius: BorderRadius.circular(26),
+          color: _panel,
         ),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _typeLight(card.type).withValues(alpha: .65),
-            _panel.withValues(alpha: .55),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: color.withValues(alpha: .4), width: 1.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      _typeIconAsset(card.type),
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (_, _, _) => Icon(
-                        _typeIcon(card.type),
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      LocalizedText(
-                        card.type.label,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          height: 1,
-                          fontWeight: FontWeight.w900,
-                          color: _ink,
-                        ),
-                      ),
-                      LocalizedText(
-                        _typeHint(card.type),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          height: 1.15,
-                          fontWeight: FontWeight.w700,
-                          color: _muted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (card.bonusPoints > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _luck.withValues(alpha: .3),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      '+${card.bonusPoints}★',
-                      style: const TextStyle(
-                        color: _luck,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                if (state.cardGold > 0) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _gold.withValues(alpha: .25),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      '+${state.cardGold}',
-                      style: const TextStyle(
-                        color: _gold,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
+              child: Row(
                 children: [
-                  for (var i = 0; i < card.fields.length; i++)
-                    _FieldSocket(
-                      index: i,
-                      field: card.fields[i],
-                      placed: attempt.placed[i],
-                      isOpen: fieldIsOpen(i),
-                      accent: color,
-                      reduction: state.fieldReductions.length > i
-                          ? state.fieldReductions[i]
-                          : 0,
-                      acceptsSelected:
-                          hasSelection &&
-                          fieldCanUseThisRoll(i) &&
-                          _fieldAcceptsSelection(
-                            card.fields[i],
-                            selectedDice,
-                            card,
-                            attempt.placed[i],
-                            state.fieldReductions.length > i
-                                ? state.fieldReductions[i]
-                                : 0,
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        _typeIconAsset(card.type),
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (_, _, _) => Icon(
+                          _typeIcon(card.type),
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LocalizedText(
+                          card.type.label,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            color: _ink,
                           ),
-                      onTap:
-                          fieldCanUseThisRoll(i) &&
-                              enabled &&
-                              (manualMode ||
-                                  (hasSelection &&
+                        ),
+                        LocalizedText(
+                          _typeHint(card.type),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            height: 1.15,
+                            fontWeight: FontWeight.w700,
+                            color: _muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (card.bonusPoints > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _luck.withValues(alpha: .3),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        '+${card.bonusPoints}★',
+                        style: const TextStyle(
+                          color: _luck,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  if (state.cardGold > 0) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _gold.withValues(alpha: .25),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        '+${state.cardGold}',
+                        style: const TextStyle(
+                          color: _gold,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final idealHeight = constraints.maxWidth * 540 / 959;
+                final clampedHeight = idealHeight.clamp(0.0, 160.0);
+                return SizedBox(
+                  width: constraints.maxWidth,
+                  height: clampedHeight,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Image.asset(
+                          _typeBackgroundAsset(card.type),
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.high,
+                        ),
+                      ),
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (var i = 0; i < card.fields.length; i++)
+                                _FieldSocket(
+                                  index: i,
+                                  field: card.fields[i],
+                                  placed: attempt.placed[i],
+                                  isOpen: fieldIsOpen(i),
+                                  accent: color,
+                                  reduction: state.fieldReductions.length > i
+                                      ? state.fieldReductions[i]
+                                      : 0,
+                                  acceptsSelected:
+                                      hasSelection &&
+                                      fieldCanUseThisRoll(i) &&
                                       _fieldAcceptsSelection(
                                         card.fields[i],
                                         selectedDice,
@@ -731,12 +726,35 @@ class _DragonChallengeCard extends StatelessWidget {
                                         state.fieldReductions.length > i
                                             ? state.fieldReductions[i]
                                             : 0,
-                                      )))
-                          ? () => onFieldTap(i)
-                          : null,
-                    ),
-                ],
-              ),
+                                      ),
+                                  onTap:
+                                      fieldCanUseThisRoll(i) &&
+                                          enabled &&
+                                          (manualMode ||
+                                              (hasSelection &&
+                                                  _fieldAcceptsSelection(
+                                                    card.fields[i],
+                                                    selectedDice,
+                                                    card,
+                                                    attempt.placed[i],
+                                                    state.fieldReductions
+                                                                .length >
+                                                            i
+                                                        ? state
+                                                            .fieldReductions[i]
+                                                        : 0,
+                                                  )))
+                                      ? () => onFieldTap(i)
+                                      : null,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
