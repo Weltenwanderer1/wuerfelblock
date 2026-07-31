@@ -15,8 +15,15 @@ class DragonController extends ChangeNotifier {
     required DragonGameState state,
     required this.repository,
     int Function()? roller,
+    DragonAbility Function()? abilityRewarder,
   }) : _state = state,
-       _roller = roller ?? (() => Random().nextInt(6) + 1) {
+       _roller = roller ?? (() => Random().nextInt(6) + 1),
+       _abilityRewarder =
+           abilityRewarder ??
+           (() =>
+               DragonAbility.values[Random().nextInt(
+                 DragonAbility.values.length,
+               )]) {
     _transactions = ControllerTransactions<_DragonSnapshot, _DragonSnapshot>(
       capture: () => (state: _state.copy(), message: lastMessage),
       restore: _restoreSnapshot,
@@ -33,6 +40,7 @@ class DragonController extends ChangeNotifier {
     bool quickGame = false,
     List<DragonCard>? shuffledCards,
     int Function()? roller,
+    DragonAbility Function()? abilityRewarder,
   }) => DragonController(
     state: DragonGameState.newGame(
       names,
@@ -42,12 +50,14 @@ class DragonController extends ChangeNotifier {
     ),
     repository: repository,
     roller: roller,
+    abilityRewarder: abilityRewarder,
   );
 
   DragonGameState _state;
   DragonGameState get state => _state;
   final GameRepository repository;
   final int Function() _roller;
+  final DragonAbility Function() _abilityRewarder;
   late final ControllerTransactions<_DragonSnapshot, _DragonSnapshot>
   _transactions;
   String? lastMessage;
@@ -118,7 +128,10 @@ class DragonController extends ChangeNotifier {
       handicapDice: 0, // consumed
     );
     String? message;
-    if (!state.isBossCard && !_hasAnyFit(changed)) {
+    if (state.isBossCard && !_hasAnyBossFit(changed)) {
+      changed = _passBoss(changed);
+      message = 'Fehlwurf – der Boss zieht unverändert weiter.';
+    } else if (!state.isBossCard && !_hasAnyFit(changed)) {
       final escapes =
           changed.triedPlayerIndices.length + 1 >= changed.players.length;
       changed = _failedNormalAttempt(changed);
@@ -286,7 +299,7 @@ class DragonController extends ChangeNotifier {
 
         if (hp.every((h) => h <= 0)) {
           changed = _bossDefeated(changed);
-          lastMessage = 'Boss-Drache besiegt! 20 Gold!';
+          lastMessage = 'Boss-Drache besiegt! 25 Gold!';
         }
         _state = changed;
       },
@@ -331,7 +344,7 @@ class DragonController extends ChangeNotifier {
           );
           if (hp.every((h) => h <= 0)) {
             changed = _bossDefeated(changed);
-            lastMessage = 'Boss-Drache besiegt! 20 Gold!';
+            lastMessage = 'Boss-Drache besiegt! 25 Gold!';
           }
           _state = changed;
         },
@@ -451,7 +464,10 @@ class DragonController extends ChangeNotifier {
       handicapDice: 0, // consumed
     );
     String? message;
-    if (!state.isBossCard && !_hasAnyFit(changed)) {
+    if (state.isBossCard && !_hasAnyBossFit(changed)) {
+      changed = _passBoss(changed);
+      message = 'Fehlwurf – der Boss zieht unverändert weiter.';
+    } else if (!state.isBossCard && !_hasAnyFit(changed)) {
       final escapes =
           changed.triedPlayerIndices.length + 1 >= changed.players.length;
       changed = _failedNormalAttempt(changed);
@@ -568,14 +584,18 @@ class DragonController extends ChangeNotifier {
 
         switch (ability) {
           case DragonAbility.reroll:
-            if (state.dice.isEmpty) {
+            if (state.mode == GameMode.digital && state.dice.isEmpty) {
               throw StateError('Kein Wurf zum Neuwerfen.');
             }
             changed = changed.copyWith(
-              dice: _rollDice(),
+              dice: state.mode == GameMode.digital
+                  ? _rollDice(count: state.dice.length)
+                  : const [],
               selectedDieIndices: const [],
             );
-            lastMessage = '🔄 Wurf neu gewürfelt!';
+            lastMessage = state.mode == GameMode.digital
+                ? '🔄 Wurf neu gewürfelt!'
+                : '🔄 Würfel neu werfen – Fähigkeit verbraucht!';
           case DragonAbility.reduce:
             if (fieldIndex == null || reduction == null) {
               throw ArgumentError('Feld und Reduktion nötig.');
@@ -593,7 +613,7 @@ class DragonController extends ChangeNotifier {
               changed = changed.copyWith(bossRemainingHp: hp);
               if (hp.every((value) => value == 0)) {
                 changed = _bossDefeated(changed);
-                lastMessage = '📉 Boss geschwächt und besiegt! 20 Gold!';
+                lastMessage = '📉 Boss geschwächt und besiegt! 25 Gold!';
               } else {
                 lastMessage = '📉 Boss-Feld um $reduction HP geschwächt!';
               }
@@ -643,6 +663,9 @@ class DragonController extends ChangeNotifier {
         ) ||
         _hasSumFit(st);
   }
+
+  bool _hasAnyBossFit(DragonGameState st) =>
+      st.dice.any((die) => st.bossRemainingHp.any((hp) => die.value <= hp));
 
   bool _hasSumFit(DragonGameState st) {
     final attempt = st.attempt;
@@ -713,9 +736,13 @@ class DragonController extends ChangeNotifier {
     final diceReward = source.attempt!.diceGold + card.bonusPoints;
     final players = List<DragonPlayer>.of(source.players);
     final player = players[source.activePlayerIndex];
+    final reward = card.type == DragonType.luck ? _abilityRewarder() : null;
     players[source.activePlayerIndex] = player.copyWith(
       gold: player.gold + diceReward + source.cardGold,
       tamedDragonIds: [...player.tamedDragonIds, card.id],
+      earnedAbilities: reward == null
+          ? player.earnedAbilities
+          : [...player.earnedAbilities, reward],
     );
     return _drawNext(
       source.copyWith(
@@ -739,7 +766,7 @@ class DragonController extends ChangeNotifier {
     final players = List<DragonPlayer>.of(source.players);
     final player = players[source.activePlayerIndex];
     players[source.activePlayerIndex] = player.copyWith(
-      gold: player.gold + 20,
+      gold: player.gold + 25,
       tamedDragonIds: [...player.tamedDragonIds, source.currentCard!.id],
     );
     return _drawNext(

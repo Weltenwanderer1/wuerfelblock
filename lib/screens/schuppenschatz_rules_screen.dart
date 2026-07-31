@@ -21,9 +21,9 @@ class SchuppenschatzRulesScreen extends StatelessWidget {
     ),
     (
       'Spielmaterial & Vorbereitung',
-      '41 Drachenkarten (9 Wasser, 9 Feuer, 9 Glück, 9 Geister, 5 Bosse), '
-          '48 Goldplättchen, 5 Würfel (2 weiß, 1 blau, 1 grün, 1 schwarz), 1 Bonuskarte (20 Gold). '
-          'Mischt die Karten und legt sie als verdeckten Stapel bereit. '
+      '28 Drachenkarten pro normaler Partie (aus dem 41-Karten-Stapel: 9 Wasser, 9 Feuer, 9 Glück, 9 Geister, 5 Bosse), '
+          '18 Karten im schnellen Spiel, 48 Goldplättchen, 5 Würfel (2 weiß, 1 blau, 1 grün, 1 schwarz), 1 Bonuskarte (20 Gold). '
+          'Mischt die Karten und legt den gewählten Stapel verdeckt bereit. '
           'Jeder 7. Platz im Stapel ist ein Boss-Drache.',
       Icons.deck_outlined,
     ),
@@ -50,7 +50,7 @@ class SchuppenschatzRulesScreen extends StatelessWidget {
       '💧 Wasserdrache (blau): Hat ein blaues Würfelfeld – die Zahl muss mit dem blauen Würfel getroffen werden. Das Farbfeld ist kein Pflichtfeld.\n\n'
           '🔥 Feuerdrache (rot): Hat ein Summenfeld, das über 2–3 Würfe reduziert wird.\n\n'
           '★ Glücksdrache (lila): Separate Pflichtfelder + ein grünes Würfelfeld. '
-          'Pflichtfelder müssen zuerst voll sein.\n\n'
+          'Pflichtfelder müssen zuerst voll sein. Beim Zähmen erhältst du zufällig eine zusätzliche Spezialfähigkeit.\n\n'
           '👻 Geisterdrache (schwarz): Ein schwarzes Würfelfeld + ein Summenfeld über 2–4 Würfe. '
           'Zusätzlich 5–10 Bonuspunkte je nach Schwierigkeit.',
       Icons.auto_awesome,
@@ -81,13 +81,14 @@ class SchuppenschatzRulesScreen extends StatelessWidget {
       '🐉 Boss-Drache',
       'Alle 7 Karten erscheint ein Boss! Er hat 3–4 Felder mit hohen HP-Werten (z.B. 16/23/8).\n\n'
           'In jedem Wurf musst du mindestens einen Würfel auf ein Boss-Feld legen. Danach darfst du mit den noch nicht gesetzten Würfeln neu würfeln oder den Boss weitergeben. Jedes Feld nur 1× pro Wurf.\n\n'
-          'Die HP werden gespeichert und an den nächsten Spieler weitergegeben. Wer das letzte Feld auf genau 0 bringt, besiegt den Boss und erhält 20 Gold!\n\n'
+          'Die HP werden gespeichert und an den nächsten Spieler weitergegeben. Wer das letzte Feld auf genau 0 bringt, besiegt den Boss und erhält 25 Gold. Ein Fehlwurf gibt den Boss unverändert weiter – kein rückwirkender Sieg für den vorherigen Spieler.\n\n'
           'Beispiel: Feld mit 16 HP → eine 6 reduziert auf 10, dann neu würfeln; eine 4 auf 6, dann neu würfeln; eine 6 auf 0 → besiegt!',
       Icons.cruelty_free_outlined,
     ),
     (
-      '⚡ Fähigkeiten (1× pro Spieler/Spiel)',
-      '🔄 Neu würfeln: Den letzten Wurf komplett neu würfeln.\n\n'
+      '⚡ Fähigkeiten',
+      'Zu Beginn besitzt jede Person jede Fähigkeit 1×. Für jeden gezähmten Glücksdrachen kommt zufällig eine weitere Ladung einer Fähigkeit dazu – ohne Obergrenze.\n\n'
+          '🔄 Neu würfeln: Den letzten Wurf komplett neu würfeln.\n\n'
           '📉 Reduzieren: Eine Vorgabe auf der Karte um 1–3 Punkte senken.\n\n'
           '🎯 Gegner schwächen: Der nächste Spieler würfelt mit nur 3 statt 5 Würfeln.',
       Icons.bolt_outlined,

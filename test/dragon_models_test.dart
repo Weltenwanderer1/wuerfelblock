@@ -41,7 +41,7 @@ void main() {
     33: 'G:k6,s12/2-4,n5+10',
     34: 'G:k3,s10/2-4,n3,e+7',
     35: 'G:k4,s12/2-4,n3+8',
-    36: 'G:k3,s14/2-4,e,n2+10',
+    36: 'G:k3,s12/2-4,e,n2+10',
     37: 'B:h12,h16,h8',
     38: 'B:h14,h18,h10',
     39: 'B:h10,h14,h18,h6',
@@ -174,6 +174,20 @@ void main() {
         expect(
           card.fields.any((field) => field.kind == DragonFieldKind.flame),
           isFalse,
+        );
+      }
+    });
+    test('every normal dragon can be tamed with five dice', () {
+      for (final card in deck.where((card) => !card.isBoss)) {
+        final minimumDice = card.fields.fold<int>(0, (total, field) {
+          if (field.kind != DragonFieldKind.sum) return total + 1;
+          final target = field.sumTarget!;
+          return total + (target + 5) ~/ 6;
+        });
+        expect(
+          minimumDice,
+          lessThanOrEqualTo(5),
+          reason: 'Drache ${card.id} braucht mindestens $minimumDice Würfel.',
         );
       }
     });
@@ -553,12 +567,12 @@ void main() {
       );
     });
     test(
-      'full and quick games contain 41 and 20 cards including current card',
+      'full and quick games contain 28 and 18 cards including current card',
       () {
         final deck = DragonDeck.buildDeck(random: Random(4));
         expect(
           DragonGameState.newGame(['A', 'B'], shuffledCards: deck).cardsInGame,
-          41,
+          28,
         );
         expect(
           DragonGameState.newGame(
@@ -566,7 +580,7 @@ void main() {
             quickGame: true,
             shuffledCards: deck,
           ).cardsInGame,
-          20,
+          18,
         );
       },
     );

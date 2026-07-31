@@ -43,6 +43,7 @@ DragonController digital({
   List<DragonCard> cards = const [permissiveCard],
   List<String> names = const ['Ada', 'Bob'],
   TestRepository? repository,
+  DragonAbility Function()? abilityRewarder,
 }) {
   final values = List<int>.of(rolls);
   return DragonController.newGame(
@@ -51,6 +52,7 @@ DragonController digital({
     repository: repository ?? TestRepository(),
     shuffledCards: cards,
     roller: () => values.removeAt(0),
+    abilityRewarder: abilityRewarder,
   );
 }
 
@@ -84,7 +86,7 @@ void main() {
       expect(game.state.players.every((player) => player.gold == 0), isTrue);
     });
 
-    test('supports the twenty-card quick game', () {
+    test('supports the eighteen-card quick game', () {
       final game = DragonController.newGame(
         names: const ['Ada', 'Bob'],
         quickGame: true,
@@ -92,8 +94,8 @@ void main() {
         shuffledCards: DragonDeck.cards,
       );
 
-      expect(game.state.cardsInGame, 20);
-      expect(game.state.cardsRemaining, 20);
+      expect(game.state.cardsInGame, 18);
+      expect(game.state.cardsRemaining, 18);
     });
   });
 
@@ -245,7 +247,7 @@ void main() {
       expect(game.canBossEndTurn, isTrue);
     });
 
-    test('defeating the boss awards exactly 20 regular gold', () async {
+    test('defeating the boss awards exactly 25 regular gold', () async {
       const boss = DragonCard(
         id: 37,
         type: DragonType.boss,
@@ -257,11 +259,31 @@ void main() {
 
       await game.placeSelectedOnField(0);
 
-      expect(game.state.players[0].gold, 20);
+      expect(game.state.players[0].gold, 25);
       expect(game.state.players[0].tamedDragonIds, [37]);
       expect(game.state.isComplete, isTrue);
-      expect(game.lastMessage, contains('20 Gold'));
+      expect(game.lastMessage, contains('25 Gold'));
     });
+
+    test(
+      'a boss Fehlwurf passes it unchanged without a retroactive winner',
+      () async {
+        const boss = DragonCard(
+          id: 37,
+          type: DragonType.boss,
+          fields: [DragonField.bossHp(1)],
+        );
+        final game = digital(rolls: [2, 3, 4, 5, 6], cards: const [boss]);
+
+        await game.rollDigital();
+
+        expect(game.state.activePlayerIndex, 1);
+        expect(game.state.bossRemainingHp, [1]);
+        expect(game.state.players.map((player) => player.gold), [0, 0]);
+        expect(game.state.dice, isEmpty);
+        expect(game.lastMessage, contains('Fehlwurf'));
+      },
+    );
 
     test(
       'endTurn passes an injured boss and preserves its remaining HP',
@@ -341,6 +363,15 @@ void main() {
         );
       },
     );
+
+    test('reroll is also consumed in block mode without app dice', () async {
+      final game = block();
+
+      await game.useAbility(DragonAbility.reroll);
+
+      expect(game.state.activePlayer.usedAbilities, [DragonAbility.reroll]);
+      expect(game.lastMessage, contains('Fähigkeit verbraucht'));
+    });
 
     test('reduce records a one-to-three point field reduction', () async {
       const card = DragonCard(
@@ -440,6 +471,33 @@ void main() {
       ]);
       expect(game.state.activePlayer.usedAbilities, [DragonAbility.handicap]);
     });
+  });
+
+  test('taming a luck dragon grants a random extra ability charge', () async {
+    const luck = DragonCard(
+      id: 19,
+      type: DragonType.luck,
+      fields: [DragonField.empty()],
+    );
+    const next = DragonCard(
+      id: 1,
+      type: DragonType.water,
+      fields: [DragonField.empty()],
+    );
+    final game = digital(
+      rolls: [4, 1, 2, 3, 5],
+      cards: const [luck, next],
+      abilityRewarder: () => DragonAbility.reroll,
+    );
+
+    await game.rollDigital();
+    await game.toggleDie(0);
+    await game.placeSelectedOnField(0);
+
+    final winner = game.state.players.first;
+    expect(winner.earnedAbilities, [DragonAbility.reroll]);
+    expect(winner.availableAbilityCount(DragonAbility.reroll), 2);
+    expect(winner.availableAbilityCount(DragonAbility.reduce), 1);
   });
 
   test('taming a ghost adds its bonusPoints to placed-dice gold', () async {

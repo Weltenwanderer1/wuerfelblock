@@ -383,7 +383,7 @@ class _SetupScreenState extends State<SetupScreen> {
               value: dragonQuickGame,
               onChanged: (value) =>
                   setState(() => dragonQuickGame = value ?? false),
-              title: const LocalizedText('Schnelles Spiel (20 Karten)'),
+              title: const LocalizedText('Schnelles Spiel (18 Karten)'),
               dense: true,
               contentPadding: EdgeInsets.zero,
             ),

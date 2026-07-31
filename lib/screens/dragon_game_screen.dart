@@ -847,8 +847,8 @@ class _BossCard extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 64,
+                    height: 64,
                     decoration: const BoxDecoration(
                       color: _boss,
                       shape: BoxShape.circle,
@@ -861,7 +861,7 @@ class _BossCard extends StatelessWidget {
                         errorBuilder: (_, _, _) => const Icon(
                           Icons.cruelty_free_rounded,
                           color: Colors.white,
-                          size: 24,
+                          size: 36,
                         ),
                       ),
                     ),
@@ -902,7 +902,7 @@ class _BossCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: const Text(
-                      '20 🪙',
+                      '25 🪙',
                       style: TextStyle(
                         color: _gold,
                         fontWeight: FontWeight.w900,
@@ -1587,7 +1587,7 @@ class _AbilityBar extends StatelessWidget {
                     const SizedBox(width: 5),
                     Flexible(
                       child: Text(
-                        _plainAbilityLabel(context, ability),
+                        '${_plainAbilityLabel(context, ability)} ×${player.availableAbilityCount(ability)}',
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                         style: TextStyle(

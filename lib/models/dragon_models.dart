@@ -421,7 +421,7 @@ abstract final class DragonDeck {
     DragonCard(id: 26, type: DragonType.luck, fields: [_m2, _g2, _m3]),
     DragonCard(id: 27, type: DragonType.luck, fields: [_g6, _m4, _m3, _e]),
 
-    // ── Geisterdrachen (28–36): Schwer, Farbwürfel + Summe 10–14 + Bonus, max ~16–22
+    // ── Geisterdrachen (28–36): Schwer, Farbwürfel + Summe 10–12 + Bonus, max ~16–22
     DragonCard(
       id: 28,
       type: DragonType.ghost,
@@ -473,7 +473,7 @@ abstract final class DragonDeck {
     DragonCard(
       id: 36,
       type: DragonType.ghost,
-      fields: [_k3, DragonField.sum(14), _e, _n2],
+      fields: [_k3, DragonField.sum(12), _e, _n2],
       bonusPoints: 10,
     ),
   ];
@@ -781,22 +781,33 @@ class DragonPlayer {
     this.bonusGold = 0,
     this.tamedDragonIds = const [],
     this.usedAbilities = const [],
+    this.earnedAbilities = const [],
   });
   final String name;
   final int gold;
   final int bonusGold;
   final List<int> tamedDragonIds;
+
+  /// Abgerufene Fähigkeiten; jede Fähigkeit startet mit einer Ladung.
   final List<DragonAbility> usedAbilities;
+
+  /// Zusätzliche, durch Glücksdrachen erhaltene Ladungen.
+  final List<DragonAbility> earnedAbilities;
 
   int get totalGold => gold + bonusGold;
   int get tamedCount => tamedDragonIds.length;
-  bool canUse(DragonAbility a) => !usedAbilities.contains(a);
+  int availableAbilityCount(DragonAbility ability) =>
+      1 +
+      earnedAbilities.where((a) => a == ability).length -
+      usedAbilities.where((a) => a == ability).length;
+  bool canUse(DragonAbility ability) => availableAbilityCount(ability) > 0;
 
   DragonPlayer copyWith({
     int? gold,
     int? bonusGold,
     List<int>? tamedDragonIds,
     List<DragonAbility>? usedAbilities,
+    List<DragonAbility>? earnedAbilities,
   }) => DragonPlayer(
     name: name,
     gold: gold ?? this.gold,
@@ -807,6 +818,9 @@ class DragonPlayer {
     usedAbilities: List<DragonAbility>.unmodifiable(
       usedAbilities ?? this.usedAbilities,
     ),
+    earnedAbilities: List<DragonAbility>.unmodifiable(
+      earnedAbilities ?? this.earnedAbilities,
+    ),
   );
 
   Map<String, dynamic> toJson() => {
@@ -815,23 +829,37 @@ class DragonPlayer {
     'bonusGold': bonusGold,
     'tamedDragonIds': tamedDragonIds,
     'usedAbilities': usedAbilities.map((a) => a.name).toList(),
+    'earnedAbilities': earnedAbilities.map((a) => a.name).toList(),
   };
   factory DragonPlayer.fromJson(Map<String, dynamic> json) {
-    _requireExactKeys(json, const {
+    const legacyKeys = {
       'name',
       'gold',
       'bonusGold',
       'tamedDragonIds',
       'usedAbilities',
-    });
+    };
+    const currentKeys = {...legacyKeys, 'earnedAbilities'};
+    final keys = json.keys.toSet();
+    final matchesLegacy =
+        keys.difference(legacyKeys).isEmpty &&
+        legacyKeys.difference(keys).isEmpty;
+    final matchesCurrent =
+        keys.difference(currentKeys).isEmpty &&
+        currentKeys.difference(keys).isEmpty;
+    if (!matchesLegacy && !matchesCurrent) {
+      throw const FormatException('Unerwartete oder fehlende JSON-Felder.');
+    }
     final ids = json['tamedDragonIds'];
     final abilities = json['usedAbilities'];
+    final earned = json['earnedAbilities'] ?? const <dynamic>[];
     if (json['name'] is! String ||
         json['gold'] is! int ||
         json['bonusGold'] is! int ||
         ids is! List ||
         ids.any((e) => e is! int) ||
-        abilities is! List) {
+        abilities is! List ||
+        earned is! List) {
       throw const FormatException('Ungültiger Spieler.');
     }
     return DragonPlayer(
@@ -840,6 +868,9 @@ class DragonPlayer {
       bonusGold: json['bonusGold'] as int,
       tamedDragonIds: ids.cast<int>(),
       usedAbilities: (abilities.cast<String>())
+          .map(DragonAbility.values.byName)
+          .toList(),
+      earnedAbilities: (earned.cast<String>())
           .map(DragonAbility.values.byName)
           .toList(),
     );
@@ -908,7 +939,7 @@ class DragonGameState implements SavedGameState {
       throw ArgumentError('Schuppenschatz braucht 2 bis 4 eindeutige Spieler.');
     }
     final cards = shuffledCards ?? DragonDeck.buildDeck(random: random);
-    final chosen = cards.take(quickGame ? 20 : cards.length).toList();
+    final chosen = cards.take(quickGame ? 18 : 28).toList();
     if (chosen.isEmpty) {
       throw ArgumentError('Mindestens eine Drachenkarte ist nötig.');
     }

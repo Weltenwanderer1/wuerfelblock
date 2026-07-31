@@ -60,7 +60,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key('dragon-quick-game')), findsOneWidget);
-      expect(find.text('Schnelles Spiel (20 Karten)'), findsOneWidget);
+      expect(find.text('Schnelles Spiel (18 Karten)'), findsOneWidget);
       await tester.tap(find.byKey(const Key('dragon-quick-game')));
       await tester.pump();
       for (var i = 0; i < 2; i++) {
@@ -79,7 +79,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(started, isA<DragonController>());
-      expect((started! as DragonController).state.cardsInGame, 20);
+      expect((started! as DragonController).state.cardsInGame, 18);
     },
   );
 
@@ -531,7 +531,7 @@ void main() {
         home: DragonGameScreen(game: game),
       ),
     );
-    expect(find.text('Scale & Gold'), findsOneWidget);
+    expect(find.text('Scale & Gold ×1'), findsOneWidget);
     expect(find.text('Bank now: 0 gold'), findsOneWidget);
     expect(find.text('Current player'), findsOneWidget);
   });
