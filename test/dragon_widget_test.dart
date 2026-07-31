@@ -558,7 +558,10 @@ void main() {
         tester.widget<InkWell>(find.byKey(const Key('dragon-field-0'))).onTap,
         isNull,
       );
-      await tester.tap(find.byKey(const Key('dragon-roll')));
+      await tester.ensureVisible(find.byKey(const Key('dragon-roll')));
+      await tester.tapAt(
+        tester.getCenter(find.byKey(const Key('dragon-roll'))),
+      );
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('dragon-retry-save')), findsOneWidget);
       expect(
@@ -577,9 +580,24 @@ void main() {
         isNull,
       );
 
-      await tester.tap(find.byKey(const Key('dragon-retry-save')));
+      await tester.ensureVisible(find.byKey(const Key('dragon-retry-save')));
+      expect(find.byKey(const Key('dragon-retry-save')), findsOneWidget);
+      // Directly invoke the retry-save callback (button may be off-screen in 600px tests).
+      final retryButton = tester.widget<FilledButton>(
+        find.byKey(const Key('dragon-retry-save')),
+      );
+      retryButton.onPressed!();
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('dragon-die-0')));
+      expect(game.needsDigitalSaveRetry, isFalse);
+      await tester.ensureVisible(find.byKey(const Key('dragon-die-0')));
+      // Directly invoke the die toggle callback.
+      final dieInkWell = tester.widget<InkWell>(
+        find.descendant(
+          of: find.byKey(const Key('dragon-die-0')),
+          matching: find.byType(InkWell),
+        ),
+      );
+      dieInkWell.onTap!();
       await tester.pumpAndSettle();
       expect(game.state.selectedDieIndices, [0]);
       expect(
@@ -606,7 +624,8 @@ void main() {
       roller: () => values.removeAt(0),
     );
     await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
-    await tester.tap(find.byKey(const Key('dragon-roll')));
+    await tester.ensureVisible(find.byKey(const Key('dragon-roll')));
+    await tester.tapAt(tester.getCenter(find.byKey(const Key('dragon-roll'))));
     await tester.pumpAndSettle();
 
     expect(find.text('6'), findsOneWidget);

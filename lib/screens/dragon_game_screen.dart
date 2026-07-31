@@ -281,62 +281,75 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
         ),
         child: SafeArea(
           bottom: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(32, 10, 32, 12),
+          child: Column(
             children: [
-              _StatusPanel(state: state),
-              if (_game.lastMessage case final message?) ...[
-                const SizedBox(height: 8),
-                _MessageBanner(message: message),
-              ],
-              const SizedBox(height: 10),
-              if (state.isBossCard)
-                _BossCard(
-                  key: const Key('dragon-boss-card'),
-                  state: state,
-                  manualMode: !isDigital,
-                  enabled: interactionEnabled,
-                  onFieldTap: (index) {
-                    if (!interactionEnabled) return;
-                    if (isDigital && state.selectedDieIndices.isNotEmpty) {
-                      _run(() => _game.placeSelectedOnField(index));
-                    } else if (!isDigital) {
-                      _placeManual(index);
-                    }
-                  },
-                )
-              else
-                _DragonChallengeCard(
-                  key: const Key('dragon-card'),
-                  state: state,
-                  game: _game,
-                  manualMode: !isDigital,
-                  enabled: interactionEnabled,
-                  onFieldTap: (index) {
-                    if (!interactionEnabled) return;
-                    if (isDigital && state.selectedDieIndices.isNotEmpty) {
-                      _run(() => _game.placeSelectedOnField(index));
-                    } else if (!isDigital) {
-                      _placeManual(index);
-                    }
-                  },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(32, 10, 32, 0),
+                child: _StatusPanel(state: state),
+              ),
+              if (_game.lastMessage case final message?)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 8, 32, 0),
+                  child: _MessageBanner(message: message),
                 ),
-              const SizedBox(height: 8),
-              if (!state.isBossCard) _RiskPanel(state: state),
-              const SizedBox(height: 8),
-              if (isDigital)
-                _DigitalDiceArea(game: _game, onRun: _run)
-              else
-                const _BlockDiceHint(),
-              const SizedBox(height: 8),
-              _AbilityBar(game: _game, onRun: _run),
-              const SizedBox(height: 22),
-              _PlayerStrip(state: state),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(32, 10, 32, 8),
+                  child: Column(
+                    children: [
+                      if (state.isBossCard)
+                        _BossCard(
+                          key: const Key('dragon-boss-card'),
+                          state: state,
+                          manualMode: !isDigital,
+                          enabled: interactionEnabled,
+                          onFieldTap: (index) {
+                            if (!interactionEnabled) return;
+                            if (isDigital &&
+                                state.selectedDieIndices.isNotEmpty) {
+                              _run(() => _game.placeSelectedOnField(index));
+                            } else if (!isDigital) {
+                              _placeManual(index);
+                            }
+                          },
+                        )
+                      else
+                        _DragonChallengeCard(
+                          key: const Key('dragon-card'),
+                          state: state,
+                          game: _game,
+                          manualMode: !isDigital,
+                          enabled: interactionEnabled,
+                          onFieldTap: (index) {
+                            if (!interactionEnabled) return;
+                            if (isDigital &&
+                                state.selectedDieIndices.isNotEmpty) {
+                              _run(() => _game.placeSelectedOnField(index));
+                            } else if (!isDigital) {
+                              _placeManual(index);
+                            }
+                          },
+                        ),
+                      const SizedBox(height: 8),
+                      if (!state.isBossCard) _RiskPanel(state: state),
+                      const SizedBox(height: 8),
+                      if (isDigital)
+                        _DigitalDiceArea(game: _game, onRun: _run)
+                      else
+                        const _BlockDiceHint(),
+                      const SizedBox(height: 8),
+                      _AbilityBar(game: _game, onRun: _run),
+                      const SizedBox(height: 8),
+                      _PlayerStrip(state: state),
+                    ],
+                  ),
+                ),
+              ),
+              _ActionBar(game: _game, onRun: _run),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: _ActionBar(game: _game, onRun: _run),
     );
   }
 
@@ -683,11 +696,10 @@ class _DragonChallengeCard extends StatelessWidget {
             ),
             LayoutBuilder(
               builder: (context, constraints) {
-                final idealHeight = constraints.maxWidth * 540 / 959;
-                final clampedHeight = idealHeight.clamp(0.0, 160.0);
+                final imgHeight = constraints.maxWidth * 540 / 959;
                 return SizedBox(
                   width: constraints.maxWidth,
-                  height: clampedHeight,
+                  height: imgHeight,
                   child: Stack(
                     children: [
                       Positioned.fill(
@@ -737,11 +749,12 @@ class _DragonChallengeCard extends StatelessWidget {
                                                     selectedDice,
                                                     card,
                                                     attempt.placed[i],
-                                                    state.fieldReductions
+                                                    state
+                                                                .fieldReductions
                                                                 .length >
                                                             i
                                                         ? state
-                                                            .fieldReductions[i]
+                                                              .fieldReductions[i]
                                                         : 0,
                                                   )))
                                       ? () => onFieldTap(i)
@@ -1581,14 +1594,18 @@ class _AbilityBar extends StatelessWidget {
                       color: ability == DragonAbility.reroll ? _deepGold : _ink,
                     ),
                     const SizedBox(width: 5),
-                    Text(
-                      _plainAbilityLabel(context, ability),
-                      style: TextStyle(
-                        color: ability == DragonAbility.reroll
-                            ? const Color(0xFFFFE6A6)
-                            : _ink,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
+                    Flexible(
+                      child: Text(
+                        _plainAbilityLabel(context, ability),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: ability == DragonAbility.reroll
+                              ? const Color(0xFFFFE6A6)
+                              : _ink,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -1718,116 +1735,121 @@ class _PlayerStrip extends StatelessWidget {
     final contentWidth =
         state.players.length * itemWidth +
         (state.players.length - 1).clamp(0, 99) * gap;
-    final maxWidth = MediaQuery.sizeOf(context).width - 64;
-    final stripWidth = contentWidth < maxWidth ? contentWidth : maxWidth;
     return SizedBox(
-      height: 62 + (textScale - 1).clamp(0, 1) * 30,
-      child: Center(
-        child: SizedBox(
-          width: stripWidth,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: state.players.length,
-            separatorBuilder: (_, _) => const SizedBox(width: gap),
-            itemBuilder: (context, index) {
-              final player = state.players[index];
-              final active = index == state.activePlayerIndex;
-              return Container(
-                key: Key('dragon-parchment-player-$index'),
-                width: 142,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 11,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFFF5D493), Color(0xFFB97832)],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: const Color(0xFF52290F),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: active
-                          ? _deepGold.withValues(alpha: .75)
-                          : const Color(0x66000000),
-                      blurRadius: active ? 8 : 5,
-                      offset: Offset(0, 3),
+      height: 62 + (textScale - 1).clamp(0, 1) * 34,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stripWidth = contentWidth < constraints.maxWidth
+              ? contentWidth
+              : constraints.maxWidth;
+          return Center(
+            child: SizedBox(
+              width: stripWidth,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: state.players.length,
+                separatorBuilder: (_, _) => const SizedBox(width: gap),
+                itemBuilder: (context, index) {
+                  final player = state.players[index];
+                  final active = index == state.activePlayerIndex;
+                  return Container(
+                    key: Key('dragon-parchment-player-$index'),
+                    width: 142,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 8,
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFFF5D493), Color(0xFFB97832)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF52290F),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: active
+                              ? _deepGold.withValues(alpha: .75)
+                              : const Color(0x66000000),
+                          blurRadius: active ? 8 : 5,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        if (active) ...[
-                          const Icon(
-                            Icons.shield_rounded,
-                            size: 13,
-                            color: _ink,
-                          ),
-                          const SizedBox(width: 4),
-                        ],
-                        Flexible(
-                          child: Text(
-                            player.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: _ink,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (active) ...[
+                              const Icon(
+                                Icons.shield_rounded,
+                                size: 13,
+                                color: _ink,
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                            Flexible(
+                              child: Text(
+                                player.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: _ink,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.monetization_on_rounded,
+                              size: 14,
+                              color: _gold,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${player.gold}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: _ink,
+                              ),
+                            ),
+                            const SizedBox(width: 9),
+                            const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 13,
+                              color: _deepGold,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${player.tamedCount}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: _ink,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.monetization_on_rounded,
-                          size: 14,
-                          color: _gold,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${player.gold}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: _ink,
-                          ),
-                        ),
-                        const SizedBox(width: 9),
-                        const Icon(
-                          Icons.auto_awesome_rounded,
-                          size: 13,
-                          color: _deepGold,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${player.tamedCount}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: _ink,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
       ),
     );
   }
