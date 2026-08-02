@@ -425,7 +425,7 @@ void main() {
       expect(attempt.placed[0]!.values, [2]);
       expect(attempt.placed[0]!.colors, [DieColor.green]);
       expect(attempt.placed[0]!.sum, 2);
-      expect(attempt.openFieldIndices, [1, 2]);
+      expect(attempt.openFieldIndices([]), [1, 2]);
       expect(
         () => attempt.placed[1] = attempt.placed[0],
         throwsUnsupportedError,

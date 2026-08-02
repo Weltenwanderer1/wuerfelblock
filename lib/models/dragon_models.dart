@@ -649,11 +649,14 @@ class DragonAttempt {
   }
 
   bool _isReducedToZero(DragonField field, int i, List<int> fieldReductions) {
+    final reduction = fieldReductions.length > i ? fieldReductions[i] : 0;
+    if (field.kind == DragonFieldKind.sum) {
+      return (field.sumTarget ?? 0) - reduction <= 0;
+    }
     if (field.kind != DragonFieldKind.number &&
         field.kind != DragonFieldKind.coloredDie) {
       return false;
     }
-    final reduction = fieldReductions.length > i ? fieldReductions[i] : 0;
     return field.effectiveNumber(reduction) <= 0;
   }
 
@@ -668,14 +671,17 @@ class DragonAttempt {
   }
 
   /// Offene Felder: null (noch nichts) ODER Summenfeld das noch nicht vollständig ist.
-  List<int> get openFieldIndices => [
+  /// [fieldReductions] is needed to check if a field was reduced to zero.
+  List<int> openFieldIndices(List<int> fieldReductions) => [
     for (var i = 0; i < _placed.length; i++)
-      if (_isFieldOpen(i)) i,
+      if (_isFieldOpen(i, fieldReductions)) i,
   ];
 
-  bool _isFieldOpen(int i) {
+  bool _isFieldOpen(int i, List<int> fieldReductions) {
     final pf = _placed[i];
-    if (pf == null) return true;
+    if (pf == null) {
+      return !_isReducedToZero(card.fields[i], i, fieldReductions);
+    }
     final field = card.fields[i];
     if (field.kind == DragonFieldKind.sum &&
         !field.isSumComplete(pf.sum, pf.values.length)) {

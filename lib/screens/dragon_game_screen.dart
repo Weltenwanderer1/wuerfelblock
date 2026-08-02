@@ -53,10 +53,17 @@ IconData _typeIcon(DragonType type) => switch (type) {
 };
 
 Color _dieColor(DieColor c) => switch (c) {
-  DieColor.white => Colors.white,
-  DieColor.blue => const Color(0xFF2196F3),
-  DieColor.green => const Color(0xFF4CAF50),
-  DieColor.black => const Color(0xFF212121),
+  DieColor.white => const Color(0xFFFFF8E1),
+  DieColor.blue => const Color(0xFF1976D2),
+  DieColor.green => const Color(0xFF2E7D32),
+  DieColor.black => const Color(0xFF37474F),
+};
+
+Color _dieColorVivid(DieColor c) => switch (c) {
+  DieColor.white => const Color(0xFFFFF8E1),
+  DieColor.blue => const Color(0xFF42A5F5),
+  DieColor.green => const Color(0xFF66BB6A),
+  DieColor.black => const Color(0xFF607D8B),
 };
 
 class DragonGameScreen extends StatefulWidget {
@@ -564,11 +571,14 @@ class _DragonChallengeCard extends StatelessWidget {
       final pf = attempt.placed[i];
       if (pf == null) {
         final field = card.fields[i];
+        final reduction = state.fieldReductions.length > i
+            ? state.fieldReductions[i]
+            : 0;
+        if (field.kind == DragonFieldKind.sum) {
+          return (field.sumTarget ?? 0) - reduction > 0;
+        }
         if (field.kind == DragonFieldKind.number ||
             field.kind == DragonFieldKind.coloredDie) {
-          final reduction = state.fieldReductions.length > i
-              ? state.fieldReductions[i]
-              : 0;
           if (field.effectiveNumber(reduction) <= 0) return false;
         }
         return true;
@@ -1104,10 +1114,11 @@ class _FieldSocket extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFilled = placed != null;
-    final isPartial = isFilled && isOpen; // Summenfeld mit Zwischenstand
-    final isComplete =
-        isFilled && !isOpen; // vollständig (nicht Summe oder Summe fertig)
     final isSum = field.kind == DragonFieldKind.sum;
+    // Sum field reduced to zero is also "complete"
+    final isReducedToZero = !isFilled && !isOpen && isSum;
+    final isPartial = isFilled && isOpen; // Summenfeld mit Zwischenstand
+    final isComplete = (isFilled && !isOpen) || isReducedToZero; // vollständig
 
     return Semantics(
       button: onTap != null,
@@ -1121,7 +1132,7 @@ class _FieldSocket extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: isComplete && !isSum
+            color: isComplete
                 ? Colors.transparent
                 : isPartial
                 ? accent.withValues(alpha: .22)
@@ -1129,7 +1140,7 @@ class _FieldSocket extends StatelessWidget {
                 ? _gold.withValues(alpha: .25)
                 : _fieldBgColor(field),
             borderRadius: BorderRadius.circular(14),
-            border: isComplete && !isSum
+            border: isComplete
                 ? null
                 : Border.all(
                     color: acceptsSelected
@@ -1156,7 +1167,7 @@ class _FieldSocket extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              if (isComplete && !isSum)
+              if (isComplete)
                 Positioned.fill(
                   child: IgnorePointer(
                     child: CustomPaint(
@@ -1186,25 +1197,22 @@ class _FieldSocket extends StatelessWidget {
                 key: isComplete && !isSum
                     ? Key('dragon-field-done-$index')
                     : null,
-                isFilled ? _placedLabel : _label,
+                isFilled
+                    ? _placedLabel
+                    : isReducedToZero
+                    ? '0'
+                    : _label,
                 style: TextStyle(
-                  color: isComplete && !isSum
-                      ? const Color(0xFFD6B77A)
-                      : const Color(0xFFFFF2D1),
+                  color: isComplete
+                      ? const Color(0xFF8B6914)
+                      : const Color(0xFF3C2415),
                   fontSize: isFilled ? 18 : 19,
                   height: .95,
                   fontWeight: FontWeight.w900,
-                  shadows: isComplete && !isSum
-                      ? null
-                      : const [
-                          Shadow(
-                            color: Color(0xFF080403),
-                            blurRadius: 3,
-                            offset: Offset(0, 1.5),
-                          ),
-                        ],
-                  decoration: TextDecoration.none,
-                  decorationColor: accent,
+                  decoration: (isFilled || isReducedToZero)
+                      ? TextDecoration.lineThrough
+                      : TextDecoration.none,
+                  decorationColor: const Color(0xFFAAAAAA),
                   decorationThickness: 2.5,
                 ),
               ),
@@ -1250,9 +1258,9 @@ class _FieldSocket extends StatelessWidget {
 
   Color _fieldBgColor(DragonField field) {
     if (field.kind == DragonFieldKind.coloredDie && field.dieColor != null) {
-      return _dieColor(field.dieColor!).withValues(alpha: .3);
+      return _dieColor(field.dieColor!).withValues(alpha: .22);
     }
-    return const Color(0xFF1A2B3C);
+    return const Color(0xFFF5E6D3);
   }
 }
 
@@ -1406,6 +1414,7 @@ class _ColoredDieWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _dieColor(die.color);
+    final vivid = _dieColorVivid(die.color);
     final isWhite = die.color == DieColor.white;
     final surfaceGradient = isWhite
         ? const LinearGradient(
@@ -1417,8 +1426,8 @@ class _ColoredDieWidget extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withValues(alpha: .82),
-              color.withValues(alpha: .42),
+              color.withValues(alpha: .92),
+              color.withValues(alpha: .65),
             ],
           );
     return Semantics(
@@ -1436,7 +1445,7 @@ class _ColoredDieWidget extends StatelessWidget {
             gradient: surfaceGradient,
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
-              color: selected ? const Color(0xFFFFD54A) : color,
+              color: selected ? const Color(0xFFFFD54A) : vivid,
               width: selected ? 4 : 3,
             ),
             boxShadow: [
@@ -1468,7 +1477,7 @@ class _ColoredDieWidget extends StatelessWidget {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: color,
+                        color: vivid,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white70),
                       ),
@@ -1730,125 +1739,129 @@ class _PlayerStrip extends StatelessWidget {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     const itemWidth = 142.0;
     const gap = 8.0;
-    final contentWidth =
-        state.players.length * itemWidth +
-        (state.players.length - 1).clamp(0, 99) * gap;
-    return SizedBox(
-      height: 62 + (textScale - 1).clamp(0, 1) * 34,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final stripWidth = contentWidth < constraints.maxWidth
-              ? contentWidth
-              : constraints.maxWidth;
-          return Center(
-            child: SizedBox(
-              width: stripWidth,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: state.players.length,
-                separatorBuilder: (_, _) => const SizedBox(width: gap),
-                itemBuilder: (context, index) {
-                  final player = state.players[index];
-                  final active = index == state.activePlayerIndex;
-                  return Container(
-                    key: Key('dragon-parchment-player-$index'),
-                    width: 142,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFFF5D493), Color(0xFFB97832)],
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: const Color(0xFF52290F),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: active
-                              ? _deepGold.withValues(alpha: .75)
-                              : const Color(0x66000000),
-                          blurRadius: active ? 8 : 5,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (active) ...[
-                              const Icon(
-                                Icons.shield_rounded,
-                                size: 13,
-                                color: _ink,
-                              ),
-                              const SizedBox(width: 4),
-                            ],
-                            Flexible(
-                              child: Text(
-                                player.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: _ink,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.monetization_on_rounded,
-                              size: 14,
-                              color: _gold,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '${player.gold}',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: _ink,
-                              ),
-                            ),
-                            const SizedBox(width: 9),
-                            const Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 13,
-                              color: _deepGold,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '${player.tamedCount}',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: _ink,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+    const rowHeight = 62.0;
+    final players = state.players;
+    final count = players.length;
+
+    final rows = count <= 2 ? 1 : 2;
+
+    Widget buildItem(int index) {
+      final player = players[index];
+      final active = index == state.activePlayerIndex;
+      return Container(
+        key: Key('dragon-parchment-player-$index'),
+        width: itemWidth,
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF5D493), Color(0xFFB97832)],
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF52290F), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: active
+                  ? _deepGold.withValues(alpha: .75)
+                  : const Color(0x66000000),
+              blurRadius: active ? 8 : 5,
+              offset: const Offset(0, 3),
             ),
-          );
-        },
-      ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (active) ...[
+                  const Icon(Icons.shield_rounded, size: 13, color: _ink),
+                  const SizedBox(width: 4),
+                ],
+                Flexible(
+                  child: Text(
+                    player.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: _ink,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.monetization_on_rounded,
+                  size: 14,
+                  color: _gold,
+                ),
+                const SizedBox(width: 3),
+                Text(
+                  '${player.gold}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: _ink,
+                  ),
+                ),
+                const SizedBox(width: 9),
+                const Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 13,
+                  color: _deepGold,
+                ),
+                const SizedBox(width: 3),
+                Text(
+                  '${player.tamedCount}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: _ink,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    final rowWidgets = <Widget>[];
+    for (var r = 0; r < rows; r++) {
+      final rowChildren = <Widget>[];
+      for (var c = 0; c < 2; c++) {
+        final i = r * 2 + c;
+        if (i < count) {
+          if (c > 0) rowChildren.add(const SizedBox(width: gap));
+          rowChildren.add(buildItem(i));
+        }
+      }
+      rowWidgets.add(
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: rowChildren,
+          ),
+        ),
+      );
+    }
+    if (rows > 1) {
+      rowWidgets.add(const SizedBox(height: gap));
+    }
+
+    return SizedBox(
+      height:
+          rowHeight * rows +
+          (rows - 1) * gap +
+          (textScale - 1).clamp(0, 1) * 34 * rows,
+      child: Column(mainAxisSize: MainAxisSize.min, children: rowWidgets),
     );
   }
 }

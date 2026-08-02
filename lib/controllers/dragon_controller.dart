@@ -84,7 +84,10 @@ class DragonController extends ChangeNotifier {
       state.placementsSinceRoll > 0 &&
       (state.isBossCard
           ? state.mode == GameMode.block || state.dice.isNotEmpty
-          : (state.attempt?.openFieldIndices.isNotEmpty ?? false));
+          : (state.attempt
+                    ?.openFieldIndices(state.fieldReductions)
+                    .isNotEmpty ??
+                false));
 
   bool get canBossEndTurn =>
       !state.isComplete && state.isBossCard && state.placementsSinceRoll > 0;
@@ -646,7 +649,7 @@ class DragonController extends ChangeNotifier {
     if (attempt == null) return false;
     final reductions = st.fieldReductions;
     return st.dice.any(
-          (die) => attempt.openFieldIndices.any((i) {
+          (die) => attempt.openFieldIndices(reductions).any((i) {
             final field = attempt.card.fields[i];
             // Reduced-to-zero fields are not open
             if (field.kind == DragonFieldKind.number ||
@@ -673,7 +676,7 @@ class DragonController extends ChangeNotifier {
     final card = st.currentCard!;
     final reductions = st.fieldReductions;
     final reduced = st.sumFieldsReducedThisRoll;
-    for (final i in attempt.openFieldIndices) {
+    for (final i in attempt.openFieldIndices(reductions)) {
       final field = card.fields[i];
       if (field.kind != DragonFieldKind.sum) continue;
       if (reduced.contains(i)) continue; // bereits in diesem Wurf reduziert
