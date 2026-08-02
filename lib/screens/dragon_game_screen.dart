@@ -1133,7 +1133,7 @@ class _FieldSocket extends StatelessWidget {
           height: 48,
           decoration: BoxDecoration(
             color: isComplete
-                ? Colors.transparent
+                ? _fieldBgColor(field).withValues(alpha: .2)
                 : isPartial
                 ? accent.withValues(alpha: .22)
                 : acceptsSelected
@@ -1209,9 +1209,7 @@ class _FieldSocket extends StatelessWidget {
                   fontSize: isFilled ? 18 : 19,
                   height: .95,
                   fontWeight: FontWeight.w900,
-                  decoration: (isFilled || isReducedToZero)
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
+                  decoration: TextDecoration.none,
                   decorationColor: const Color(0xFFAAAAAA),
                   decorationThickness: 2.5,
                 ),
