@@ -277,6 +277,33 @@ void main() {
     expect(_fieldDecoration(tester, 0), openDecoration);
   });
 
+  testWidgets('exactly reduced occupied sum field is closed in production UI', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    const card = DragonCard(
+      id: 10,
+      type: DragonType.fire,
+      fields: [DragonField.sum(5, sumMinDice: 2), DragonField.empty()],
+    );
+    final game = DragonController.newGame(
+      names: const ['Ada', 'Bob'],
+      mode: GameMode.block,
+      repository: MemoryGameRepository(),
+      shuffledCards: const [card],
+    );
+    await game.placeManualSum(0, const [(3, DieColor.white)]);
+    await game.continueRolling();
+    await game.useAbility(DragonAbility.reduce, fieldIndex: 0, reduction: 2);
+
+    await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
+
+    expect(
+      tester.widget<InkWell>(find.byKey(const Key('dragon-field-0'))).onTap,
+      isNull,
+    );
+  });
+
   testWidgets('fantasy board uses wood status, rune card and framed actions', (
     tester,
   ) async {
@@ -502,6 +529,84 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dragon-action-bar')), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('completed screen uses high-contrast completion text', (
+    tester,
+  ) async {
+    const card = DragonCard(
+      id: 1,
+      type: DragonType.water,
+      fields: [DragonField.empty()],
+    );
+    final values = [5, 2, 3, 4, 1];
+    final game = DragonController.newGame(
+      names: ['Ada', 'Bob'],
+      mode: GameMode.digital,
+      repository: MemoryGameRepository(),
+      shuffledCards: const [card],
+      roller: () => values.removeAt(0),
+    );
+    await game.rollDigital();
+    await game.toggleDie(0);
+    await game.placeSelectedOnField(0);
+    expect(game.state.isComplete, isTrue);
+
+    await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
+
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(appBar.backgroundColor, const Color(0xFF1B100A));
+    expect(
+      tester.widget<Text>(find.text('Schuppenschatz · Geschafft')).style?.color,
+      const Color(0xFFF0C56A),
+    );
+    expect(
+      tester.widget<Text>(find.text('Sieger')).style?.color,
+      const Color(0xFFF0C56A),
+    );
+    expect(
+      tester.widget<Text>(find.text('Ada')).style?.color,
+      const Color(0xFFF1D7A1),
+    );
+  });
+
+  testWidgets('all result rows use the same light panel background', (
+    tester,
+  ) async {
+    const card = DragonCard(
+      id: 1,
+      type: DragonType.water,
+      fields: [DragonField.empty()],
+    );
+    final values = [5, 2, 3, 4, 1];
+    final game = DragonController.newGame(
+      names: ['Ada', 'Bob'],
+      mode: GameMode.digital,
+      repository: MemoryGameRepository(),
+      shuffledCards: const [card],
+      roller: () => values.removeAt(0),
+    );
+    await game.rollDigital();
+    await game.toggleDie(0);
+    await game.placeSelectedOnField(0);
+    expect(game.state.isComplete, isTrue);
+
+    await tester.pumpWidget(MaterialApp(home: DragonResultScreen(game: game)));
+
+    BoxDecoration rowDecoration(int index) {
+      final row = find.byKey(Key('dragon-result-row-$index'));
+      final container = find
+          .descendant(of: row, matching: find.byType(Container))
+          .first;
+      return tester.widget<Container>(container).decoration! as BoxDecoration;
+    }
+
+    expect(rowDecoration(0).color, const Color(0xFFF1D7A1));
+    expect(rowDecoration(1).color, const Color(0xFFF1D7A1));
+    expect(
+      tester.widget<Text>(find.text('25')).style?.color,
+      const Color(0xFF2D160B),
+    );
   });
 
   testWidgets('result screen shows ranking, bonus and opens rules', (

@@ -624,7 +624,12 @@ class DragonController extends ChangeNotifier {
               final reds = List<int>.of(state.fieldReductions);
               reds[fieldIndex] += reduction;
               changed = changed.copyWith(fieldReductions: reds);
-              lastMessage = '📉 Vorgabe um $reduction gesenkt!';
+              if (changed.attempt!.isTamed(reds)) {
+                changed = _tamed(changed);
+                lastMessage = '📉 Vorgabe gesenkt und Drache gezähmt!';
+              } else {
+                lastMessage = '📉 Vorgabe um $reduction gesenkt!';
+              }
             }
           case DragonAbility.handicap:
             final nextIdx =

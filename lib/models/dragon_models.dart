@@ -195,7 +195,7 @@ class DragonField {
   bool isSumComplete(int currentSum, int currentCount, {int reduction = 0}) {
     if (kind != DragonFieldKind.sum) return false;
     final target = (sumTarget ?? 0) - reduction;
-    return currentCount >= sumMinDice && currentSum == target;
+    return currentSum == target;
   }
 
   /// Restliche Zielsumme für dieses Feld.
@@ -528,9 +528,28 @@ abstract final class DragonDeck {
     ),
   ];
 
-  /// Baut das 41-Karten-Deck: 36 normale gemischt, jeder 7. Platz ein Boss.
+  /// Baut das 41-Karten-Deck: Die normalen Karten werden typbalanciert
+  /// gemischt, jeder 7. Platz bleibt ein Boss.
   static List<DragonCard> buildDeck({Random? random}) {
-    final normals = List<DragonCard>.of(normalCards)..shuffle(random);
+    final normalTypes = <DragonType>[
+      DragonType.water,
+      DragonType.fire,
+      DragonType.luck,
+      DragonType.ghost,
+    ];
+    final pools = <DragonType, List<DragonCard>>{
+      for (final type in normalTypes)
+        type: normalCards.where((card) => card.type == type).toList()
+          ..shuffle(random),
+    };
+    final normals = <DragonCard>[];
+    for (var round = 0; round < 9; round++) {
+      final roundTypes = List<DragonType>.of(normalTypes)..shuffle(random);
+      for (final type in roundTypes) {
+        normals.add(pools[type]!.removeLast());
+      }
+    }
+
     final bosses = List<DragonCard>.of(bossCards);
     final deck = <DragonCard>[];
     var normalIdx = 0;
@@ -684,7 +703,11 @@ class DragonAttempt {
     }
     final field = card.fields[i];
     if (field.kind == DragonFieldKind.sum &&
-        !field.isSumComplete(pf.sum, pf.values.length)) {
+        !field.isSumComplete(
+          pf.sum,
+          pf.values.length,
+          reduction: fieldReductions.length > i ? fieldReductions[i] : 0,
+        )) {
       return true;
     }
     return false;

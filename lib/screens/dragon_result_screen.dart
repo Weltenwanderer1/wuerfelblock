@@ -258,7 +258,7 @@ class _ResultRow extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 8),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: isWinner ? _gold.withValues(alpha: .15) : _panel,
+      color: _panel,
       borderRadius: BorderRadius.circular(18),
       border: Border.all(
         color: isWinner ? _gold : _muted.withValues(alpha: .3),
@@ -311,7 +311,7 @@ class _ResultRow extends StatelessWidget {
             Text(
               '${player.totalGold}',
               style: const TextStyle(
-                color: _gold,
+                color: _ink,
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
               ),

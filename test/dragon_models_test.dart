@@ -165,6 +165,71 @@ void main() {
         [37, 38, 39, 40, 41],
       );
     });
+
+    group('balanced random construction', () {
+      Map<DragonType, int> normalTypeCounts(Iterable<DragonCard> cards) => {
+        for (final type in const [
+          DragonType.water,
+          DragonType.fire,
+          DragonType.luck,
+          DragonType.ghost,
+        ])
+          type: cards.where((card) => card.type == type).length,
+      };
+
+      test('balances every normal type in quick, normal, and full decks', () {
+        final balancedDeck = DragonDeck.buildDeck(random: Random(1234));
+
+        expect(
+          normalTypeCounts(balancedDeck.take(18)).values,
+          everyElement(4),
+          reason: '18 Karten enthalten 16 normale Karten.',
+        );
+        expect(
+          normalTypeCounts(balancedDeck.take(28)).values,
+          everyElement(6),
+          reason: '28 Karten enthalten 24 normale Karten.',
+        );
+        expect(normalTypeCounts(balancedDeck).values, everyElement(9));
+      });
+
+      test('keeps boss positions and ids unchanged for every seed', () {
+        for (final seed in [1, 1234, 987654]) {
+          final seededDeck = DragonDeck.buildDeck(random: Random(seed));
+          expect(
+            [
+              for (var index = 0; index < seededDeck.length; index++)
+                if (seededDeck[index].isBoss) index + 1,
+            ],
+            [7, 14, 21, 28, 35],
+          );
+          expect(
+            [
+              for (var index = 6; index < seededDeck.length; index += 7)
+                seededDeck[index].id,
+            ],
+            [37, 38, 39, 40, 41],
+          );
+        }
+      });
+
+      test('reproduces the normal card order for the same seed', () {
+        List<int> normalIds(int seed) => DragonDeck.buildDeck(
+          random: Random(seed),
+        ).where((card) => !card.isBoss).map((card) => card.id).toList();
+
+        expect(normalIds(1234), normalIds(1234));
+      });
+
+      test('varies the normal card order for different seeds', () {
+        List<int> normalIds(int seed) => DragonDeck.buildDeck(
+          random: Random(seed),
+        ).where((card) => !card.isBoss).map((card) => card.id).toList();
+
+        expect(normalIds(1234), isNot(normalIds(5678)));
+      });
+    });
+
     test('fire dragons contain one sum field and no flame field', () {
       for (final card in deck.where((card) => card.type == DragonType.fire)) {
         expect(
@@ -332,6 +397,37 @@ void main() {
         isFalse,
       );
     });
+    test('sum fields are complete at zero remaining despite minimum dice', () {
+      const field = DragonField.sum(10, sumMinDice: 2);
+
+      expect(field.isSumComplete(10, 1), isTrue);
+      expect(field.isSumComplete(7, 1, reduction: 3), isTrue);
+      expect(field.isSumComplete(7, 1, reduction: 2), isFalse);
+      expect(field.isSumComplete(7, 1, reduction: 4), isFalse);
+      expect(
+        const DragonField.sum(
+          3,
+          sumMinDice: 2,
+        ).isSumComplete(1, 1, reduction: 3),
+        isFalse,
+        reason: 'Ein belegtes Feld darf nicht unter null abgeschlossen werden.',
+      );
+    });
+    test('every fire dragon sum is complete at zero remaining', () {
+      for (final card in DragonDeck.cards.where(
+        (card) => card.type == DragonType.fire,
+      )) {
+        final field = card.fields.singleWhere(
+          (field) => field.kind == DragonFieldKind.sum,
+        );
+
+        expect(
+          field.isSumComplete(field.sumTarget!, 1),
+          isTrue,
+          reason: 'Feuerdrache ${card.id}',
+        );
+      }
+    });
     test('fire dragons treat six like every other number', () {
       expect(
         const DragonField.number(
@@ -454,6 +550,23 @@ void main() {
       expect(attempt.placed[0]!.gold, 10);
       expect(attempt.diceGold, 10);
       expect(attempt.isTamed(const []), isTrue);
+    });
+    test('sum field openness and taming include its reduction', () {
+      const card = DragonCard(
+        id: 93,
+        type: DragonType.fire,
+        fields: [DragonField.sum(10, sumMinDice: 2)],
+      );
+      final attempt = DragonAttempt.empty(
+        card,
+      ).placeSum(0, const [DieRoll(7, DieColor.white)]);
+
+      expect(attempt.openFieldIndices(const [2]), [0]);
+      expect(attempt.isTamed(const [2]), isFalse);
+      expect(attempt.openFieldIndices(const [3]), isEmpty);
+      expect(attempt.isTamed(const [3]), isTrue);
+      expect(attempt.openFieldIndices(const [4]), [0]);
+      expect(attempt.isTamed(const [4]), isFalse);
     });
     test('a six contributes six gold', () {
       const card = DragonCard(

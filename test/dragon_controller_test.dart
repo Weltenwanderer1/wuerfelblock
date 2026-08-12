@@ -388,6 +388,116 @@ void main() {
       expect(game.state.activePlayer.usedAbilities, [DragonAbility.reduce]);
     });
 
+    for (final mode in GameMode.values) {
+      test(
+        'reduce immediately tames an unplaced zero field in ${mode.name} mode',
+        () async {
+          const card = DragonCard(
+            id: 10,
+            type: DragonType.fire,
+            fields: [DragonField.sum(3, sumMinDice: 2)],
+          );
+          const nextCard = DragonCard(
+            id: 2,
+            type: DragonType.water,
+            fields: [DragonField.empty()],
+          );
+          final game = mode == GameMode.digital
+              ? digital(rolls: [], cards: const [card, nextCard])
+              : block(cards: const [card, nextCard]);
+
+          await game.useAbility(
+            DragonAbility.reduce,
+            fieldIndex: 0,
+            reduction: 3,
+          );
+
+          expect(game.state.players[0].tamedDragonIds, [10]);
+          expect(game.state.players[0].gold, 0);
+          expect(game.state.players[0].usedAbilities, [DragonAbility.reduce]);
+          expect(game.state.currentCard, same(nextCard));
+          expect(game.lastMessage, contains('gezähmt'));
+        },
+      );
+
+      test(
+        'reduce immediately completes a partial sum in ${mode.name} mode',
+        () async {
+          const card = DragonCard(
+            id: 10,
+            type: DragonType.fire,
+            fields: [DragonField.sum(5, sumMinDice: 2)],
+          );
+          const nextCard = DragonCard(
+            id: 2,
+            type: DragonType.water,
+            fields: [DragonField.empty()],
+          );
+          final game = mode == GameMode.digital
+              ? digital(rolls: [3, 1, 2, 4, 5], cards: const [card, nextCard])
+              : block(cards: const [card, nextCard]);
+          if (mode == GameMode.digital) {
+            await game.rollDigital();
+            await game.toggleDie(0);
+            await game.placeSelectedOnField(0);
+          } else {
+            await game.placeManualSum(0, const [(3, DieColor.white)]);
+          }
+
+          await game.useAbility(
+            DragonAbility.reduce,
+            fieldIndex: 0,
+            reduction: 2,
+          );
+
+          expect(game.state.players[0].tamedDragonIds, [10]);
+          expect(game.state.players[0].gold, 3);
+          expect(game.state.players[0].usedAbilities, [DragonAbility.reduce]);
+          expect(game.state.currentCard, same(nextCard));
+          expect(game.lastMessage, contains('gezähmt'));
+        },
+      );
+
+      test(
+        'reduce does not tame an over-reduced partial sum in ${mode.name} mode',
+        () async {
+          const card = DragonCard(
+            id: 10,
+            type: DragonType.fire,
+            fields: [DragonField.sum(3, sumMinDice: 2)],
+          );
+          const nextCard = DragonCard(
+            id: 2,
+            type: DragonType.water,
+            fields: [DragonField.empty()],
+          );
+          final game = mode == GameMode.digital
+              ? digital(rolls: [1, 2, 3, 4, 5], cards: const [card, nextCard])
+              : block(cards: const [card, nextCard]);
+          if (mode == GameMode.digital) {
+            await game.rollDigital();
+            await game.toggleDie(0);
+            await game.placeSelectedOnField(0);
+          } else {
+            await game.placeManualSum(0, const [(1, DieColor.white)]);
+          }
+
+          await game.useAbility(
+            DragonAbility.reduce,
+            fieldIndex: 0,
+            reduction: 3,
+          );
+
+          expect(game.state.players[0].tamedDragonIds, isEmpty);
+          expect(game.state.currentCard, same(card));
+          expect(
+            game.state.attempt!.isTamed(game.state.fieldReductions),
+            isFalse,
+          );
+        },
+      );
+    }
+
     test('reduce lets a die match the lowered value', () async {
       const card = DragonCard(
         id: 3,

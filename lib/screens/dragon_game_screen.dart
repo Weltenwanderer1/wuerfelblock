@@ -355,9 +355,11 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
   Widget _buildCompleted() => Scaffold(
     backgroundColor: _page,
     appBar: AppBar(
+      backgroundColor: const Color(0xFF1B100A),
+      surfaceTintColor: Colors.transparent,
       title: const LocalizedText(
         'Schuppenschatz · Geschafft',
-        style: TextStyle(color: _ink),
+        style: TextStyle(color: _deepGold, fontWeight: FontWeight.w900),
       ),
       automaticallyImplyLeading: false,
       iconTheme: const IconThemeData(color: _ink),
@@ -373,13 +375,16 @@ class _DragonGameScreenState extends State<DragonGameScreen> {
               const SizedBox(height: 12),
               const LocalizedText(
                 'Sieger',
-                style: TextStyle(fontWeight: FontWeight.w700, color: _muted),
+                style: TextStyle(fontWeight: FontWeight.w700, color: _deepGold),
               ),
               const SizedBox(height: 4),
               Text(
                 _state.winners.map((p) => p.name).join(', '),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineMedium,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: _panel,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 18),
               FilledButton.icon(
@@ -584,7 +589,13 @@ class _DragonChallengeCard extends StatelessWidget {
         return true;
       }
       return card.fields[i].kind == DragonFieldKind.sum &&
-          !card.fields[i].isSumComplete(pf.sum, pf.values.length);
+          !card.fields[i].isSumComplete(
+            pf.sum,
+            pf.values.length,
+            reduction: state.fieldReductions.length > i
+                ? state.fieldReductions[i]
+                : 0,
+          );
     }
 
     bool fieldCanUseThisRoll(int i) =>
