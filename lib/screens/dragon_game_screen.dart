@@ -1117,7 +1117,6 @@ class _FieldSocket extends StatelessWidget {
     final isSum = field.kind == DragonFieldKind.sum;
     // Sum field reduced to zero is also "complete"
     final isReducedToZero = !isFilled && !isOpen && isSum;
-    final isPartial = isFilled && isOpen; // Summenfeld mit Zwischenstand
     final isComplete = (isFilled && !isOpen) || isReducedToZero; // vollständig
 
     return Semantics(
@@ -1133,9 +1132,7 @@ class _FieldSocket extends StatelessWidget {
           height: 48,
           decoration: BoxDecoration(
             color: isComplete
-                ? _fieldBgColor(field).withValues(alpha: .2)
-                : isPartial
-                ? accent.withValues(alpha: .22)
+                ? Colors.transparent
                 : acceptsSelected
                 ? _gold.withValues(alpha: .25)
                 : _fieldBgColor(field),
@@ -1148,7 +1145,9 @@ class _FieldSocket extends StatelessWidget {
                         : accent.withValues(alpha: .72),
                     width: acceptsSelected ? 3 : 1.6,
                   ),
-            boxShadow: acceptsSelected
+            boxShadow: isComplete
+                ? null
+                : acceptsSelected
                 ? [
                     BoxShadow(
                       color: _gold.withValues(alpha: .48),

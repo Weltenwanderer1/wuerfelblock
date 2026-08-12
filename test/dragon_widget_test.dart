@@ -33,6 +33,16 @@ void _useTallViewport(WidgetTester tester) {
   });
 }
 
+BoxDecoration _fieldDecoration(WidgetTester tester, int index) {
+  final field = find.byKey(Key('dragon-field-$index'));
+  final animatedContainer = find.descendant(
+    of: field,
+    matching: find.byType(AnimatedContainer),
+  );
+  return tester.widget<AnimatedContainer>(animatedContainer).decoration!
+      as BoxDecoration;
+}
+
 void main() {
   testWidgets(
     'setup exposes Schuppenschatz, limits players to four and quick game',
@@ -225,6 +235,48 @@ void main() {
     expect(game.state.dice, hasLength(4));
   });
 
+  testWidgets('partial sum field keeps the unchanged open field decoration', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    const card = DragonCard(
+      id: 10,
+      type: DragonType.fire,
+      fields: [
+        DragonField.sum(3, sumMinDice: 2, sumMaxDice: 2),
+        DragonField.empty(),
+      ],
+    );
+    final values = [1, 4, 3, 4, 5];
+    final game = DragonController.newGame(
+      names: ['Ada', 'Bob'],
+      mode: GameMode.digital,
+      repository: MemoryGameRepository(),
+      shuffledCards: const [card],
+      roller: () => values.removeAt(0),
+    );
+    await tester.pumpWidget(MaterialApp(home: DragonGameScreen(game: game)));
+    final openDecoration = _fieldDecoration(tester, 0);
+
+    await tester.tap(find.byKey(const Key('dragon-roll')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dragon-die-0')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('dragon-field-0')));
+    await tester.tap(find.byKey(const Key('dragon-field-0')));
+    await tester.pumpAndSettle();
+
+    expect(game.state.attempt!.placed[0]!.values, [1]);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('dragon-field-0')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
+    expect(_fieldDecoration(tester, 0), openDecoration);
+  });
+
   testWidgets('fantasy board uses wood status, rune card and framed actions', (
     tester,
   ) async {
@@ -277,6 +329,10 @@ void main() {
 
     expect(find.byKey(const Key('dragon-field-done-0')), findsOneWidget);
     expect(find.byKey(const Key('dragon-field-dashed-0')), findsOneWidget);
+    final decoration = _fieldDecoration(tester, 0);
+    expect(decoration.color, Colors.transparent);
+    expect(decoration.border, isNull);
+    expect(decoration.boxShadow, isNull);
   });
 
   testWidgets('block screen records the color of a physical die', (
