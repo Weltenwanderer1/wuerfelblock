@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/localized_text.dart';
@@ -195,36 +197,38 @@ class _SetupScreenState extends State<SetupScreen> {
       starting = true;
       startError = null;
     });
+    final randomizedNames = List<String>.of(cleanedNames)
+      ..shuffle(Random.secure());
     final Object controller = switch (game) {
       GameKind.colordice => ColordiceController.newGame(
-        names: cleanedNames,
+        names: randomizedNames,
         repository: widget.repository,
         mode: mode,
       ),
       GameKind.tenThousand => TenThousandController.newGame(
-        names: cleanedNames,
+        names: randomizedNames,
         repository: widget.repository,
         mode: mode,
       ),
       GameKind.balut => BalutController.newGame(
-        names: cleanedNames,
+        names: randomizedNames,
         repository: widget.repository,
         mode: mode,
       ),
       GameKind.escalero => EscaleroController.newGame(
-        names: cleanedNames,
+        names: randomizedNames,
         repository: widget.repository,
         mode: mode,
       ),
       GameKind.yahtzeeKniffel => GameController.newGame(
         ruleSet: RuleSet.kniffel,
         mode: mode,
-        names: cleanedNames,
+        names: randomizedNames,
         repository: widget.repository,
       ),
       GameKind.regicide => throw StateError('Regicide is handled earlier.'),
       GameKind.dragongold => DragonController.newGame(
-        names: cleanedNames,
+        names: randomizedNames,
         repository: widget.repository,
         mode: mode,
         quickGame: dragonQuickGame,

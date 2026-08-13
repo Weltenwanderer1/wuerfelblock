@@ -1746,7 +1746,7 @@ class _PlayerStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     const itemWidth = 142.0;
-    const gap = 8.0;
+    const gap = 12.0;
     const rowHeight = 62.0;
     final players = state.players;
     final count = players.length;
