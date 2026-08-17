@@ -9,6 +9,7 @@ import 'card_games_rules_screen.dart';
 import 'escalero_rules_screen.dart';
 import 'colordice_rules_screen.dart';
 import 'rules_screen.dart';
+import 'quattrodice_rules_screen.dart';
 import 'schuppenschatz_rules_screen.dart';
 import 'ten_thousand_rules_screen.dart';
 
@@ -65,6 +66,14 @@ class RulesSelectionScreen extends StatelessWidget {
           icon: Icons.casino_outlined,
           accent: AppColors.lavender,
           ruleScreen: EscaleroRulesScreen(),
+        ),
+        const _RuleLink(
+          key: Key('rules-link-quattrodice'),
+          title: 'QuattroDice',
+          subtitle: 'COLOUR SQUARE – 16 SQUARES, Brücken & Joker',
+          icon: Icons.grid_view_outlined,
+          accent: AppColors.lavender,
+          ruleScreen: QuattroRulesScreen(),
         ),
         const _RuleLink(
           key: Key('rules-link-schuppenschatz'),

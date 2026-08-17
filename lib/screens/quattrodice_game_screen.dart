@@ -3,6 +3,7 @@ import '../controllers/quattrodice_controller.dart';
 import '../l10n/localized_text.dart';
 import '../models/quattrodice_models.dart';
 import 'quattrodice_result_screen.dart';
+import 'quattrodice_rules_screen.dart';
 
 class QuattroGameScreen extends StatefulWidget {
   const QuattroGameScreen({required this.game, super.key});
@@ -67,6 +68,14 @@ class _QuattroGameScreenState extends State<QuattroGameScreen> {
           'QuattroDice · Seite ${st.side.name.toUpperCase()}',
         ),
         actions: [
+          IconButton(
+            tooltip: localizeText(context, 'QuattroDice-Regeln'),
+            onPressed: () => Navigator.push<void>(
+              context,
+              MaterialPageRoute(builder: (_) => const QuattroRulesScreen()),
+            ),
+            icon: const Icon(Icons.menu_book_outlined),
+          ),
           IconButton(
             icon: const Icon(Icons.undo),
             onPressed: game.canUndo ? () => _run(game.undo) : null,
