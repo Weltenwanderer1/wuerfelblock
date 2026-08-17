@@ -543,8 +543,7 @@ abstract final class DragonDeck {
           ..shuffle(random),
     };
     final normals = <DragonCard>[];
-    // Standardspiel: pro normalem Drachentyp zwei Karten weniger.
-    for (var round = 0; round < 7; round++) {
+    for (var round = 0; round < 9; round++) {
       final roundTypes = List<DragonType>.of(normalTypes)..shuffle(random);
       for (final type in roundTypes) {
         normals.add(pools[type]!.removeLast());
@@ -555,7 +554,7 @@ abstract final class DragonDeck {
     final deck = <DragonCard>[];
     var normalIdx = 0;
     var bossIdx = 0;
-    for (var pos = 1; pos <= 33; pos++) {
+    for (var pos = 1; pos <= 41; pos++) {
       if (pos % 7 == 0 && bossIdx < bosses.length) {
         deck.add(bosses[bossIdx++]);
       } else {
@@ -969,8 +968,7 @@ class DragonGameState implements SavedGameState {
       throw ArgumentError('Schuppenschatz braucht 2 bis 4 eindeutige Spieler.');
     }
     final cards = shuffledCards ?? DragonDeck.buildDeck(random: random);
-    // Kurzspiel: pro normalem Drachentyp eine weitere Karte weniger.
-    final chosen = cards.take(quickGame ? 14 : 28).toList();
+    final chosen = cards.take(quickGame ? 18 : 28).toList();
     if (chosen.isEmpty) {
       throw ArgumentError('Mindestens eine Drachenkarte ist nötig.');
     }
