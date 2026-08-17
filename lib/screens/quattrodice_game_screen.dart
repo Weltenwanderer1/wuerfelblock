@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/quattrodice_controller.dart';
 import '../l10n/localized_text.dart';
+import '../models/game_models.dart';
 import '../models/quattrodice_models.dart';
 import 'quattrodice_result_screen.dart';
 import 'quattrodice_rules_screen.dart';
@@ -121,63 +122,85 @@ class _QuattroGameScreenState extends State<QuattroGameScreen> {
               padding: const EdgeInsets.all(14),
               children: [
           // dice bar
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      for (int i = 0; i < 5; i++)
-                        Column(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: diceColors[i],
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.black12),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                '${st.dice[i]}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 22,
-                                  color: i == 4 ? Colors.black : Colors.white,
+          // dice bar: only in digital mode; in block (echte Würfel) hide dice + Würfeln
+          if (st.mode == GameMode.digital)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        for (int i = 0; i < 5; i++)
+                          Column(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: diceColors[i],
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.black12),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${st.dice[i]}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 22,
+                                    color: i == 4 ? Colors.black : Colors.white,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              diceLabels[i],
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                          ],
+                              const SizedBox(height: 4),
+                              Text(
+                                diceLabels[i],
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () => _run(game.roll),
+                          icon: const Icon(Icons.casino),
+                          label: const Text('Würfeln'),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      FilledButton.icon(
-                        onPressed: () => _run(game.roll),
-                        icon: const Icon(Icons.casino),
-                        label: const Text('Würfeln'),
+                        const SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: () => _run(game.nextPlayer),
+                          child: const Text('Nächste Person'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Echte Würfel am Tisch – Zahlen direkt ins Brett eintragen.',
+                        style: TextStyle(color: Colors.black54, fontSize: 13),
                       ),
-                      const SizedBox(width: 8),
-                      OutlinedButton(
-                        onPressed: () => _run(game.nextPlayer),
-                        child: const Text('Nächste Person'),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                    OutlinedButton(
+                      onPressed: () => _run(game.nextPlayer),
+                      child: const Text('Nächste Person'),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           const SizedBox(height: 10),
           // board grid
           _BoardGrid(
