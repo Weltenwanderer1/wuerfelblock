@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../core/app_theme.dart';
@@ -435,7 +434,7 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                MdiIcons.swordCross,
+                                Icons.sports_martial_arts,
                                 color: _swordGrey,
                                 size: 36,
                               ),
@@ -512,12 +511,12 @@ class _RegicideCounterScreenState extends State<RegicideCounterScreen> {
       Expanded(
         child: _ActionButton(
           key: const Key('regicide-attack-btn'),
-          icon: MdiIcons.swordCross,
+          icon: Icons.sports_martial_arts,
           iconColor: _swordGrey,
           label: 'Angriff',
           onTap: () => _showNumberDialog(
             title: 'Angriff eingeben',
-            icon: MdiIcons.swordCross,
+            icon: Icons.sports_martial_arts,
             iconColor: _swordGrey,
             onSubmit: (value) => setState(() {
               _damageDealt = (_damageDealt + value).clamp(0, _currentHealth);
