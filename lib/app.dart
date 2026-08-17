@@ -4,34 +4,38 @@ import 'l10n/app_localizations.dart';
 import 'l10n/localized_text.dart';
 
 import 'controllers/balut_controller.dart';
+import 'controllers/colordice_controller.dart';
 import 'controllers/dragon_controller.dart';
 import 'controllers/escalero_controller.dart';
 import 'controllers/game_controller.dart';
-import 'controllers/colordice_controller.dart';
+import 'controllers/quattrodice_controller.dart';
 import 'controllers/ten_thousand_controller.dart';
 import 'core/app_theme.dart';
 import 'models/balut_models.dart';
+import 'models/colordice_models.dart';
 import 'models/dragon_models.dart';
 import 'models/escalero_models.dart';
 import 'models/game_models.dart';
-import 'models/colordice_models.dart';
+import 'models/quattrodice_models.dart';
 import 'models/saved_game_state.dart';
 import 'models/ten_thousand_models.dart';
 import 'screens/balut_game_screen.dart';
 import 'screens/balut_result_screen.dart';
 import 'screens/block_game_screen.dart';
+import 'screens/colordice_game_screen.dart';
+import 'screens/colordice_result_screen.dart';
 import 'screens/digital_game_screen.dart';
 import 'screens/dragon_game_screen.dart';
 import 'screens/dragon_result_screen.dart';
 import 'screens/escalero_game_screen.dart';
 import 'screens/escalero_result_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/colordice_game_screen.dart';
-import 'screens/colordice_result_screen.dart';
+import 'screens/quattrodice_game_screen.dart';
+import 'screens/quattrodice_result_screen.dart';
 import 'screens/result_screen.dart';
 import 'screens/setup_screen.dart';
-import 'screens/ten_thousand_game_screen.dart';
 import 'screens/ten_thousand_digital_game_screen.dart';
+import 'screens/ten_thousand_game_screen.dart';
 import 'screens/ten_thousand_result_screen.dart';
 import 'services/game_repository.dart';
 import 'services/load_generation.dart';
@@ -152,6 +156,10 @@ class _HomeHostState extends State<_HomeHost> {
             : game.state.mode == GameMode.block
             ? BlockGameScreen(game: game)
             : DigitalGameScreen(game: game),
+      QuattroController game =>
+        game.state.isComplete
+            ? QuattroResultScreen(game: game)
+            : QuattroGameScreen(game: game),
       _ => throw ArgumentError('Unbekannter Spielcontroller.'),
     };
     final route = MaterialPageRoute<void>(builder: (_) => screen);
@@ -240,6 +248,11 @@ class _HomeHostState extends State<_HomeHost> {
           _openController(
             context,
             GameController(state: state, repository: widget.repository),
+          );
+        } else if (state is QuattroGameState) {
+          _openController(
+            context,
+            QuattroController(state: state, repository: widget.repository),
           );
         }
       },

@@ -7,6 +7,7 @@ import '../models/dragon_models.dart';
 import '../models/escalero_models.dart';
 import '../models/game_models.dart';
 import '../models/colordice_models.dart';
+import '../models/quattrodice_models.dart';
 import '../models/saved_game_state.dart';
 import '../models/ten_thousand_models.dart';
 
@@ -116,5 +117,6 @@ SavedGameState decodeSavedGameState(Map<String, dynamic> json) =>
       'balut' => BalutGameState.fromJson(json),
       'escalero' => EscaleroGameState.fromJson(json),
       'dragongold' => DragonGameState.fromJson(json),
+      'quattrodice' => QuattroGameState.fromJson(json),
       _ => throw FormatException('Unbekannter Spieltyp: ${json['type']}'),
     };

@@ -9,9 +9,11 @@ import '../controllers/dragon_controller.dart';
 import '../controllers/escalero_controller.dart';
 import '../controllers/game_controller.dart';
 import '../controllers/colordice_controller.dart';
+import '../controllers/quattrodice_controller.dart';
 import '../controllers/ten_thousand_controller.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
+import '../models/quattrodice_models.dart';
 import '../services/game_repository.dart';
 import 'regicide_counter_screen.dart';
 
@@ -22,6 +24,7 @@ enum GameKind {
   balut,
   escalero,
   dragongold,
+  quattrodice,
   regicide,
 }
 
@@ -34,6 +37,7 @@ extension on GameKind {
     GameKind.escalero => 'Escalero',
     GameKind.regicide => 'Regicide',
     GameKind.dragongold => 'Schuppenschatz',
+    GameKind.quattrodice => 'QuattroDice',
   };
 
   String get detail => switch (this) {
@@ -44,6 +48,7 @@ extension on GameKind {
     GameKind.escalero => 'Pokerwürfel · 3 Kolonnen',
     GameKind.regicide => 'Kooperativer Gegner-Zähler fürs Kartenspiel',
     GameKind.dragongold => '5 Würfel · 2–5 Felder · Risiko & Gold',
+    GameKind.quattrodice => 'COLOUR SQUARE – 16 Felder · Brücken · Joker',
   };
 }
 
@@ -53,6 +58,7 @@ const publicGameKinds = <GameKind>[
   GameKind.tenThousand,
   GameKind.balut,
   GameKind.escalero,
+  GameKind.quattrodice,
   GameKind.regicide,
   GameKind.dragongold,
 ];
@@ -79,14 +85,18 @@ class _SetupScreenState extends State<SetupScreen> {
   bool starting = false;
   String? startError;
   bool dragonQuickGame = false;
+  QuattroSide quattroSide = QuattroSide.a;
 
+  bool get isQuattro => game == GameKind.quattrodice;
   bool get isColordice => game == GameKind.colordice;
   bool get isClassic => game == GameKind.yahtzeeKniffel;
   bool get isEscalero => game == GameKind.escalero;
   bool get isRegicide => game == GameKind.regicide;
   bool get isDragonGold => game == GameKind.dragongold;
-  int get minimumPlayers => 2;
-  int get maximumPlayers => isEscalero
+  int get minimumPlayers => isQuattro ? 1 : 2;
+  int get maximumPlayers => isQuattro
+      ? 6
+      : isEscalero
       ? 3
       : isColordice
       ? 5
@@ -200,6 +210,12 @@ class _SetupScreenState extends State<SetupScreen> {
     final randomizedNames = List<String>.of(cleanedNames)
       ..shuffle(Random.secure());
     final Object controller = switch (game) {
+      GameKind.quattrodice => QuattroController.newGame(
+        names: randomizedNames,
+        repository: widget.repository,
+        mode: mode,
+        side: quattroSide,
+      ),
       GameKind.colordice => ColordiceController.newGame(
         names: randomizedNames,
         repository: widget.repository,
@@ -236,6 +252,7 @@ class _SetupScreenState extends State<SetupScreen> {
     };
     try {
       await widget.repository.save(switch (controller) {
+        QuattroController() => controller.state,
         ColordiceController() => controller.state,
         TenThousandController() => controller.state,
         BalutController() => controller.state,
@@ -368,6 +385,28 @@ class _SetupScreenState extends State<SetupScreen> {
             const LocalizedText(
               'Colordice wird mit 2 bis 5 Personen gespielt.',
             ),
+          if (isQuattro) ...[
+            const LocalizedText(
+              'QuattroDice: 1–6 Spieler, Seite A Standard / B Fortgeschritten.',
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (final s in QuattroSide.values)
+                  Expanded(
+                    child: _ChoiceCard(
+                      key: Key('quattro-side-${s.name}'),
+                      label: s == QuattroSide.a ? 'Seite A' : 'Seite B',
+                      detail: s == QuattroSide.a
+                          ? 'Standard – feste Zahlen'
+                          : 'Fortgeschritten – Bereiche',
+                      selected: quattroSide == s,
+                      onTap: () => setState(() => quattroSide = s),
+                    ),
+                  ),
+              ],
+            ),
+          ],
           if (game == GameKind.yahtzeeKniffel)
             const LocalizedText(
               'Yahtzee/Kniffel wird mit 2 bis 8 Personen gespielt.',

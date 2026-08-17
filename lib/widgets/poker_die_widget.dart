@@ -82,12 +82,6 @@ class PokerDieWidget extends StatelessWidget {
                     height: 1,
                   ),
                 ),
-                if (held)
-                  const Positioned(
-                    right: 3,
-                    top: 3,
-                    child: Icon(Icons.lock, size: 14, color: Color(0xFF704000)),
-                  ),
               ],
             ),
           ),

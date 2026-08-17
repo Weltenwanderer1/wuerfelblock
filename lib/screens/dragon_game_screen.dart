@@ -1861,7 +1861,8 @@ class _PlayerStrip extends StatelessWidget {
       );
     }
     if (rows > 1) {
-      rowWidgets.add(const SizedBox(height: gap));
+      // Die unteren beiden Spielerfelder dürfen nicht am oberen Feld kleben.
+      rowWidgets.insert(1, const SizedBox(height: 10));
     }
 
     return SizedBox(
