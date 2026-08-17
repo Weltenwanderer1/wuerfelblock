@@ -86,30 +86,40 @@ class _QuattroGameScreenState extends State<QuattroGameScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(14),
+      body: Column(
         children: [
-          // player selector
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (int i = 0; i < st.players.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(
-                        st.players[i].name +
-                            (i == st.activePlayerIndex ? ' ★' : ''),
+          // floating centered player selector — always visible
+          Container(
+            width: double.infinity,
+            color: Theme.of(context).scaffoldBackgroundColor,
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (int i = 0; i < st.players.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(
+                            st.players[i].name +
+                                (i == st.activePlayerIndex ? ' ★' : ''),
+                          ),
+                          selected: displayed == i,
+                          onSelected: (_) => setState(() => displayed = i),
+                        ),
                       ),
-                      selected: displayed == i,
-                      onSelected: (_) => setState(() => displayed = i),
-                    ),
-                  ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 10),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(14),
+              children: [
           // dice bar
           Card(
             child: Padding(
@@ -161,11 +171,6 @@ class _QuattroGameScreenState extends State<QuattroGameScreen> {
                       OutlinedButton(
                         onPressed: () => _run(game.nextPlayer),
                         child: const Text('Nächste Person'),
-                      ),
-                      const Spacer(),
-                      Text(
-                        'Aktiv: ${st.activePlayer.name}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -222,6 +227,9 @@ class _QuattroGameScreenState extends State<QuattroGameScreen> {
           ),
           const SizedBox(height: 10),
           _ScorePreview(player: pl, side: st.side),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -343,13 +351,49 @@ class _BoardGrid extends StatelessWidget {
                             child: Column(
                               children: [
                                 const SizedBox(height: 4),
-                                Text(
-                                  id,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black54,
-                                  ),
+                                Builder(
+                                  builder: (_) {
+                                    if (sq.status != QuattroStatus.open) {
+                                      return Text(
+                                        id,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black54,
+                                        ),
+                                      );
+                                    }
+                                    final sum = sq.sum;
+                                    final min = def.range.min;
+                                    final max = def.range.max;
+                                    String rest;
+                                    if (min == max) {
+                                      final diff = min - sum;
+                                      if (diff > 0) {
+                                        rest = 'noch $diff';
+                                      } else if (diff == 0) {
+                                        rest = '✓ bereit';
+                                      } else {
+                                        rest = '$diff zu viel';
+                                      }
+                                    } else {
+                                      if (sum < min) {
+                                        rest = 'noch ${min - sum}';
+                                      } else if (sum <= max) {
+                                        rest = '✓ $min–$max';
+                                      } else {
+                                        rest = '+${sum - max} zu viel';
+                                      }
+                                    }
+                                    return Text(
+                                      rest,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black54,
+                                      ),
+                                    );
+                                  },
                                 ),
                                 // center number/range
                                 Container(
