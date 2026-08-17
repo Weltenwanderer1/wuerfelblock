@@ -470,6 +470,32 @@ class QuattroGameState implements SavedGameState {
   }
 
   void nextPlayer() {
+    // Auto-X: wer ein SQUARE gekreist hat, blockiert es für alle anderen (nur open → crossed)
+    // Regel: „Summe korrekt → einkreisen, alle anderen X“; schraffiert blockiert nicht.
+    for (final def in QuattroBoards.forSide(side)) {
+      final id = def.id;
+      final anyCircled = players.any(
+        (p) => p.squares[id]!.status == QuattroStatus.circled,
+      );
+      if (!anyCircled) continue;
+      for (final p in players) {
+        if (p.squares[id]!.status == QuattroStatus.open) {
+          p.squares[id]!.status = QuattroStatus.crossed;
+        }
+      }
+    }
+    // Auto-Brücken: alle erlaubten Nachbar-Brücken, deren beide Enden gekreist sind, verbinden
+    final bridges = QuattroBoards.bridgesFor(side);
+    for (final p in players) {
+      for (final b in bridges) {
+        if (p.bridges.contains(b.key)) continue;
+        final sa = p.squares[b.a]!.status;
+        final sb = p.squares[b.b]!.status;
+        if (sa == QuattroStatus.circled && sb == QuattroStatus.circled) {
+          p.bridges.add(b.key);
+        }
+      }
+    }
     activePlayerIndex = (activePlayerIndex + 1) % players.length;
     hasRolled = false;
   }
