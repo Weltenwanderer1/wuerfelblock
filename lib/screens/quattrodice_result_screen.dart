@@ -36,8 +36,9 @@ class QuattroResultScreen extends StatelessWidget {
           FilledButton(
             onPressed: () async {
               await game.abandon();
-              if (context.mounted)
+              if (context.mounted) {
                 Navigator.popUntil(context, (r) => r.isFirst);
+              }
             },
             child: const LocalizedText('Fertig · Zurück zum Start'),
           ),

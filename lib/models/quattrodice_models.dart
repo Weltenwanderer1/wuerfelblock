@@ -341,11 +341,13 @@ class QuattroGameState implements SavedGameState {
     QuattroSide side = QuattroSide.a,
   }) {
     final cleaned = names.map((e) => e.trim()).toList();
-    if (cleaned.isEmpty || cleaned.length > 6)
+    if (cleaned.isEmpty || cleaned.length > 6) {
       throw ArgumentError('1–6 Spieler');
+    }
     if (cleaned.any((e) => e.isEmpty) ||
-        cleaned.toSet().length != cleaned.length)
+        cleaned.toSet().length != cleaned.length) {
       throw ArgumentError('Namen eindeutig');
+    }
     return QuattroGameState(
       players: cleaned.map((n) => QuattroPlayer(name: n)).toList(),
       mode: mode,
@@ -375,15 +377,17 @@ class QuattroGameState implements SavedGameState {
     if (sq.status != QuattroStatus.open) return false;
     if (sq.corners[corner] != null) return false;
     // preset check
-    if (def.preset.containsKey(corner) && def.preset[corner] != value)
+    if (def.preset.containsKey(corner) && def.preset[corner] != value) {
       return false;
+    }
     // if preset corner already has value mismatch -> blocked
     return true;
   }
 
   void writeCorner(int pIdx, String sqId, QuattroCorner corner, int value) {
-    if (!canWriteCorner(pIdx, sqId, corner, value))
+    if (!canWriteCorner(pIdx, sqId, corner, value)) {
       throw StateError('Ecke nicht verfügbar');
+    }
     players[pIdx].squares[sqId]!.corners[corner] = value;
     // auto close check: if now filled, evaluate
     final sq = players[pIdx].squares[sqId]!;
@@ -402,14 +406,17 @@ class QuattroGameState implements SavedGameState {
 
   void clearCorner(int pIdx, String sqId, QuattroCorner corner) {
     final sq = players[pIdx].squares[sqId]!;
-    if (sq.status != QuattroStatus.open)
+    if (sq.status != QuattroStatus.open) {
       throw StateError('Bereits geschlossen');
+    }
     sq.corners[corner] = null;
   }
 
   void markCross(int pIdx, String sqId) {
     final sq = players[pIdx].squares[sqId]!;
-    if (sq.status != QuattroStatus.open) throw StateError('Schon geschlossen');
+    if (sq.status != QuattroStatus.open) {
+      throw StateError('Schon geschlossen');
+    }
     // only allowed when another player circled it first - we allow manual
     sq.status = QuattroStatus.crossed;
   }
@@ -438,12 +445,15 @@ class QuattroGameState implements SavedGameState {
     final allowed = QuattroBoards.bridgesFor(
       side,
     ).map((e) => e.key).contains(key);
-    if (!allowed) throw StateError('Keine Brücke hier');
+    if (!allowed) {
+      throw StateError('Keine Brücke hier');
+    }
     final sa = pl.squares[a]!;
     final sb = pl.squares[b]!;
     if (sa.status != QuattroStatus.circled ||
-        sb.status != QuattroStatus.circled)
+        sb.status != QuattroStatus.circled) {
       throw StateError('Beide SQUARES müssen gekreist sein');
+    }
     if (pl.bridges.contains(key)) {
       pl.bridges.remove(key);
     } else {
@@ -452,8 +462,9 @@ class QuattroGameState implements SavedGameState {
   }
 
   void roll(List<int> values) {
-    if (values.length != 5 || values.any((v) => v < 1 || v > 6))
+    if (values.length != 5 || values.any((v) => v < 1 || v > 6)) {
       throw ArgumentError('5 Würfel 1-6');
+    }
     dice = List.of(values);
     hasRolled = true;
   }
@@ -464,7 +475,9 @@ class QuattroGameState implements SavedGameState {
   }
 
   void checkEnd() {
-    if (players.any((p) => p.isComplete)) isComplete = true;
+    if (players.any((p) => p.isComplete)) {
+      isComplete = true;
+    }
   }
 
   QuattroGameState copy() => QuattroGameState.fromJson(toJson());
@@ -519,6 +532,7 @@ class QuattroGameState implements SavedGameState {
 // ignore: unused_element
 void _requireExactKeys(Map j, Set<String> exp) {
   // kept for future strict JSON checks
-  if (j.length != exp.length || !j.keys.toSet().containsAll(exp))
+  if (j.length != exp.length || !j.keys.toSet().containsAll(exp)) {
     throw const FormatException('JSON keys');
+  }
 }
