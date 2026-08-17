@@ -30,7 +30,12 @@ class _QuattroGameScreenState extends State<QuattroGameScreen> {
   }
 
   void _upd() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {
+        // auto-follow current actor (aktiv→passiv→nächster Aktiv)
+        displayed = game.state.currentActorIndex;
+      });
+    }
   }
 
   Future<void> _run(Future<void> Function() op) async {
@@ -93,28 +98,48 @@ class _QuattroGameScreenState extends State<QuattroGameScreen> {
           Container(
             width: double.infinity,
             color: Theme.of(context).scaffoldBackgroundColor,
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-            child: Center(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (int i = 0; i < st.players.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(
-                            st.players[i].name +
-                                (i == st.activePlayerIndex ? ' ★' : ''),
+            padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+            child: Column(
+              children: [
+                Center(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (int i = 0; i < st.players.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(
+                                st.players[i].name +
+                                    (i == st.activePlayerIndex ? ' ★' : '') +
+                                    (i == st.currentActorIndex ? ' ●' : ''),
+                              ),
+                              selected: displayed == i,
+                              onSelected: (_) => setState(() => displayed = i),
+                            ),
                           ),
-                          selected: displayed == i,
-                          onSelected: (_) => setState(() => displayed = i),
-                        ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text(
+                  st.isComplete
+                      ? 'Ende – alle Felder schließen & werten'
+                      : st.isFinalRound
+                          ? 'Letzte Runde ● ${st.currentActorName} ist dran${st.isActivePhase ? ' (aktiv ${st.roundActiveDone}/2)' : ' (passiv)'}'
+                          : st.isActivePhase
+                              ? 'Aktiv ● ${st.currentActorName} (${st.roundActiveDone}/2)'
+                              : 'Passiv ● ${st.currentActorName} (weiß)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: st.isFinalRound ? Colors.deepOrange : Colors.black54,
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -350,6 +375,7 @@ class _BoardGrid extends StatelessWidget {
                     final isCrossed = sq.status == QuattroStatus.crossed;
                     return Expanded(
                       child: Stack(
+                        clipBehavior: Clip.none,
                         children: [
                           Container(
                             margin: const EdgeInsets.all(4),
@@ -549,30 +575,36 @@ class _BoardGrid extends StatelessWidget {
                               ],
                             ),
                           ),
-                          // bridge toggles - right and bottom
+                          // bridge toggles — centered in gutter between cells
                           if (ci < 3)
                             Positioned(
-                              right: -2,
-                              top: 38,
-                              child: _BridgeDot(
-                                a: id,
-                                b: '${cols[ci + 1]}$r',
-                                state: state,
-                                playerIndex: playerIndex,
-                                onToggle: onToggleBridge,
+                              right: -11,
+                              top: 0,
+                              bottom: 0,
+                              child: Center(
+                                child: _BridgeDot(
+                                  a: id,
+                                  b: '${cols[ci + 1]}$r',
+                                  state: state,
+                                  playerIndex: playerIndex,
+                                  onToggle: onToggleBridge,
+                                ),
                               ),
                             ),
                           if (r < 4)
                             Positioned(
-                              bottom: -2,
-                              left: 38,
-                              child: _BridgeDot(
-                                a: id,
-                                b: '${cols[ci]}${r + 1}',
-                                state: state,
-                                playerIndex: playerIndex,
-                                onToggle: onToggleBridge,
-                                vertical: true,
+                              left: 0,
+                              right: 0,
+                              bottom: -11,
+                              child: Center(
+                                child: _BridgeDot(
+                                  a: id,
+                                  b: '${cols[ci]}${r + 1}',
+                                  state: state,
+                                  playerIndex: playerIndex,
+                                  onToggle: onToggleBridge,
+                                  vertical: true,
+                                ),
                               ),
                             ),
                         ],

@@ -333,6 +333,10 @@ class QuattroGameState implements SavedGameState {
     this.dice = const [1, 1, 1, 1, 1],
     this.hasRolled = false,
     this.isComplete = false,
+    this.roundActiveDone = 0,
+    this.passiveCursor = -1,
+    this.isFinalRound = false,
+    this.finalStarterIndex,
   }) : players = players.map((p) => p.copy()).toList();
 
   factory QuattroGameState.newGame(
@@ -364,8 +368,16 @@ class QuattroGameState implements SavedGameState {
   bool hasRolled;
   @override
   bool isComplete;
+  // turn flow: active does 2 entries (corners or jokers), then each passive does 1; enforces endgame
+  int roundActiveDone;
+  int passiveCursor; // -1 while active's turn, else index of current passive player (may equal active -> skipped)
+  bool isFinalRound;
+  int? finalStarterIndex;
 
   QuattroPlayer get activePlayer => players[activePlayerIndex];
+  int get currentActorIndex => passiveCursor == -1 ? activePlayerIndex : passiveCursor;
+  String get currentActorName => players[currentActorIndex].name;
+  bool get isActivePhase => passiveCursor == -1;
   List<QuattroSquareDef> get board => QuattroBoards.forSide(side);
 
   // validation helpers
@@ -402,6 +414,7 @@ class QuattroGameState implements SavedGameState {
         sq.status = QuattroStatus.shaded;
       }
     }
+    _recordEntry(pIdx);
   }
 
   void clearCorner(int pIdx, String sqId, QuattroCorner corner) {
@@ -432,6 +445,7 @@ class QuattroGameState implements SavedGameState {
     if (idx < 0) throw StateError('Joker voll');
     if (value < 1 || value > 6) throw ArgumentError('1-6');
     pl.jokers[idx] = value;
+    _recordEntry(pIdx);
   }
 
   void clearJoker(int pIdx, int idx) {
@@ -469,9 +483,84 @@ class QuattroGameState implements SavedGameState {
     hasRolled = true;
   }
 
-  void nextPlayer() {
-    // Auto-X: wer ein SQUARE gekreist hat, blockiert es für alle anderen (nur open → crossed)
-    // Regel: „Summe korrekt → einkreisen, alle anderen X“; schraffiert blockiert nicht.
+  // turn bookkeeping: call after each successful entry
+  void _recordEntry(int pIdx) {
+    if (isComplete || isFinalRound && _finalRoundDone()) return;
+    if (passiveCursor == -1) {
+      // active phase
+      if (pIdx != activePlayerIndex) return;
+      roundActiveDone++;
+      if (roundActiveDone >= 2) {
+        passiveCursor = (activePlayerIndex + 1) % players.length;
+        // skip if only 1 player? then no passive
+        if (players.length == 1) {
+          _endRoundAndRotate();
+        }
+        hasRolled = false;
+      }
+    } else {
+      // passive phase — expect exactly passiveCursor
+      if (pIdx != passiveCursor) return;
+      passiveCursor = (passiveCursor + 1) % players.length;
+      if (passiveCursor == activePlayerIndex) {
+        // all passives done (wrapped back to active)
+        _endRoundAndRotate();
+      } else {
+        hasRolled = false;
+      }
+    }
+  }
+
+  bool _finalRoundDone() {
+    // final round: starter already complete, others have had their single final roll; we shade and finish
+    return isComplete;
+  }
+
+  void _endRoundAndRotate() {
+    _autoX();
+    _autoBridges();
+    final finisher = _firstCompleteIndex();
+    // Bereits in der Finalrunde: diese Runde war die letzte für alle anderen -> jetzt endgültig schließen
+    if (isFinalRound) {
+      for (final p in players) {
+        for (final e in p.squares.entries) {
+          if (e.value.status == QuattroStatus.open) {
+            e.value.status = QuattroStatus.shaded;
+          }
+        }
+      }
+      _autoBridges();
+      isComplete = true;
+      passiveCursor = -1;
+      roundActiveDone = 0;
+      return;
+    }
+    // Erster Abschluss: Finalrunde starten – alle anderen bekommen noch genau eine Runde
+    if (finisher != null) {
+      isFinalRound = true;
+      finalStarterIndex = finisher;
+      if (players.every((p) => p.isComplete)) {
+        isComplete = true;
+        passiveCursor = -1;
+        roundActiveDone = 0;
+        return;
+      }
+      // normal rotieren – die gerade gestartete Finalrunde läuft ganz normal weiter
+    }
+    activePlayerIndex = (activePlayerIndex + 1) % players.length;
+    hasRolled = false;
+    roundActiveDone = 0;
+    passiveCursor = -1;
+  }
+
+  int? _firstCompleteIndex() {
+    for (int i = 0; i < players.length; i++) {
+      if (players[i].isComplete) return i;
+    }
+    return null;
+  }
+
+  void _autoX() {
     for (final def in QuattroBoards.forSide(side)) {
       final id = def.id;
       final anyCircled = players.any(
@@ -484,7 +573,9 @@ class QuattroGameState implements SavedGameState {
         }
       }
     }
-    // Auto-Brücken: alle erlaubten Nachbar-Brücken, deren beide Enden gekreist sind, verbinden
+  }
+
+  void _autoBridges() {
     final bridges = QuattroBoards.bridgesFor(side);
     for (final p in players) {
       for (final b in bridges) {
@@ -496,8 +587,37 @@ class QuattroGameState implements SavedGameState {
         }
       }
     }
-    activePlayerIndex = (activePlayerIndex + 1) % players.length;
-    hasRolled = false;
+  }
+
+  void nextPlayer() {
+    // manual override: treat as end-of-round rotate (also used by Nächste-Person button)
+    if (passiveCursor != -1) {
+      // if passives still pending, just step to next passive
+      passiveCursor = (passiveCursor + 1) % players.length;
+      if (passiveCursor == activePlayerIndex) {
+        _endRoundAndRotate();
+      } else {
+        hasRolled = false;
+      }
+      return;
+    }
+    if (roundActiveDone > 0) {
+      // active had 1 or 2 entries, force end of active phase
+      if (roundActiveDone >= 2 || players.length == 1) {
+        passiveCursor = (activePlayerIndex + 1) % players.length;
+        if (players.length == 1) {
+          _endRoundAndRotate();
+        } else {
+          hasRolled = false;
+        }
+        return;
+      }
+      // only 1 entry but user wants to advance → allow (Rest verfällt laut Regel gegen Ende)
+      passiveCursor = (activePlayerIndex + 1) % players.length;
+      hasRolled = false;
+      return;
+    }
+    _endRoundAndRotate();
   }
 
   void checkEnd() {
@@ -527,7 +647,7 @@ class QuattroGameState implements SavedGameState {
   @override
   Map<String, dynamic> toJson() => {
     'type': 'quattrodice',
-    'schemaVersion': 2,
+    'schemaVersion': 3,
     'side': side.name,
     'mode': mode.name,
     'players': players.map((p) => p.toJson()).toList(),
@@ -535,6 +655,10 @@ class QuattroGameState implements SavedGameState {
     'dice': dice,
     'hasRolled': hasRolled,
     'isComplete': isComplete,
+    'roundActiveDone': roundActiveDone,
+    'passiveCursor': passiveCursor,
+    'isFinalRound': isFinalRound,
+    'finalStarterIndex': finalStarterIndex,
   };
 
   factory QuattroGameState.fromJson(Map<String, dynamic> j) {
@@ -551,6 +675,10 @@ class QuattroGameState implements SavedGameState {
       dice: (j['dice'] as List).map((e) => e as int).toList(),
       hasRolled: j['hasRolled'] as bool,
       isComplete: j['isComplete'] as bool,
+      roundActiveDone: (j['roundActiveDone'] as int?) ?? 0,
+      passiveCursor: (j['passiveCursor'] as int?) ?? -1,
+      isFinalRound: (j['isFinalRound'] as bool?) ?? false,
+      finalStarterIndex: j['finalStarterIndex'] as int?,
     );
   }
 }
