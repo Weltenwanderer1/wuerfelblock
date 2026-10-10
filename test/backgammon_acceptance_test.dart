@@ -88,7 +88,7 @@ void main() {
               lang == 'de' ? 'Backgammon · 3 Punkte' : 'Backgammon · 3 points',
           };
           expect(find.text(label), findsOneWidget);
-          await t.tap(find.byIcon(Icons.help_outline));
+          await t.tap(find.byTooltip(lang == 'de' ? 'Regeln' : 'Rules'));
           await t.pumpAndSettle();
           expect(find.byType(BackgammonRulesScreen), findsOneWidget);
           expect(

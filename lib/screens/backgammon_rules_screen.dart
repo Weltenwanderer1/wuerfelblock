@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/backgammon_board.dart';
+import '../widgets/backgammon_salon.dart';
 
 class BackgammonRulesScreen extends StatelessWidget {
   const BackgammonRulesScreen({super.key});
@@ -43,27 +44,34 @@ class BackgammonRulesScreen extends StatelessWidget {
         'Single game without doubling\nNo Jacoby, Crawford, Beaver or automatic doubling rules.',
       ),
     ];
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          bgText(context, 'Backgammon · Regeln', 'Backgammon · Rules'),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          for (final s in sections)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Text(
-                bgText(context, s.$1, s.$2),
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-          const SelectableText(
-            'Backgammon Galore\nhttps://www.bkgm.com/rules.html',
+    return Theme(
+      data: salonTheme(context),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            bgText(context, 'Backgammon · Regeln', 'Backgammon · Rules'),
           ),
-        ],
+        ),
+        body: SalonSurface(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              for (final s in sections)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Text(
+                    bgText(context, s.$1, s.$2),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(color: salonIvory),
+                  ),
+                ),
+              const SelectableText(
+                'Backgammon Galore\nhttps://www.bkgm.com/rules.html',
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

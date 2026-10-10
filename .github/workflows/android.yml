@@ -98,18 +98,28 @@ jobs:
           fi
 
       - name: Prepare artifacts
+        id: artifacts
         if: github.event_name != 'pull_request'
         run: |
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "wuerfelblock-${GITHUB_REF_NAME}.apk"
-          cp build/app/outputs/bundle/release/app-release.aab "wuerfelblock-${GITHUB_REF_NAME}.aab"
-          sha256sum "wuerfelblock-${GITHUB_REF_NAME}.apk" "wuerfelblock-${GITHUB_REF_NAME}.aab" > SHA256SUMS
+          VERSION="$(python3 -c "import re; print(re.search(r'^version:\\s*(\\S+)', open('pubspec.yaml').read(), re.M).group(1))")"
+          TAG="v${VERSION}"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then TAG="$GITHUB_REF_NAME"; fi
+          printf 'tag=%s\n' "$TAG" >> "$GITHUB_OUTPUT"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "wuerfelblock-${TAG}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "wuerfelblock-${TAG}.aab"
+          sha256sum "wuerfelblock-${TAG}.apk" "wuerfelblock-${TAG}.aab" > SHA256SUMS
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Master builds remain drafts until their exact APK is independently verified.
+      # Publishing the draft reuses this build instead of running tag CI again.
+      - name: Stage GitHub Release
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
+          tag_name: ${{ steps.artifacts.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          draft: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |
-            wuerfelblock-${{ github.ref_name }}.apk
-            wuerfelblock-${{ github.ref_name }}.aab
+            wuerfelblock-${{ steps.artifacts.outputs.tag }}.apk
+            wuerfelblock-${{ steps.artifacts.outputs.tag }}.aab
             SHA256SUMS
           generate_release_notes: true

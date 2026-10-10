@@ -1,10 +1,10 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/backgammon_controller.dart';
 import '../models/backgammon_models.dart';
 import '../models/game_models.dart';
 import '../widgets/backgammon_board.dart';
+import '../widgets/backgammon_salon.dart';
 import 'backgammon_rules_screen.dart';
 
 class BackgammonGameScreen extends StatefulWidget {
@@ -16,29 +16,19 @@ class BackgammonGameScreen extends StatefulWidget {
 
 class _BackgammonGameScreenState extends State<BackgammonGameScreen> {
   int? selected;
-  bool? listPrimary;
   bool allowPop = false;
+  bool? listPrimary;
   String? message;
-  bool boardPositioned = false;
-  late final boardScroll = ScrollController(
-    onAttach: (position) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && position.hasContentDimensions && !boardPositioned) {
-          position.jumpTo(position.maxScrollExtent);
-          boardPositioned = true;
-        }
-      });
-    },
-  );
   BackgammonController get game => widget.game;
-  String t(String de, String en) => bgText(context, de, en);
   bool get locked => game.isBusy || game.needsSaveRetry;
-  @override
-  void dispose() {
-    boardScroll.dispose();
-    super.dispose();
-  }
-
+  String t(String de, String en) => bgText(context, de, en);
+  Future<T?> salonDialog<T>(WidgetBuilder builder) => showDialog<T>(
+    context: context,
+    builder: (c) => Theme(
+      data: salonTheme(c),
+      child: Builder(builder: builder),
+    ),
+  );
   Future<void> action(Future<void> Function() call) async {
     if (game.isBusy) return;
     try {
@@ -51,9 +41,7 @@ class _BackgammonGameScreenState extends State<BackgammonGameScreen> {
       }
     } catch (_) {
       if (mounted) {
-        setState(() {
-          message = t('Aktion fehlgeschlagen.', 'Action failed.');
-        });
+        setState(() => message = t('Aktion fehlgeschlagen.', 'Action failed.'));
       }
     }
   }
@@ -61,9 +49,8 @@ class _BackgammonGameScreenState extends State<BackgammonGameScreen> {
   Future<void> leave() async {
     if (game.isBusy) return;
     if (game.needsSaveRetry) {
-      final exit = await showDialog<bool>(
-        context: context,
-        builder: (c) => AlertDialog(
+      final exit = await salonDialog<bool>(
+        (c) => AlertDialog(
           title: Text(t('Stand nicht gesichert', 'Position not saved')),
           content: Text(
             t(
@@ -94,9 +81,8 @@ class _BackgammonGameScreenState extends State<BackgammonGameScreen> {
   Future<void> manualRoll() async {
     int? first, second;
     final opening = game.state.opening;
-    final values = await showDialog<List<int>>(
-      context: context,
-      builder: (c) => StatefulBuilder(
+    final values = await salonDialog<List<int>>(
+      (c) => StatefulBuilder(
         builder: (c, update) => AlertDialog(
           title: Text(
             t(
@@ -129,7 +115,7 @@ class _BackgammonGameScreenState extends State<BackgammonGameScreen> {
                               padding: EdgeInsets.zero,
                               backgroundColor:
                                   (group == 0 ? first : second) == n
-                                  ? Theme.of(c).colorScheme.primaryContainer
+                                  ? const Color(0xFF76502A)
                                   : null,
                             ),
                             onPressed: () => update(() {
@@ -139,7 +125,25 @@ class _BackgammonGameScreenState extends State<BackgammonGameScreen> {
                                 second = n;
                               }
                             }),
-                            child: Text('$n'),
+                            child: Semantics(
+                              selected: (group == 0 ? first : second) == n,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  IvoryDie(n),
+                                  if ((group == 0 ? first : second) == n)
+                                    const Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Icon(
+                                        Icons.check_circle,
+                                        size: 16,
+                                        color: salonWood,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                     ],
@@ -183,18 +187,17 @@ class _BackgammonGameScreenState extends State<BackgammonGameScreen> {
       ].fold(0, (a, b) => a + b);
   Future<void> choose(int p) async {
     if (locked || game.state.isComplete) return;
-    final currentSource = game.state.bar[game.state.activePlayerIndex] > 0
+    final source = game.state.bar[game.state.activePlayerIndex] > 0
         ? 0
         : selected;
     final moves = game.state.legalMoves
-        .where((m) => m.from == currentSource && m.to == p)
+        .where((m) => m.from == source && m.to == p)
         .toList();
     if (moves.isNotEmpty) {
       BackgammonMove? move = moves.first;
       if (moves.length > 1) {
-        move = await showDialog<BackgammonMove>(
-          context: context,
-          builder: (c) => SimpleDialog(
+        move = await salonDialog<BackgammonMove>(
+          (c) => SimpleDialog(
             title: Text(t('Würfel auswählen', 'Choose die')),
             children: [
               for (final m in moves)
@@ -208,392 +211,398 @@ class _BackgammonGameScreenState extends State<BackgammonGameScreen> {
       }
       if (move != null) await action(() => game.move(move!));
     } else if (game.state.legalMoves.any((m) => m.from == p)) {
-      setState(() {
-        selected = selected == p ? null : p;
-      });
+      setState(() => selected = selected == p ? null : p);
     }
   }
 
-  Widget button(String label, VoidCallback? callback, {Key? key}) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: OutlinedButton(
-      key: key,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(48, 48),
-        padding: const EdgeInsets.all(12),
-      ),
-      onPressed: callback,
-      child: Text(label),
-    ),
-  );
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: game,
-    builder: (context, _) {
-      final s = game.state;
-      final legal = s.legalMoves;
-      final source = s.bar[s.activePlayerIndex] > 0 && legal.isNotEmpty
-          ? 0
-          : selected;
-      final primary =
-          listPrimary ??
-          (MediaQuery.textScalerOf(context).scale(16) >= 24 ||
-              MediaQuery.of(context).accessibleNavigation);
-      return PopScope(
-        canPop: allowPop || (!game.needsSaveRetry && !game.isBusy),
-        onPopInvokedWithResult: (popped, _) {
-          if (!popped) leave();
-        },
-        child: Shortcuts(
-          shortcuts: const {
-            SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
-          },
-          child: Actions(
-            actions: {
-              DismissIntent: CallbackAction<DismissIntent>(
-                onInvoke: (_) {
-                  setState(() => selected = null);
-                  return null;
-                },
-              ),
-            },
-            child: Scaffold(
-              appBar: AppBar(
-                title: const Text('Backgammon'),
-                leading: IconButton(
-                  tooltip: t('Partie pausieren', 'Pause game'),
-                  onPressed: leave,
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                actions: [
-                  IconButton(
-                    tooltip: t('Regeln', 'Rules'),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) => const BackgammonRulesScreen(),
+  Widget button(String label, VoidCallback? callback, {Key? key}) =>
+      OutlinedButton(key: key, onPressed: callback, child: Text(label));
+  Future<void> details() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: const Color(0xFF351914),
+      builder: (c) => Theme(
+        data: salonTheme(c),
+        child: SafeArea(
+          child: SizedBox(
+            height: MediaQuery.sizeOf(c).height * .8,
+            child: AnimatedBuilder(
+              animation: game,
+              builder: (c, _) => StatefulBuilder(
+                builder: (c, update) => ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Text(
+                      t('Salon · Partieübersicht', 'Salon · Game details'),
+                      style: Theme.of(c).textTheme.titleLarge,
+                    ),
+                    for (var i = 0; i < 2; i++)
+                      Text(
+                        '${game.state.names[i]}: ${game.state.off[i]} ${t('ausgespielt', 'borne off')} · Bar ${game.state.bar[i]} · ${pipCount(game.state, i)} Pips',
+                      ),
+                    Text(
+                      t(
+                        'Hell: 24 → 1 → Ausspielen · Dunkel: 1 → 24 → Ausspielen',
+                        'Light: 24 → 1 → bear off · Dark: 1 → 24 → bear off',
                       ),
                     ),
-                    icon: const Icon(Icons.help_outline),
-                  ),
-                ],
-              ),
-              body: SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, constraints) => ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
+                    _nativeMoves(update),
+                    for (var p = 1; p <= 24; p++)
                       Text(
-                        t(
-                          'Einzelpartie ohne Verdopplung',
-                          'Single game without doubling',
-                        ),
+                        '${point(p)}: ${game.state.points[p - 1].abs()} ${game.state.points[p - 1] >= 0 ? t('helle Steine', 'light checkers') : t('dunkle Steine', 'dark checkers')}',
                       ),
-                      const SizedBox(height: 12),
-                      if (s.isComplete && !locked) ...[
-                        Text(
-                          '${s.names[s.winnerIndex!]} · ${t('Gewonnen', 'Won')}',
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                        Text(
-                          s.winType == BackgammonWinType.normal
-                              ? t(
-                                  'Normaler Sieg · 1 Punkt',
-                                  'Normal win · 1 point',
-                                )
-                              : s.winType == BackgammonWinType.gammon
-                              ? t('Gammon · 2 Punkte', 'Gammon · 2 points')
-                              : t(
-                                  'Backgammon · 3 Punkte',
-                                  'Backgammon · 3 points',
-                                ),
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        Text(
-                          s.winType == BackgammonWinType.normal
-                              ? t(
-                                  'Die andere Person hat bereits Steine ausgespielt.',
-                                  'The other player has already borne off checkers.',
-                                )
-                              : s.winType == BackgammonWinType.gammon
-                              ? t(
-                                  'Die andere Person hat keinen Stein ausgespielt.',
-                                  'The other player has borne off no checkers.',
-                                )
-                              : t(
-                                  'Kein Stein ausgespielt und noch Steine auf der Bar oder im Heimfeld des Siegers.',
-                                  'No checkers borne off, and checkers remain on the bar or in the winner’s home board.',
-                                ),
-                        ),
-                      ] else ...[
-                        for (var i = 0; i < 2; i++)
-                          Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: !s.opening && s.activePlayerIndex == i
-                                  ? BorderSide(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      width: 2,
-                                    )
-                                  : BorderSide.none,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Text(
-                                '${i == 0 ? '○' : '●'} ${s.names[i]} · ${i == 0 ? t('Hell', 'Light') : t('Dunkel', 'Dark')}${!s.opening && s.activePlayerIndex == i ? ' · ${t('Am Zug', 'To move')}' : ''}',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ),
-                          ),
-                        Text(
-                          t(
-                            s.opening ? 'Eröffnungswurf' : 'Wurf',
-                            s.opening ? 'Opening roll' : 'Roll',
-                          ),
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        if (s.opening && s.dice.isNotEmpty)
-                          Text(
-                            t(
-                              'Gleichstand – beide würfeln noch einmal',
-                              'Tie — both roll again',
-                            ),
-                          ),
-                        if (s.dice.isEmpty)
-                          Text(t('Noch kein Wurf', 'No roll yet'))
-                        else ...[
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              for (final d in s.dice)
-                                Chip(label: Text('${t('Würfel', 'Die')} $d')),
-                            ],
-                          ),
-                          if (!s.opening) _consumption(s),
-                        ],
-                        if (s.canRoll)
-                          FilledButton(
-                            onPressed: locked
-                                ? null
-                                : s.mode == GameMode.digital
-                                ? () => action(game.rollDigital)
-                                : manualRoll,
-                            child: Text(
-                              s.mode == GameMode.digital
-                                  ? t(
-                                      s.opening
-                                          ? 'Eröffnungswurf würfeln'
-                                          : 'Würfeln',
-                                      s.opening
-                                          ? 'Roll opening dice'
-                                          : 'Roll dice',
-                                    )
-                                  : t('Wurf eingeben', 'Enter roll'),
-                            ),
-                          ),
-                      ],
-                      const SizedBox(height: 12),
-                      if (game.isBusy)
-                        Semantics(
-                          liveRegion: true,
-                          child: Text(t('Wird gespeichert …', 'Saving …')),
-                        ),
-                      if (game.needsSaveRetry)
-                        Card(
-                          color: Theme.of(context).colorScheme.errorContainer,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Semantics(
-                                  liveRegion: true,
-                                  child: Text(
-                                    '⚠ ${t('Speichern fehlgeschlagen. Dieser Stand ist noch nicht gesichert.', 'Save failed. This position has not been saved yet.')}',
-                                  ),
-                                ),
-                                button(
-                                  t('Erneut speichern', 'Retry save'),
-                                  game.isBusy
-                                      ? null
-                                      : () => action(game.retrySave),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (message != null && !game.needsSaveRetry)
-                        Semantics(liveRegion: true, child: Text(message!)),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          button(
-                            t('Brett', 'Board'),
-                            () => setState(() => listPrimary = false),
-                          ),
-                          button(
-                            t('Zugliste', 'Move list'),
-                            () => setState(() => listPrimary = true),
-                          ),
-                        ],
-                      ),
-                      if (!primary) ...[
-                        Text(
-                          t(
-                            'Brett seitlich verschieben · Im Querformat siehst du mehr.',
-                            'Scroll board sideways · Landscape shows more.',
-                          ),
-                        ),
-                        Scrollbar(
-                          controller: boardScroll,
-                          thumbVisibility: true,
-                          child: SingleChildScrollView(
-                            controller: boardScroll,
-                            scrollDirection: Axis.horizontal,
-                            child: BackgammonBoard(
-                              state: s,
-                              selected: source,
-                              onPoint: locked || s.isComplete ? null : choose,
-                              width: math.max(720, constraints.maxWidth - 32),
-                              height: constraints.maxHeight < 400 ? 288 : 400,
-                            ),
-                          ),
-                        ),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            button(
-                              t('Links', 'Left'),
-                              () => boardScroll.animateTo(
-                                0,
-                                duration:
-                                    MediaQuery.of(context).disableAnimations
-                                    ? Duration.zero
-                                    : const Duration(milliseconds: 150),
-                                curve: Curves.easeOut,
-                              ),
-                            ),
-                            button(
-                              t('Rechts', 'Right'),
-                              () => boardScroll.animateTo(
-                                boardScroll.position.maxScrollExtent,
-                                duration:
-                                    MediaQuery.of(context).disableAnimations
-                                    ? Duration.zero
-                                    : const Duration(milliseconds: 150),
-                                curve: Curves.easeOut,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      Text(
-                        t(
-                          'Hell: 24 → 1 → Ausspielen · Dunkel: 1 → 24 → Ausspielen',
-                          'Light: 24 → 1 → bear off · Dark: 1 → 24 → bear off',
-                        ),
-                      ),
-                      for (var i = 0; i < 2; i++)
-                        Text(
-                          '${s.names[i]}: ${s.off[i]} ${t('ausgespielt', 'borne off')} · Bar ${s.bar[i]} · ${t('Noch', 'Remaining')} ${pipCount(s, i)} ${t('Augen bis zum Ausspielen', 'pips to bear off')}',
-                        ),
-                      if (!s.isComplete) ...[
-                        Text(
-                          t('Zugliste', 'Move list'),
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        if (s.bar[s.activePlayerIndex] > 0)
-                          Text(
-                            t(
-                              'Zuerst ${s.bar[s.activePlayerIndex]} Steine von der Bar einsetzen',
-                              'First re-enter ${s.bar[s.activePlayerIndex]} checkers from the bar',
-                            ),
-                          ),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            for (final p in legal.map((m) => m.from).toSet())
-                              button(
-                                '${point(p)}${source == p ? ' ✓' : ''}',
-                                locked
-                                    ? null
-                                    : () => setState(
-                                        () =>
-                                            selected = selected == p ? null : p,
-                                      ),
-                                key: ValueKey('source-$p'),
-                              ),
-                          ],
-                        ),
-                        if (source != null) ...[
-                          Semantics(
-                            liveRegion: true,
-                            child: Text(
-                              '${point(source)} · ${t('Ziel auswählen', 'Choose destination')}',
-                            ),
-                          ),
-                          for (final m in legal.where((m) => m.from == source))
-                            button(
-                              '${point(m.from)} → ${point(m.to)} · ${t('Würfel', 'Die')} ${m.die}${m.to < 25 && s.points[m.to - 1] * (s.activePlayerIndex == 0 ? 1 : -1) == -1 ? ' · ${t('schlagen', 'hit')}' : ''}',
-                              locked ? null : () => action(() => game.move(m)),
-                              key: ValueKey('move-${m.from}-${m.to}-${m.die}'),
-                            ),
-                          button(
-                            t('Auswahl aufheben', 'Clear selection'),
-                            () => setState(() => selected = null),
-                          ),
-                        ],
-                        if (s.canEndTurn)
-                          Text(
-                            t(
-                              'Keine weiteren legalen Züge. ${s.remaining.length} Würfel nicht spielbar.',
-                              'No further legal moves. ${s.remaining.length} dice cannot be played.',
-                            ),
-                          ),
-                        button(
-                          t('Letzten Zug zurücknehmen', 'Undo last move'),
-                          game.canUndo ? () => action(game.undo) : null,
-                        ),
-                        FilledButton(
-                          onPressed: !locked && s.canEndTurn
-                              ? () => action(game.endTurn)
-                              : null,
-                          child: Text(t('Zug abschließen', 'End turn')),
-                        ),
-                      ],
-                      ExpansionTile(
-                        title: Text(
-                          t(
-                            'Vollständige Brettübersicht',
-                            'Full board overview',
-                          ),
-                        ),
-                        children: [
-                          for (var p = 1; p <= 24; p++)
-                            ListTile(
-                              title: Text(
-                                '${point(p)}: ${s.points[p - 1].abs()} ${s.points[p - 1] >= 0 ? t('helle Steine', 'light checkers') : t('dunkle Steine', 'dark checkers')}',
-                              ),
-                            ),
-                        ],
-                      ),
-                      if (s.isComplete)
-                        FilledButton(
-                          onPressed: locked ? null : leave,
-                          child: Text(t('Zur Startseite', 'Home')),
-                        ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(c),
+                      child: Text(t('Schließen', 'Close')),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
         ),
-      );
-    },
+      ),
+    );
+  }
+
+  Widget _nativeMoves([StateSetter? update]) {
+    final s = game.state, legal = s.legalMoves;
+    final source = s.bar[s.activePlayerIndex] > 0 ? 0 : selected;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(t('Zugliste', 'Move list')),
+        if (s.bar[s.activePlayerIndex] > 0)
+          Text(
+            t(
+              'Zuerst ${s.bar[s.activePlayerIndex]} Steine von der Bar einsetzen',
+              'First re-enter ${s.bar[s.activePlayerIndex]} checkers from the bar',
+            ),
+          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final p in legal.map((m) => m.from).toSet())
+              button(
+                '${point(p)}${source == p ? ' ✓' : ''}',
+                locked
+                    ? null
+                    : () {
+                        setState(() => selected = selected == p ? null : p);
+                        update?.call(() {});
+                      },
+                key: ValueKey('source-$p'),
+              ),
+          ],
+        ),
+        if (source != null)
+          for (final m in legal.where((m) => m.from == source))
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: button(
+                '${point(m.from)} → ${point(m.to)} · ${t('Würfel', 'Die')} ${m.die}',
+                locked
+                    ? null
+                    : () async {
+                        await action(() => game.move(m));
+                        update?.call(() {});
+                      },
+                key: ValueKey('move-${m.from}-${m.to}-${m.die}'),
+              ),
+            ),
+        if (s.dice.length == 2) _consumption(s),
+      ],
+    );
+  }
+
+  String result(BackgammonGameState s) => switch (s.winType) {
+    BackgammonWinType.normal => t(
+      'Normaler Sieg · 1 Punkt',
+      'Normal win · 1 point',
+    ),
+    BackgammonWinType.gammon => t('Gammon · 2 Punkte', 'Gammon · 2 points'),
+    _ => t('Backgammon · 3 Punkte', 'Backgammon · 3 points'),
+  };
+  Widget _status(BackgammonGameState s) => Semantics(
+    liveRegion: true,
+    child: Text(
+      game.needsSaveRetry
+          ? t('⚠ Stand nicht gesichert', '⚠ Position not saved')
+          : game.isBusy
+          ? t('Wird gespeichert …', 'Saving …')
+          : s.isComplete
+          ? '${s.names[s.winnerIndex!]} · ${t('Gewonnen', 'Won')}'
+          : s.opening
+          ? (s.dice.isNotEmpty
+                ? t(
+                    'Gleichstand – beide würfeln noch einmal',
+                    'Tie — both roll again',
+                  )
+                : t('Eröffnungswurf', 'Opening roll'))
+          : '${s.names[s.activePlayerIndex]} · ${t('Am Zug', 'To move')}',
+      maxLines: MediaQuery.textScalerOf(context).scale(16) >= 24 ? null : 2,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        color: salonIvory,
+        backgroundColor: salonWood,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+  Widget _primary(BackgammonGameState s) => FilledButton(
+    key: const ValueKey('primary-action'),
+    onPressed: game.isBusy
+        ? null
+        : game.needsSaveRetry
+        ? () => action(game.retrySave)
+        : s.isComplete
+        ? leave
+        : s.canRoll
+        ? (s.mode == GameMode.digital
+              ? () => action(game.rollDigital)
+              : manualRoll)
+        : s.canEndTurn
+        ? () => action(game.endTurn)
+        : null,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: salonWood,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          padding: const EdgeInsets.all(2),
+          child: SalonSymbol(s.canRoll ? 'roll' : 'emblem', size: 22),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            game.needsSaveRetry
+                ? t('Erneut speichern', 'Retry save')
+                : s.isComplete
+                ? t('Zur Startseite', 'Home')
+                : s.canRoll
+                ? (s.mode == GameMode.digital
+                      ? t(
+                          s.opening ? 'Eröffnungswurf würfeln' : 'Würfeln',
+                          s.opening ? 'Roll opening dice' : 'Roll dice',
+                        )
+                      : t('Wurf eingeben', 'Enter roll'))
+                : t('Zug abschließen', 'End turn'),
+          ),
+        ),
+      ],
+    ),
+  );
+  Widget _tools() => Row(
+    children: [
+      Expanded(child: button(t('Zugliste', 'Move list'), details)),
+      const SizedBox(width: 8),
+      IconButton(
+        tooltip: t('Letzten Zug zurücknehmen', 'Undo last move'),
+        onPressed: !locked && game.canUndo ? () => action(game.undo) : null,
+        icon: const SalonSymbol('undo'),
+      ),
+      IconButton(
+        tooltip: t('Bedienansicht wechseln', 'Switch accessible view'),
+        onPressed: () {
+          if (MediaQuery.textScalerOf(context).scale(16) >= 24 ||
+              MediaQuery.of(context).accessibleNavigation) {
+            details();
+          } else {
+            setState(() => listPrimary = !(listPrimary ?? false));
+          }
+        },
+        icon: const Icon(Icons.accessibility_new),
+      ),
+    ],
+  );
+  Widget _tray(BackgammonGameState s) => Row(
+    children: [
+      const SalonSymbol('emblem', size: 42),
+      const SizedBox(width: 8),
+      for (var i = 0; i < 2; i++)
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: IvoryDie(s.dice.length > i ? s.dice[i] : null),
+        ),
+      Expanded(
+        child: Text(
+          s.opening
+              ? t('Ein Würfel\npro Person', 'One die\nper player')
+              : s.dice.isEmpty
+              ? t('Noch kein Wurf', 'No roll yet')
+              : '${s.remaining.length} ${t('Züge offen', 'moves left')}',
+          style: const TextStyle(fontSize: 12, color: salonIvory),
+        ),
+      ),
+    ],
+  );
+  @override
+  Widget build(BuildContext context) => Theme(
+    data: salonTheme(context),
+    child: Builder(
+      builder: (context) => AnimatedBuilder(
+        animation: game,
+        builder: (context, _) {
+          final s = game.state;
+          final native =
+              listPrimary == true ||
+              MediaQuery.textScalerOf(context).scale(16) >= 24 ||
+              MediaQuery.of(context).accessibleNavigation;
+          final source =
+              s.bar[s.activePlayerIndex] > 0 && s.legalMoves.isNotEmpty
+              ? 0
+              : selected;
+          return PopScope(
+            canPop: allowPop || (!game.needsSaveRetry && !game.isBusy),
+            onPopInvokedWithResult: (popped, _) {
+              if (!popped) leave();
+            },
+            child: Shortcuts(
+              shortcuts: const {
+                SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+              },
+              child: Actions(
+                actions: {
+                  DismissIntent: CallbackAction<DismissIntent>(
+                    onInvoke: (_) {
+                      setState(() => selected = null);
+                      return null;
+                    },
+                  ),
+                },
+                child: Scaffold(
+                  appBar: AppBar(
+                    title: const Text(
+                      'Backgammon',
+                      style: TextStyle(fontFamily: 'serif', letterSpacing: 1.5),
+                    ),
+                    leading: IconButton(
+                      tooltip: t('Partie pausieren', 'Pause game'),
+                      onPressed: leave,
+                      icon: const Icon(Icons.arrow_back),
+                    ),
+                    actions: [
+                      IconButton(
+                        tooltip: t('Regeln', 'Rules'),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => const BackgammonRulesScreen(),
+                          ),
+                        ),
+                        icon: const SalonSymbol('rules'),
+                      ),
+                    ],
+                  ),
+                  body: SafeArea(
+                    child: SalonSurface(
+                      child: LayoutBuilder(
+                        builder: (context, bounds) {
+                          final controls = Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _status(s),
+                              if (s.isComplete && !locked) Text(result(s)),
+                              const SizedBox(height: 8),
+                              _tray(s),
+                              const SizedBox(height: 8),
+                              _primary(s),
+                              _tools(),
+                            ],
+                          );
+                          if (native) {
+                            return ListView(
+                              padding: const EdgeInsets.all(12),
+                              children: [
+                                controls,
+                                _nativeMoves(),
+                                if (message != null && !game.needsSaveRetry)
+                                  Text(message!),
+                                Text(
+                                  t(
+                                    'Hell: 24 → 1 · Dunkel: 1 → 24',
+                                    'Light: 24 → 1 · Dark: 1 → 24',
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                          final board = LayoutBuilder(
+                            builder: (context, b) => Center(
+                              child: BackgammonBoard(
+                                state: s,
+                                selected: source,
+                                onPoint: locked || s.isComplete ? null : choose,
+                                width: b.maxWidth,
+                                height: b.maxHeight,
+                              ),
+                            ),
+                          );
+                          return Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: bounds.maxWidth > bounds.maxHeight
+                                ? Row(
+                                    children: [
+                                      Expanded(child: board),
+                                      const SizedBox(width: 12),
+                                      SizedBox(width: 250, child: controls),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      _status(s),
+                                      Row(
+                                        children: [
+                                          for (var i = 0; i < 2; i++)
+                                            Expanded(
+                                              child: Text(
+                                                '${i == 0 ? '○' : '●'} ${s.names[i]}',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: salonIvory,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      if (s.isComplete && !locked)
+                                        Text(
+                                          result(s),
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      const SizedBox(height: 8),
+                                      Expanded(child: board),
+                                      const SizedBox(height: 8),
+                                      _tray(s),
+                                      const SizedBox(height: 10),
+                                      _primary(s),
+                                      _tools(),
+                                    ],
+                                  ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    ),
   );
   Widget _consumption(BackgammonGameState s) {
     final pool = s.dice[0] == s.dice[1] ? List.filled(4, s.dice[0]) : s.dice;

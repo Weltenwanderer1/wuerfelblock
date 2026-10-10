@@ -137,12 +137,14 @@ void main() {
         }
         expect(screen.game.state.opening, false);
         final move = screen.game.state.legalMoves.first;
+        await tapVisible(t, find.text(lang == 'de' ? 'Zugliste' : 'Move list'));
         await tapVisible(t, find.byKey(ValueKey('source-${move.from}')));
         await tapVisible(
           t,
           find.byKey(ValueKey('move-${move.from}-${move.to}-${move.die}')),
         );
         final saved = screen.game.state.toJson();
+        await tapVisible(t, find.text(lang == 'de' ? 'Schließen' : 'Close'));
         Navigator.of(t.element(find.byType(BackgammonGameScreen))).pop();
         await t.pumpAndSettle();
         await tapVisible(
@@ -157,7 +159,7 @@ void main() {
               .toJson(),
           saved,
         );
-        await t.tap(find.byIcon(Icons.help_outline));
+        await t.tap(find.byTooltip(lang == 'de' ? 'Regeln' : 'Rules'));
         await t.pumpAndSettle();
         expect(find.byType(BackgammonRulesScreen), findsOneWidget);
         expect(t.takeException(), isNull);
