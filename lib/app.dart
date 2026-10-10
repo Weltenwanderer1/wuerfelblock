@@ -4,6 +4,9 @@ import 'l10n/app_localizations.dart';
 import 'l10n/localized_text.dart';
 
 import 'controllers/balut_controller.dart';
+import 'controllers/backgammon_controller.dart';
+import 'models/backgammon_models.dart';
+import 'screens/backgammon_game_screen.dart';
 import 'controllers/colordice_controller.dart';
 import 'controllers/dragon_controller.dart';
 import 'controllers/escalero_controller.dart';
@@ -128,6 +131,7 @@ class _HomeHostState extends State<_HomeHost> {
     bool replace = false,
   }) async {
     final Widget screen = switch (controller) {
+      BackgammonController game => BackgammonGameScreen(game: game),
       TenThousandController game =>
         game.state.isComplete
             ? TenThousandResultScreen(game: game)
@@ -219,7 +223,12 @@ class _HomeHostState extends State<_HomeHost> {
       onNewGame: _newGame,
       onContinue: () {
         final state = saved;
-        if (state is ColordiceGameState) {
+        if (state is BackgammonGameState) {
+          _openController(
+            context,
+            BackgammonController(state: state, repository: widget.repository),
+          );
+        } else if (state is ColordiceGameState) {
           _openController(
             context,
             ColordiceController(state: state, repository: widget.repository),

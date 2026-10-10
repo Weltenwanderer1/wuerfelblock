@@ -450,6 +450,7 @@ void main() {
     await tester.pump();
     final secondRemove = find.byTooltip('Spieler entfernen').at(1);
     await tester.ensureVisible(secondRemove);
+    await tester.pumpAndSettle();
     await tester.tap(secondRemove);
     await tester.pump();
     final fields = tester.widgetList<TextFormField>(find.byType(TextFormField));
@@ -612,7 +613,7 @@ void main() {
       const Key('game-mode-digital'),
       skipOffstage: false,
     );
-    await tester.ensureVisible(digitalMode);
+    await tester.scrollUntilVisible(digitalMode, 250);
     await tester.pumpAndSettle();
     await tester.tap(digitalMode);
     await tester.tap(find.byKey(const Key('start-game')));
@@ -680,7 +681,7 @@ void main() {
       const Key('game-mode-digital'),
       skipOffstage: false,
     );
-    await tester.ensureVisible(digitalMode);
+    await tester.scrollUntilVisible(digitalMode, 250);
     await tester.pumpAndSettle();
     expect(find.text('Spielart'), findsOneWidget);
     expect(find.text('Digital würfeln'), findsWidgets);

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../l10n/localized_text.dart';
 
 import '../controllers/balut_controller.dart';
+import '../controllers/backgammon_controller.dart';
 import '../controllers/dragon_controller.dart';
 import '../controllers/escalero_controller.dart';
 import '../controllers/game_controller.dart';
@@ -18,6 +19,7 @@ import '../services/game_repository.dart';
 import 'regicide_counter_screen.dart';
 
 enum GameKind {
+  backgammon,
   yahtzeeKniffel,
   colordice,
   tenThousand,
@@ -30,6 +32,7 @@ enum GameKind {
 
 extension on GameKind {
   String get label => switch (this) {
+    GameKind.backgammon => 'Backgammon',
     GameKind.yahtzeeKniffel => 'Yahtzee/Kniffel',
     GameKind.colordice => 'Colordice',
     GameKind.tenThousand => '10.000',
@@ -41,6 +44,8 @@ extension on GameKind {
   };
 
   String get detail => switch (this) {
+    GameKind.backgammon =>
+      'Zwei Personen · echtes Brett · echte oder digitale Würfel',
     GameKind.yahtzeeKniffel => 'Klassischer Würfelspaß als Block oder digital',
     GameKind.colordice => 'Farbreihen als Block oder digital',
     GameKind.tenThousand => 'Punktejagd als Block oder digital',
@@ -61,6 +66,7 @@ const publicGameKinds = <GameKind>[
   GameKind.quattrodice,
   GameKind.regicide,
   GameKind.dragongold,
+  GameKind.backgammon,
 ];
 
 class SetupScreen extends StatefulWidget {
@@ -88,13 +94,16 @@ class _SetupScreenState extends State<SetupScreen> {
   QuattroSide quattroSide = QuattroSide.a;
 
   bool get isQuattro => game == GameKind.quattrodice;
+  bool get isBackgammon => game == GameKind.backgammon;
   bool get isColordice => game == GameKind.colordice;
   bool get isClassic => game == GameKind.yahtzeeKniffel;
   bool get isEscalero => game == GameKind.escalero;
   bool get isRegicide => game == GameKind.regicide;
   bool get isDragonGold => game == GameKind.dragongold;
   int get minimumPlayers => isQuattro ? 1 : 2;
-  int get maximumPlayers => isQuattro
+  int get maximumPlayers => isBackgammon
+      ? 2
+      : isQuattro
       ? 6
       : isEscalero
       ? 3
@@ -159,7 +168,7 @@ class _SetupScreenState extends State<SetupScreen> {
   void selectGame(GameKind selected) {
     setState(() {
       game = selected;
-      if (isColordice || isEscalero || isDragonGold) {
+      if (isColordice || isEscalero || isDragonGold || isBackgammon) {
         while (names.length > maximumPlayers) {
           names.removeLast().dispose();
           nameWasEdited.removeLast();
@@ -207,9 +216,14 @@ class _SetupScreenState extends State<SetupScreen> {
       starting = true;
       startError = null;
     });
-    final randomizedNames = List<String>.of(cleanedNames)
-      ..shuffle(Random.secure());
+    final randomizedNames = List<String>.of(cleanedNames);
+    if (!isBackgammon) randomizedNames.shuffle(Random.secure());
     final Object controller = switch (game) {
+      GameKind.backgammon => BackgammonController.newGame(
+        names: randomizedNames,
+        repository: widget.repository,
+        mode: mode,
+      ),
       GameKind.quattrodice => QuattroController.newGame(
         names: randomizedNames,
         repository: widget.repository,
@@ -252,6 +266,7 @@ class _SetupScreenState extends State<SetupScreen> {
     };
     try {
       await widget.repository.save(switch (controller) {
+        BackgammonController() => controller.state,
         QuattroController() => controller.state,
         ColordiceController() => controller.state,
         TenThousandController() => controller.state,
@@ -310,7 +325,9 @@ class _SetupScreenState extends State<SetupScreen> {
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
-            final cardWidth = (constraints.maxWidth - 10) / 2;
+            final cardWidth = MediaQuery.textScalerOf(context).scale(1) >= 1.5
+                ? constraints.maxWidth
+                : (constraints.maxWidth - 10) / 2;
             return Wrap(
               children: [
                 for (final item in publicGameKinds)
@@ -344,8 +361,16 @@ class _SetupScreenState extends State<SetupScreen> {
                 Expanded(
                   child: _ChoiceCard(
                     key: Key('game-mode-${item.name}'),
-                    label: item.label,
-                    detail: item.shortDescription,
+                    label: isBackgammon
+                        ? (item == GameMode.block
+                              ? 'Echte Würfel'
+                              : 'Digitale Würfel')
+                        : item.label,
+                    detail: isBackgammon
+                        ? (item == GameMode.block
+                              ? 'Werte selbst eingeben'
+                              : 'Die App würfelt')
+                        : item.shortDescription,
                     selected: mode == item,
                     onTap: () => setState(() => mode = item),
                   ),
@@ -356,7 +381,11 @@ class _SetupScreenState extends State<SetupScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: LocalizedText(
-              mode.longDescription,
+              isBackgammon
+                  ? (mode == GameMode.block
+                        ? 'Würfelt am Tisch und gebt die beiden Werte ein. Die App führt das Brett.'
+                        : 'Die App würfelt; ihr bewegt die Steine.')
+                  : mode.longDescription,
               key: const Key('game-mode-help'),
               style: const TextStyle(
                 fontStyle: FontStyle.italic,
@@ -373,17 +402,22 @@ class _SetupScreenState extends State<SetupScreen> {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-              IconButton(
-                key: const Key('add-player'),
-                tooltip: localizeText(context, 'Spieler hinzufügen'),
-                onPressed: names.length < maximumPlayers ? addPlayer : null,
-                icon: const Icon(Icons.person_add_alt_1),
-              ),
+              if (!isBackgammon)
+                IconButton(
+                  key: const Key('add-player'),
+                  tooltip: localizeText(context, 'Spieler hinzufügen'),
+                  onPressed: names.length < maximumPlayers ? addPlayer : null,
+                  icon: const Icon(Icons.person_add_alt_1),
+                ),
             ],
           ),
           if (isColordice)
             const LocalizedText(
               'Colordice wird mit 2 bis 5 Personen gespielt.',
+            ),
+          if (isBackgammon)
+            const LocalizedText(
+              'Einzelpartie ohne Verdopplung. Name 1: Hell · Name 2: Dunkel. Der Eröffnungswurf entscheidet, wer beginnt.',
             ),
           if (isQuattro) ...[
             const LocalizedText(

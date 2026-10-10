@@ -135,9 +135,7 @@ void main() {
 
     expect(find.byKey(const Key('rules-action')), findsOneWidget);
     expect(
-      find.textContaining(
-        'Yahtzee/Kniffel, Colordice, 10.000, Balut, Escalero und Schuppenschatz',
-      ),
+      find.textContaining('Backgammon-Brett für echte oder digitale Würfel'),
       findsOneWidget,
     );
     await tester.tap(find.byKey(const Key('rules-action')));
@@ -186,7 +184,7 @@ void main() {
         const Key('game-mode-digital'),
         skipOffstage: false,
       );
-      await tester.ensureVisible(digitalMode);
+      await tester.scrollUntilVisible(digitalMode, 250);
       await tester.pumpAndSettle();
       expect(find.text('Spielart'), findsOneWidget);
       expect(find.text('Digital würfeln'), findsWidgets);

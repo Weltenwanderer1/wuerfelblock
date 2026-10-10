@@ -5,6 +5,7 @@ import '../l10n/localized_text.dart';
 import '../core/app_theme.dart';
 import '../models/game_models.dart';
 import 'balut_rules_screen.dart';
+import 'backgammon_rules_screen.dart';
 import 'card_games_rules_screen.dart';
 import 'escalero_rules_screen.dart';
 import 'colordice_rules_screen.dart';
@@ -35,6 +36,15 @@ class RulesSelectionScreen extends StatelessWidget {
           accent: AppColors.rose,
           ruleScreen: RulesScreen(ruleSet: RuleSet.kniffel),
         ),
+        const _RuleLink(
+          key: Key('rules-link-backgammon'),
+          title: 'Backgammon',
+          subtitle: 'Zwei Personen · echtes Brett · echte oder digitale Würfel',
+          icon: Icons.dashboard_outlined,
+          accent: AppColors.apricot,
+          ruleScreen: BackgammonRulesScreen(),
+        ),
+
         const _RuleLink(
           key: Key('rules-link-colordice'),
           title: 'Colordice',

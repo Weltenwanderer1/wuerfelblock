@@ -42,8 +42,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RulesSelectionScreen), findsOneWidget);
     expect(find.byKey(const Key('rules-link-ten-thousand')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('rules-link-escalero')),
+      150,
+    );
     expect(find.byKey(const Key('rules-link-escalero')), findsOneWidget);
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('rules-link-ten-thousand')),
+      -150,
+    );
     await tester.tap(find.byKey(const Key('rules-link-ten-thousand')));
     await tester.pumpAndSettle();
     expect(find.byType(TenThousandRulesScreen), findsOneWidget);
